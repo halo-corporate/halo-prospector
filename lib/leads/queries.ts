@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { todayRangeBR, nextNDaysRangeBR } from "@/lib/timezone";
 import type {
   Lead,
   LeadStatus,
@@ -51,6 +52,114 @@ export async function listLeads(filters: ListLeadsFilters = {}): Promise<Lead[]>
     throw new Error(`Falha ao buscar leads: ${error.message}`);
   }
   return data ?? [];
+}
+
+/**
+ * Leads com follow-up vencido (proximo_followup < agora).
+ * Ordenado pelo mais antigo primeiro.
+ */
+export async function listOverdueFollowups(limit = 10): Promise<Lead[]> {
+  const supabase = createClient();
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("leads")
+    .select("*")
+    .not("proximo_followup", "is", null)
+    .lt("proximo_followup", nowIso)
+    .order("proximo_followup", { ascending: true })
+    .limit(limit);
+  if (error) {
+    console.error("[listOverdueFollowups]", error);
+    return [];
+  }
+  return data ?? [];
+}
+
+/**
+ * Leads com follow-up de hoje (BR) que ainda não venceram (>= agora).
+ * Evita overlap com vencidos.
+ */
+export async function listTodayFollowups(limit = 10): Promise<Lead[]> {
+  const supabase = createClient();
+  const { endUtc } = todayRangeBR();
+  const nowIso = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("leads")
+    .select("*")
+    .not("proximo_followup", "is", null)
+    .gte("proximo_followup", nowIso)
+    .lte("proximo_followup", endUtc.toISOString())
+    .order("proximo_followup", { ascending: true })
+    .limit(limit);
+  if (error) {
+    console.error("[listTodayFollowups]", error);
+    return [];
+  }
+  return data ?? [];
+}
+
+/**
+ * Leads com follow-up entre amanhã e +N dias (BR).
+ */
+export async function listUpcomingFollowups(
+  days = 7,
+  limit = 10,
+): Promise<Lead[]> {
+  const supabase = createClient();
+  const { startUtc, endUtc } = nextNDaysRangeBR(days);
+  const { data, error } = await supabase
+    .from("leads")
+    .select("*")
+    .not("proximo_followup", "is", null)
+    .gte("proximo_followup", startUtc.toISOString())
+    .lte("proximo_followup", endUtc.toISOString())
+    .order("proximo_followup", { ascending: true })
+    .limit(limit);
+  if (error) {
+    console.error("[listUpcomingFollowups]", error);
+    return [];
+  }
+  return data ?? [];
+}
+
+/**
+ * Conta os leads em cada bucket de follow-up. Usado nos KPIs do dashboard.
+ */
+export async function countFollowupBuckets(): Promise<{
+  overdue: number;
+  today: number;
+  upcoming: number;
+}> {
+  const supabase = createClient();
+  const nowIso = new Date().toISOString();
+  const { endUtc: endToday } = todayRangeBR();
+  const { startUtc: startNext, endUtc: endNext } = nextNDaysRangeBR(7);
+
+  const [a, b, c] = await Promise.all([
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .not("proximo_followup", "is", null)
+      .lt("proximo_followup", nowIso),
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .not("proximo_followup", "is", null)
+      .gte("proximo_followup", nowIso)
+      .lte("proximo_followup", endToday.toISOString()),
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .not("proximo_followup", "is", null)
+      .gte("proximo_followup", startNext.toISOString())
+      .lte("proximo_followup", endNext.toISOString()),
+  ]);
+
+  return {
+    overdue: a.count ?? 0,
+    today: b.count ?? 0,
+    upcoming: c.count ?? 0,
+  };
 }
 
 /**

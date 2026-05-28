@@ -1,5 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
-import type { Interacao } from "@/lib/database.types";
+import type {
+  Interacao,
+  InteracaoCanal,
+  InteracaoTipo,
+} from "@/lib/database.types";
+
+export interface RecentInteracao {
+  id: string;
+  lead_id: string;
+  lead_empresa: string;
+  data_hora: string;
+  canal: InteracaoCanal;
+  tipo: InteracaoTipo;
+  resumo: string;
+}
 
 /**
  * Lista interações de um lead, ordem cronológica reversa (mais recentes primeiro).
@@ -46,4 +60,36 @@ export async function fetchLastInteracaoMap(
     }
   }
   return out;
+}
+
+/**
+ * Últimas N interações em todos os leads, com o nome da empresa joined.
+ * Usado no dashboard.
+ */
+export async function listRecentInteracoes(
+  limit = 5,
+): Promise<RecentInteracao[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("interacoes")
+    .select("id, lead_id, data_hora, canal, tipo, resumo, leads(empresa)")
+    .order("data_hora", { ascending: false })
+    .limit(limit);
+  if (error) {
+    console.error("[listRecentInteracoes]", error);
+    return [];
+  }
+  return (data ?? []).map((r) => {
+    // `leads` vem como objeto único da FK (não array).
+    const leadsField = r.leads as unknown as { empresa: string } | null;
+    return {
+      id: r.id,
+      lead_id: r.lead_id,
+      lead_empresa: leadsField?.empresa ?? "—",
+      data_hora: r.data_hora,
+      canal: r.canal,
+      tipo: r.tipo,
+      resumo: r.resumo,
+    };
+  });
 }
