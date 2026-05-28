@@ -59,6 +59,13 @@ export type InteracaoTipo =
   | "reuniao"
   | "nota_interna";
 
+export type MensagemCanal =
+  | "whatsapp"
+  | "email"
+  | "instagram"
+  | "sms"
+  | "outro";
+
 // ---------------------------------------------------------------------------
 // Listas pra renderizar selects / labels em PT-BR
 // ---------------------------------------------------------------------------
@@ -134,6 +141,22 @@ export const INTERACAO_TIPO_LABELS: Record<InteracaoTipo, string> = {
   ligacao_nao_atendida: "Ligação não atendida",
   reuniao: "Reunião",
   nota_interna: "Nota interna",
+};
+
+export const MENSAGEM_CANAIS: MensagemCanal[] = [
+  "whatsapp",
+  "email",
+  "instagram",
+  "sms",
+  "outro",
+];
+
+export const MENSAGEM_CANAL_LABELS: Record<MensagemCanal, string> = {
+  whatsapp: "WhatsApp",
+  email: "E-mail",
+  instagram: "Instagram",
+  sms: "SMS",
+  outro: "Outro",
 };
 
 // ---------------------------------------------------------------------------
@@ -349,6 +372,45 @@ export interface Database {
           updated_at?: string;
         };
       };
+      mensagem_templates: {
+        Relationships: [];
+        Row: {
+          id: string;
+          user_id: string;
+          titulo: string;
+          canal: MensagemCanal;
+          etapa_funil: string | null;
+          assunto: string | null;
+          corpo: string;
+          ordem: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          titulo: string;
+          canal?: MensagemCanal;
+          etapa_funil?: string | null;
+          assunto?: string | null;
+          corpo: string;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          titulo?: string;
+          canal?: MensagemCanal;
+          etapa_funil?: string | null;
+          assunto?: string | null;
+          corpo?: string;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       links: {
         Relationships: [];
         Row: {
@@ -462,6 +524,13 @@ export type TarefaSemanalInsert =
 export type Link = Database["public"]["Tables"]["links"]["Row"];
 export type LinkInsert = Database["public"]["Tables"]["links"]["Insert"];
 export type LinkUpdate = Database["public"]["Tables"]["links"]["Update"];
+
+export type MensagemTemplate =
+  Database["public"]["Tables"]["mensagem_templates"]["Row"];
+export type MensagemTemplateInsert =
+  Database["public"]["Tables"]["mensagem_templates"]["Insert"];
+export type MensagemTemplateUpdate =
+  Database["public"]["Tables"]["mensagem_templates"]["Update"];
 
 // ---------------------------------------------------------------------------
 // Tipos de link (categorias com ícone)
