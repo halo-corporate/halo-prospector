@@ -66,6 +66,18 @@ export type MensagemCanal =
   | "sms"
   | "outro";
 
+export type VendaResponsavel = "pedro" | "bessa" | "davi" | "gabriel";
+
+export type VendaCanalPagamento =
+  | "pix"
+  | "cartao"
+  | "boleto"
+  | "transferencia"
+  | "dinheiro"
+  | "outro";
+
+export type VendaStatus = "pendente" | "pago" | "parcial" | "cancelado";
+
 // ---------------------------------------------------------------------------
 // Listas pra renderizar selects / labels em PT-BR
 // ---------------------------------------------------------------------------
@@ -157,6 +169,49 @@ export const MENSAGEM_CANAL_LABELS: Record<MensagemCanal, string> = {
   instagram: "Instagram",
   sms: "SMS",
   outro: "Outro",
+};
+
+export const VENDA_RESPONSAVEIS: VendaResponsavel[] = [
+  "pedro",
+  "bessa",
+  "davi",
+  "gabriel",
+];
+export const VENDA_RESPONSAVEL_LABELS: Record<VendaResponsavel, string> = {
+  pedro: "Pedro",
+  bessa: "Bessa",
+  davi: "Davi",
+  gabriel: "Gabriel",
+};
+
+export const VENDA_CANAIS_PAGAMENTO: VendaCanalPagamento[] = [
+  "pix",
+  "cartao",
+  "boleto",
+  "transferencia",
+  "dinheiro",
+  "outro",
+];
+export const VENDA_CANAL_PAGAMENTO_LABELS: Record<VendaCanalPagamento, string> = {
+  pix: "PIX",
+  cartao: "Cartão",
+  boleto: "Boleto",
+  transferencia: "Transferência",
+  dinheiro: "Dinheiro",
+  outro: "Outro",
+};
+
+export const VENDA_STATUSES: VendaStatus[] = [
+  "pendente",
+  "pago",
+  "parcial",
+  "cancelado",
+];
+export const VENDA_STATUS_LABELS: Record<VendaStatus, string> = {
+  pendente: "Pendente",
+  pago: "Pago",
+  parcial: "Parcial",
+  cancelado: "Cancelado",
 };
 
 // ---------------------------------------------------------------------------
@@ -372,6 +427,82 @@ export interface Database {
           updated_at?: string;
         };
       };
+      vendas: {
+        Relationships: [
+          {
+            foreignKeyName: "vendas_lead_id_fkey";
+            columns: ["lead_id"];
+            referencedRelation: "leads";
+            referencedColumns: ["id"];
+          },
+        ];
+        Row: {
+          id: string;
+          user_id: string;
+          data_venda: string;
+          cliente: string;
+          lead_id: string | null;
+          quantidade: number;
+          valor_unitario: number;
+          desconto: number;
+          valor_bruto: number;
+          valor_liquido: number;
+          responsavel: VendaResponsavel;
+          comissao_percentual: number;
+          comissao_valor: number;
+          comissao_paga: boolean;
+          comissao_paga_em: string | null;
+          canal_pagamento: VendaCanalPagamento | null;
+          status: VendaStatus;
+          data_pagamento: string | null;
+          comprovante_url: string | null;
+          observacoes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          data_venda?: string;
+          cliente: string;
+          lead_id?: string | null;
+          quantidade: number;
+          valor_unitario: number;
+          desconto?: number;
+          responsavel: VendaResponsavel;
+          comissao_percentual?: number;
+          comissao_paga?: boolean;
+          comissao_paga_em?: string | null;
+          canal_pagamento?: VendaCanalPagamento | null;
+          status?: VendaStatus;
+          data_pagamento?: string | null;
+          comprovante_url?: string | null;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          data_venda?: string;
+          cliente?: string;
+          lead_id?: string | null;
+          quantidade?: number;
+          valor_unitario?: number;
+          desconto?: number;
+          responsavel?: VendaResponsavel;
+          comissao_percentual?: number;
+          comissao_paga?: boolean;
+          comissao_paga_em?: string | null;
+          canal_pagamento?: VendaCanalPagamento | null;
+          status?: VendaStatus;
+          data_pagamento?: string | null;
+          comprovante_url?: string | null;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       informacoes: {
         Relationships: [];
         Row: {
@@ -576,6 +707,10 @@ export type InformacaoInsert =
   Database["public"]["Tables"]["informacoes"]["Insert"];
 export type InformacaoUpdate =
   Database["public"]["Tables"]["informacoes"]["Update"];
+
+export type Venda = Database["public"]["Tables"]["vendas"]["Row"];
+export type VendaInsert = Database["public"]["Tables"]["vendas"]["Insert"];
+export type VendaUpdate = Database["public"]["Tables"]["vendas"]["Update"];
 
 // Categorias sugeridas (UI usa estas como autocomplete, mas user pode digitar livremente)
 export const INFORMACAO_CATEGORIAS_SUGERIDAS = [
