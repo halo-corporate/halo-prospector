@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 export default function NotFound() {
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="max-w-md w-full rounded-lg border border-border bg-card p-8 text-center space-y-6">
+      <div className="max-w-md w-full rounded-[18px] border border-white/10 bg-card p-8 text-center space-y-6">
         <div className="mx-auto h-12 w-12 rounded-full bg-destructive/15 flex items-center justify-center">
           <AlertTriangle className="h-6 w-6 text-destructive" />
         </div>

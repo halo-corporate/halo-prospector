@@ -75,14 +75,14 @@ export function LeadsTable({
 
   if (leads.length === 0) {
     return (
-      <div className="rounded-lg border border-border p-12 text-center text-sm text-muted-foreground">
+      <div className="rounded-[18px] border border-white/10 p-12 text-center text-sm text-muted-foreground">
         Nenhum lead encontrado com os filtros atuais.
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
+    <div className="rounded-[18px] border border-white/10 overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">

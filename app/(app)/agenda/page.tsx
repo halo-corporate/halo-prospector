@@ -87,7 +87,7 @@ export default async function AgendaPage() {
       />
 
       {totalAgenda === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-10 text-center space-y-3">
+        <div className="rounded-[18px] border border-dashed border-white/10 p-10 text-center space-y-3">
           <div className="mx-auto h-10 w-10 rounded-full bg-accent flex items-center justify-center">
             <CalendarX className="h-5 w-5 text-muted-foreground" />
           </div>
@@ -146,7 +146,7 @@ function Bucket({
   return (
     <section
       className={cn(
-        "rounded-lg border bg-card/40 p-4 space-y-3",
+        "rounded-[18px] border bg-card/40 p-4 space-y-3",
         toneBorderClass(tone),
       )}
     >

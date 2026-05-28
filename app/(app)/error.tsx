@@ -27,7 +27,7 @@ export default function AppError({
 
   return (
     <main className="container py-12 flex items-center justify-center">
-      <div className="max-w-xl w-full rounded-lg border border-destructive/40 bg-card p-8 space-y-5">
+      <div className="max-w-xl w-full rounded-[18px] border border-destructive/40 bg-card p-8 space-y-5">
         <div className="flex items-start gap-3">
           <div className="h-10 w-10 rounded-full bg-destructive/15 flex items-center justify-center shrink-0">
             <AlertOctagon className="h-5 w-5 text-destructive" />

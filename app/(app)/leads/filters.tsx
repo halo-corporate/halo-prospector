@@ -75,7 +75,7 @@ export function LeadsFilters({ verticais, defaults }: Props) {
   return (
     <form
       onSubmit={onSubmit}
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 rounded-lg border border-border p-3"
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 rounded-[18px] border border-white/10 p-3"
     >
       <Input
         name="q"
