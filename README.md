@@ -1,154 +1,277 @@
 # HALO Prospector
 
 Sistema web single-user para prospecção B2B da HALO (haloqring.com).
+V1 completa em produção: [halo-prospector.vercel.app](https://halo-prospector.vercel.app).
 
-> **Status atual**: Etapa 2 — schema do banco pronto (`supabase/migrations/0001_init.sql`).
-> Próxima etapa: Auth (login/logout).
+> Substitui a planilha de prospecção do Gabriel. Banco como única fonte de
+> verdade, sync entre dispositivos via Supabase Realtime, fuso BR explícito
+> em toda apresentação, validação dupla (zod + HTML) em tudo que muta dados.
+
+---
 
 ## Stack
 
-- [Next.js 14](https://nextjs.org/) (App Router) + TypeScript
-- [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) (tema escuro)
-- [Supabase](https://supabase.com/) — Postgres, Auth e Realtime
-- [date-fns-tz](https://date-fns.org/) — fuso `America/Sao_Paulo` em toda apresentação
-- Deploy: [Vercel](https://vercel.com/) (frontend) + Supabase (backend), ambos free tier
+| Camada              | Tech                                                                     |
+| ------------------- | ------------------------------------------------------------------------ |
+| Framework           | [Next.js 14](https://nextjs.org/) (App Router) + TypeScript estrito      |
+| UI                  | [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) (new-york, tema escuro) |
+| Banco / Auth        | [Supabase](https://supabase.com/) (Postgres + Auth + Realtime, free tier) |
+| Validação           | [zod](https://zod.dev/) (server) + HTML5 `required`/`type` (client)      |
+| Fuso BR             | [date-fns-tz](https://date-fns.org/) — `America/Sao_Paulo`               |
+| Fonte               | Inter via `next/font/google`                                             |
+| Deploy              | [Vercel](https://vercel.com/) (free tier)                                |
+| Pacote              | npm (testado em Node 22.22.3 via `fnm`)                                  |
 
-## Rodando localmente
+---
 
-Pré-requisitos: Node 20+ (testado em 22.22.3 via `fnm`).
+## Funcionalidades V1
+
+| Área                       | O que tem                                                                                                                                |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Auth**                   | Login email + senha (Supabase Auth). Signup público desabilitado — single user.                                                          |
+| **Leads (CRUD)**           | Lista com filtros (vertical, status, temperatura, UF, busca), ordenação por coluna, criar/editar/excluir, 17 campos.                     |
+| **Decisores**              | Card no detalhe do lead. D1/D2/D3, contato (telefone/email/IG clicáveis), marcar como contatado, editar inline, AlertDialog pra excluir. |
+| **Interações**             | Timeline cronológica reversa no detalhe. Modal de registrar: canal/tipo/decisor/data-hora BR/resumo. Ícones por canal e estado.          |
+| **Verticais customizáveis** | 5 defaults seedados + criar nova inline com slug auto-gerado (`+ Nova vertical` no Select).                                              |
+| **Checklist semanal**      | Tarefas por semana BR (segunda–domingo). Navegação entre semanas. Observações expansíveis por tarefa. "Puxar pendentes da semana anterior". |
+| **Dashboard**              | KPIs (Total, Vencidos, Hoje, Aquecidos), follow-ups vencidos/hoje/próximos 7 dias, checklist da semana, últimas 5 interações, por vertical, por status. |
+| **Agenda**                 | `/agenda` com 3 buckets completos (Vencidos · Hoje · Próximos 7 dias), sem limit, click → detalhe.                                       |
+| **Sync entre dispositivos** | Supabase Realtime nas 5 tabelas + fetch on `window.focus` / `visibilitychange`. Sem reload manual.                                       |
+| **Tema**                   | Dark mode default, paleta HALO (preto base, branco texto, `#0071E3` accent).                                                             |
+| **Error boundaries**       | `/app/(app)/error.tsx` + `app/not-found.tsx` + `app/global-error.tsx` — tudo estilizado, com detecção de migration pendente.            |
+| **Persistência rígida**    | Toda mutação é `await` Server Action; UI só atualiza após sucesso confirmado; erro → toast vermelho, estado não muda.                    |
+
+### O que NÃO está em V1 (vai pra V2)
+
+- Integração com WhatsApp / Instagram API
+- Import de CSV/Excel
+- Notificações por email/push
+- Múltiplos usuários ou compartilhamento
+- Dashboards com gráficos complexos
+- Exportação de relatórios
+- Sugestões automáticas via IA
+
+---
+
+## Setup local
+
+### Pré-requisitos
+
+- **Node 20+** (testado em 22.22.3). Usar `fnm`, `nvm`, ou Homebrew. Garanta que `node` e `npm` estão no `PATH` do shell onde você vai rodar.
+- Conta no [Supabase](https://supabase.com/) (free tier) e [Vercel](https://vercel.com/) (free tier).
+- Acesso ao repo no GitHub (privado).
+
+### Instalação
 
 ```bash
+git clone git@github.com:gabrielblborba-wq/halo-prospector.git
 cd halo-prospector
-cp .env.example .env.local      # preencher com credenciais Supabase (ver abaixo)
+cp .env.example .env.local
 npm install
-npm run dev                     # http://localhost:3000
 ```
 
-## Setup do Supabase — passo a passo completo
+Edita `.env.local` colando as credenciais do seu projeto Supabase
+(URL e `anon public` key — passo a passo abaixo).
 
-### 1. Criar o projeto
+```bash
+npm run dev   # http://localhost:3000
+```
 
-1. Acesse [supabase.com/dashboard](https://supabase.com/dashboard) e clique em **New project**.
-2. Preencha:
-   - **Name**: `halo-prospector` (ou outro)
-   - **Database password**: gere uma forte e guarde no seu gerenciador de senhas — **não vai pro código**, só uso administrativo.
-   - **Region**: `South America (São Paulo)` — menor latência pra você.
-   - **Plan**: Free.
-3. Aguarde o provisionamento (1–2 min).
+---
 
-### 2. Rodar a migration (criar tabelas, enums, RLS, realtime)
+## Setup do Supabase (do zero)
 
-**Opção A — SQL Editor (mais simples, recomendado pra V1):**
+### 1. Criar projeto
 
-1. No menu lateral do projeto, abra **SQL Editor → New query**.
-2. Cole o conteúdo inteiro de [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql).
-3. Clique em **Run**.
-4. Espera: `Success. No rows returned`.
-5. Conferir em **Database → Tables** que existem `leads`, `decisores`, `interacoes` e em **Database → Enums** que existem os 6 enums (`lead_vertical`, `lead_status`, etc.).
-6. Conferir em **Authentication → Policies** que cada uma das 3 tabelas tem 4 policies (select/insert/update/delete) e RLS está **enabled**.
+1. [supabase.com/dashboard](https://supabase.com/dashboard) → **New project**
+2. Region: **South America (São Paulo)** · Plan: **Free**
+3. Anote a database password no seu gerenciador (não vai pro código).
 
-**Opção B — Supabase CLI (avançado, opcional):**
+### 2. Rodar migrations
+
+As migrations ficam em [`supabase/migrations/`](supabase/migrations) e devem
+ser aplicadas **em ordem**:
+
+| Arquivo                                        | O que faz                                                                                          |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `0001_init.sql`                                | Enums, tabelas `leads` / `decisores` / `interacoes`, RLS por `user_id`, trigger `updated_at`, Realtime |
+| `0002_verticais_e_checklist.sql`               | Tabela `verticais` (com seed dos 5 defaults), converte `leads.vertical` enum→text, tabela `tarefas_semanais` |
+| `0003_tarefas_observacoes.sql`                 | Adiciona coluna `observacoes` em `tarefas_semanais`                                                |
+
+**Via SQL Editor (recomendado):**
+
+1. **SQL Editor → New query**
+2. Cola o conteúdo de cada migration (uma por vez, na ordem)
+3. **Run** (Cmd+Enter)
+4. Esperado: `Success. No rows returned`
+
+Avisos amarelos `"Potential issue detected"` por causa de `DROP POLICY IF EXISTS`
+/ `DROP TRIGGER IF EXISTS` são esperados (idempotência). Clique **Run anyway**.
+
+**Via Supabase CLI (alternativo):**
 
 ```bash
 npx supabase login
-npx supabase link --project-ref <seu-project-ref>
+npx supabase link --project-ref <project-ref>
 npx supabase db push
 ```
 
-### 3. Configurar Authentication
+### 3. Configurar Auth
 
-Como o sistema é só pra você (single user), vamos **desabilitar signup público** e criar seu usuário manualmente.
+1. **Authentication → Providers → Email**: ON, **Confirm email**: OFF
+2. **Authentication → Sign In / Up**: desliga **Allow new users to sign up**
+3. **Authentication → URL Configuration**:
+   - **Site URL**: `http://localhost:3000` (e depois atualiza pro domínio Vercel)
+   - **Redirect URLs**: adiciona `http://localhost:3000/**` e (após deploy) `https://SEU-DOMINIO.vercel.app/**`
+4. **Authentication → Users → Add user**:
+   - Email + senha forte
+   - **Auto Confirm User**: ON
 
-1. Em **Authentication → Providers**, garanta que **Email** está habilitado e que **Confirm email** está OFF (mais cômodo pro setup inicial — você pode ligar depois).
-2. Em **Authentication → Sign In / Up → Allow new users to sign up**: **OFF**.
-3. Em **Authentication → URL Configuration**:
-   - **Site URL**: `http://localhost:3000` (vai mudar quando subir na Vercel).
-   - **Redirect URLs**: adicionar `http://localhost:3000/**` e (depois) `https://SEU-DOMINIO.vercel.app/**`.
-4. Criar o usuário (você):
-   - **Authentication → Users → Add user → Create new user**.
-   - Email: seu email; Password: forte; **Auto Confirm User**: ON.
-   - Anote o email/senha — é com isso que você vai logar no app na Etapa 3.
+### 4. Copiar credenciais
 
-### 4. Copiar credenciais pro `.env.local`
+**Project Settings → API**:
 
-1. **Project Settings → API**.
-2. Copie:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **anon public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-3. No projeto local, copie `.env.example` pra `.env.local` e cole os valores.
+- **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
+- **anon public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-> ⚠️ A `service_role` key dá acesso total ao banco (bypass RLS). **NUNCA** subir pro Git nem usar no client. A V1 só usa a `anon` key.
+Cole em `.env.local` (não comita — está no `.gitignore`).
 
-### 5. Smoke test do schema (opcional, mas recomendado)
+> ⚠️ A `service_role` key dá acesso total ao banco (bypass RLS).
+> NUNCA subir pro Git nem usar no client. V1 só usa a `anon` key.
 
-No **SQL Editor**, com o usuário criado e logado no contexto, rode:
-
-```sql
--- Tem que retornar 0 linhas (RLS bloqueando o anon)
-select count(*) from public.leads;
-```
-
-E pra confirmar que enums foram criados:
-
-```sql
-select enum_range(null::public.lead_status);
--- esperado: {novo,pesquisando,tentativa_contato,em_qualificacao,aquecido,passado_closer,ganho,perdido,descartado}
-```
+---
 
 ## Deploy na Vercel
 
-> Detalhes virão na Etapa 9. Resumo:
-> 1. Push do repo no GitHub (já feito ✓).
-> 2. Importar projeto na Vercel.
-> 3. Configurar as duas env vars do Supabase em **Project Settings → Environment Variables**.
-> 4. Atualizar **Site URL** e **Redirect URLs** no Supabase com o domínio da Vercel.
+1. **Push do repo no GitHub** (já feito).
+2. **vercel.com/dashboard → Add New → Project**.
+3. Importa o repositório `halo-prospector` (privado).
+4. **Framework Preset**: Next.js (detectado).
+5. **Environment Variables**: cola
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+6. **Deploy**.
+7. Após deploy, copia o domínio (ex: `halo-prospector.vercel.app`) e:
+   - Volta no Supabase → **Authentication → URL Configuration**
+   - Atualiza **Site URL** pro domínio Vercel
+   - Adiciona em **Redirect URLs**: `https://halo-prospector.vercel.app/**`
+
+> Vercel faz auto-deploy a cada push em `main`. Se algum deploy ficar
+> bloqueado por "commit author email not valid", checar `git config user.email`
+> — precisa bater com um email verificado na conta GitHub.
+
+---
 
 ## Estrutura
 
 ```
 halo-prospector/
-├── app/                          # App Router (rotas, layout, globals.css)
-├── components/ui/                # Componentes shadcn/ui
+├── app/
+│   ├── (app)/                       # Route group autenticado (layout + middleware)
+│   │   ├── layout.tsx               # Header + nav + email + logout + RealtimeRefresher
+│   │   ├── page.tsx                 # Dashboard
+│   │   ├── error.tsx                # Error boundary com detecção de migration pendente
+│   │   ├── realtime-refresher.tsx   # Sync via Supabase Realtime + fetch on focus
+│   │   ├── tarefas-semana-widget.tsx
+│   │   ├── leads/
+│   │   │   ├── page.tsx · filters · leads-table · lead-form
+│   │   │   ├── novo/page.tsx
+│   │   │   └── [id]/page.tsx · delete-lead-button · not-found
+│   │   ├── checklist/page.tsx · copy-pending-button
+│   │   └── agenda/page.tsx
+│   ├── login/                       # Página pública
+│   ├── globals.css                  # Paleta HALO via CSS vars
+│   ├── layout.tsx                   # Tema dark + Inter + Sonner toaster
+│   ├── not-found.tsx                # 404 customizado
+│   └── global-error.tsx
+├── components/
+│   ├── ui/                          # shadcn (button, input, dialog, alert-dialog, table, etc.)
+│   ├── auth/logout-button.tsx
+│   ├── leads/vertical-select.tsx    # Select com "+ Nova vertical" inline
+│   ├── decisores/                   # decisor-card · add-decisor-form
+│   ├── interacoes/                  # add-interacao-dialog · interacoes-timeline
+│   └── checklist/                   # checklist-item (com observações) · add-tarefa-input
 ├── lib/
-│   ├── database.types.ts         # Types espelhando o SQL (manuais, sem CLI)
-│   ├── supabase/
-│   │   ├── client.ts             # createBrowserClient<Database>
-│   │   ├── server.ts             # createServerClient<Database>
-│   │   └── middleware.ts         # refresh de sessão
-│   ├── timezone.ts               # Helpers America/Sao_Paulo
-│   └── utils.ts                  # cn() helper do shadcn
-├── supabase/migrations/
-│   └── 0001_init.sql             # schema completo + RLS + realtime
-├── middleware.ts                 # refresh global de sessão
+│   ├── database.types.ts            # Tipos do banco (mantidos à mão)
+│   ├── timezone.ts                  # Helpers America/Sao_Paulo (BR_TZ, formatBR, etc.)
+│   ├── utils.ts                     # cn() do shadcn
+│   ├── supabase/                    # client (browser) · server · middleware
+│   ├── auth/actions.ts              # logoutAction
+│   ├── leads/                       # queries · actions · schema (zod) · badge (classes)
+│   ├── decisores/                   # queries · actions
+│   ├── interacoes/                  # queries · actions
+│   ├── verticais/                   # queries · actions · slug helper
+│   └── tarefas/                     # queries · actions
+├── supabase/migrations/             # 0001 · 0002 · 0003
+├── middleware.ts                    # Refresh de sessão + redirect /login
+├── tailwind.config.ts
+├── components.json                  # shadcn
 └── .env.example
 ```
 
-## Modelo de dados
-
-3 tabelas, todas com `user_id` (FK pra `auth.users`) e RLS por `auth.uid() = user_id`.
-
-| Tabela        | Campos-chave                                                                 |
-| ------------- | ---------------------------------------------------------------------------- |
-| `leads`       | empresa, vertical (enum), cidade, estado, status (enum), temperatura, follow-up |
-| `decisores`   | lead_id (FK), nome, cargo, prioridade (d1/d2/d3), contatado                  |
-| `interacoes`  | lead_id (FK), decisor_id (FK opcional), data_hora, canal, tipo, resumo       |
-
-Detalhes completos no SQL: [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql).
+---
 
 ## Regras inegociáveis (decisões de projeto)
 
-1. **Banco é a única fonte de verdade.** Mutações são `await`; UI só atualiza após sucesso.
-2. **Fuso `America/Sao_Paulo`** sempre explícito via `lib/timezone.ts`.
-3. **Sync entre dispositivos** via Supabase Realtime + fetch on focus (Etapa 8).
-4. **Single user** com Supabase Auth (email + senha). Signup público desligado.
+1. **Banco é a única fonte de verdade.** Toda mutação é `await` Server Action; UI só atualiza após sucesso confirmado. Sem cache otimista que possa reverter. Em erro: toast vermelho, estado da UI permanece igual ao pré-clique.
+2. **Fuso `America/Sao_Paulo` explícito** em toda apresentação. Banco em UTC; UI sempre converte via `lib/timezone.ts`. Nunca `new Date().toISOString()` direto em filtros — sempre passar pelos helpers.
+3. **Sync entre dispositivos** via Supabase Realtime + fetch on `window.focus` / `visibilitychange`. RLS garante que cada user só recebe eventos das próprias linhas.
+4. **Single user.** Supabase Auth com signup público OFF. Adicionar novo usuário só via dashboard.
+5. **Construção em etapas validadas.** Histórico no `git log`:
 
-## Convenções
-
-- Tema escuro por padrão (classe `dark` no `<html>`).
-- Paleta: preto base, branco texto, azul HALO `#0071E3` em CTAs (`bg-primary`).
-- Fonte: Inter via `next/font`.
-- Imports absolutos via alias `@/*`.
+   | Commit  | Etapa                                                  |
+   | ------- | ------------------------------------------------------ |
+   | e667128 | 1. Setup Next.js + Tailwind + shadcn + Supabase        |
+   | 78b6b21 | 2. Schema SQL + RLS + Realtime                         |
+   | bcc4a27 | 3. Auth (login/logout + proteção de rotas)             |
+   | edb0da5 | 4. CRUD de Leads                                       |
+   | 4201ff9 | extra. Verticais customizáveis + checklist semanal     |
+   | 64be8e5 | 5. Decisores + Timeline de Interações                  |
+   | 41ff6cf | 6. Dashboard (follow-ups + atividade recente)          |
+   | ef4c777 | 7. `/agenda` completa (3 buckets)                      |
+   | 4406143 | 8. Realtime + fetch on focus                           |
+   | 357f65a | 9. Observações por tarefa (+ migration 0003)           |
 
 ---
 
-V1 não inclui: integração WhatsApp/IG, import CSV, notificações, multi-user, gráficos, export. Tudo isso é V2.
+## Convenções
+
+- Tema escuro padrão (classe `dark` no `<html>`).
+- Paleta: preto base, branco texto, azul HALO `#0071E3` em CTAs (`bg-primary`).
+- Imports absolutos via alias `@/*`.
+- Server Actions em arquivos com `"use server"` — só funções async exportadas.
+- Helpers sync ficam em arquivos sem `"use server"` (ex: `lib/verticais/slug.ts`).
+- Queries ficam em `lib/<dominio>/queries.ts`, actions em `lib/<dominio>/actions.ts`.
+- Components shadcn em `components/ui/`; componentes de feature em `components/<dominio>/`.
+
+---
+
+## Scripts
+
+```bash
+npm run dev        # Next dev (http://localhost:3000)
+npm run build      # Next build (production)
+npm run start      # Next start (production server local)
+npm run typecheck  # tsc --noEmit (typecheck só)
+npm run lint       # next lint
+```
+
+---
+
+## Smoke test pós-deploy
+
+Mínimo pra confirmar que está tudo OK em produção:
+
+1. `https://halo-prospector.vercel.app` → redireciona pra `/login`
+2. Loga com o usuário criado no Supabase
+3. Dashboard carrega com KPIs zerados (se banco vazio) ou populados
+4. `+ Novo lead` → criar → cair no detalhe
+5. Adicionar decisor + registrar interação
+6. Voltar pra `/leads` → lead aparece com D1 e última interação
+7. `/agenda` → bucket Vencidos/Hoje/Próximos 7 dias funciona
+8. `/checklist` → adicionar tarefa, marcar concluída, adicionar observação
+9. Abrir em 2 tabs → mudança em uma reflete na outra em ~500ms (Realtime)
+
+---
+
+V1 completa. PRs / issues no GitHub: [gabrielblborba-wq/halo-prospector](https://github.com/gabrielblborba-wq/halo-prospector).
