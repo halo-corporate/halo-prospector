@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { listLeads, type LeadOrderBy } from "@/lib/leads/queries";
 import { listVerticais } from "@/lib/verticais/queries";
+import { fetchPrimaryDecisorMap } from "@/lib/decisores/queries";
+import { fetchLastInteracaoMap } from "@/lib/interacoes/queries";
 import type { LeadStatus, LeadTemperatura } from "@/lib/database.types";
 import { LeadsFilters } from "./filters";
 import { LeadsTable } from "./leads-table";
@@ -67,6 +69,13 @@ export default async function LeadsListPage({
 
   const leads = await listLeads(filters);
 
+  // Enriquece em batch: D1 (decisor primário) e última interação por lead.
+  const leadIds = leads.map((l) => l.id);
+  const [d1Map, lastInteracaoMap] = await Promise.all([
+    fetchPrimaryDecisorMap(leadIds),
+    fetchLastInteracaoMap(leadIds),
+  ]);
+
   return (
     <div className="container py-6 space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -95,6 +104,8 @@ export default async function LeadsListPage({
       <LeadsTable
         leads={leads}
         verticais={verticais.map((v) => ({ slug: v.slug, label: v.label }))}
+        d1Map={Object.fromEntries(d1Map)}
+        lastInteracaoMap={Object.fromEntries(lastInteracaoMap)}
         orderBy={filters.orderBy}
         orderDir={filters.orderDir}
       />

@@ -13,30 +13,42 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
+  INTERACAO_CANAL_LABELS,
   LEAD_STATUS_LABELS,
   LEAD_TEMPERATURA_LABELS,
   verticalLabel,
   type Lead,
+  type InteracaoCanal,
 } from "@/lib/database.types";
 import { statusBadgeClass, temperaturaBadgeClass } from "@/lib/leads/badge";
-import { formatBR, isOverdueBR } from "@/lib/timezone";
+import { formatBR, formatBRHuman, isOverdueBR } from "@/lib/timezone";
 
 type OrderBy = "updated_at" | "created_at" | "empresa" | "proximo_followup";
 
-const SORTABLE: { key: OrderBy; label: string }[] = [
-  { key: "empresa", label: "Empresa" },
-  { key: "updated_at", label: "Atualizado" },
-  { key: "proximo_followup", label: "Follow-up" },
-];
+interface LastInteracao {
+  canal: string;
+  data_hora: string;
+}
 
 interface Props {
   leads: Lead[];
   verticais: { slug: string; label: string }[];
+  /** Map<lead_id, nome_d1>. Vem do server (enriquecimento da listLeads). */
+  d1Map: Record<string, string>;
+  /** Map<lead_id, {canal, data_hora}> da última interação. */
+  lastInteracaoMap: Record<string, LastInteracao>;
   orderBy: OrderBy;
   orderDir: "asc" | "desc";
 }
 
-export function LeadsTable({ leads, verticais, orderBy, orderDir }: Props) {
+export function LeadsTable({
+  leads,
+  verticais,
+  d1Map,
+  lastInteracaoMap,
+  orderBy,
+  orderDir,
+}: Props) {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -74,21 +86,19 @@ export function LeadsTable({ leads, verticais, orderBy, orderDir }: Props) {
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
-            {SORTABLE.slice(0, 1).map((c) => (
-              <TableHead
-                key={c.key}
-                className="cursor-pointer select-none"
-                onClick={() => toggleSort(c.key)}
-              >
-                {c.label}
-                <SortIcon k={c.key} />
-              </TableHead>
-            ))}
+            <TableHead
+              className="cursor-pointer select-none"
+              onClick={() => toggleSort("empresa")}
+            >
+              Empresa
+              <SortIcon k="empresa" />
+            </TableHead>
             <TableHead>Vertical</TableHead>
             <TableHead>Cidade/UF</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Temp.</TableHead>
             <TableHead>D1</TableHead>
+            <TableHead>Última interação</TableHead>
             <TableHead
               className="cursor-pointer select-none"
               onClick={() => toggleSort("proximo_followup")}
@@ -106,60 +116,74 @@ export function LeadsTable({ leads, verticais, orderBy, orderDir }: Props) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {leads.map((lead) => (
-            <TableRow
-              key={lead.id}
-              className="cursor-pointer"
-              onClick={() => router.push(`/leads/${lead.id}`)}
-            >
-              <TableCell className="font-medium">{lead.empresa}</TableCell>
-              <TableCell className="text-muted-foreground">
-                {verticalLabel(lead.vertical, verticais)}
-              </TableCell>
-              <TableCell className="text-muted-foreground">
-                {[lead.cidade, lead.estado].filter(Boolean).join("/") || "—"}
-              </TableCell>
-              <TableCell>
-                <Badge
-                  variant="outline"
-                  className={cn("border", statusBadgeClass(lead.status))}
-                >
-                  {LEAD_STATUS_LABELS[lead.status]}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                {lead.temperatura ? (
+          {leads.map((lead) => {
+            const d1 = d1Map[lead.id];
+            const last = lastInteracaoMap[lead.id];
+            return (
+              <TableRow
+                key={lead.id}
+                className="cursor-pointer"
+                onClick={() => router.push(`/leads/${lead.id}`)}
+              >
+                <TableCell className="font-medium">{lead.empresa}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {verticalLabel(lead.vertical, verticais)}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {[lead.cidade, lead.estado].filter(Boolean).join("/") || "—"}
+                </TableCell>
+                <TableCell>
                   <Badge
                     variant="outline"
-                    className={cn(
-                      "border",
-                      temperaturaBadgeClass(lead.temperatura),
-                    )}
+                    className={cn("border", statusBadgeClass(lead.status))}
                   >
-                    {LEAD_TEMPERATURA_LABELS[lead.temperatura]}
+                    {LEAD_STATUS_LABELS[lead.status]}
                   </Badge>
-                ) : (
-                  <span className="text-muted-foreground">—</span>
-                )}
-              </TableCell>
-              <TableCell className="text-muted-foreground">—</TableCell>
-              <TableCell
-                className={cn(
-                  "text-muted-foreground",
-                  lead.proximo_followup &&
-                    isOverdueBR(lead.proximo_followup) &&
-                    "text-red-400 font-medium",
-                )}
-              >
-                {lead.proximo_followup
-                  ? formatBR(lead.proximo_followup, "dd/MM HH:mm")
-                  : "—"}
-              </TableCell>
-              <TableCell className="text-muted-foreground whitespace-nowrap">
-                {formatBR(lead.updated_at, "dd/MM HH:mm")}
-              </TableCell>
-            </TableRow>
-          ))}
+                </TableCell>
+                <TableCell>
+                  {lead.temperatura ? (
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "border",
+                        temperaturaBadgeClass(lead.temperatura),
+                      )}
+                    >
+                      {LEAD_TEMPERATURA_LABELS[lead.temperatura]}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground truncate max-w-[140px]">
+                  {d1 ?? "—"}
+                </TableCell>
+                <TableCell
+                  className="text-muted-foreground whitespace-nowrap"
+                  title={last ? formatBR(last.data_hora) : ""}
+                >
+                  {last
+                    ? `${INTERACAO_CANAL_LABELS[last.canal as InteracaoCanal] ?? last.canal} · ${formatBRHuman(last.data_hora)}`
+                    : "—"}
+                </TableCell>
+                <TableCell
+                  className={cn(
+                    "text-muted-foreground whitespace-nowrap",
+                    lead.proximo_followup &&
+                      isOverdueBR(lead.proximo_followup) &&
+                      "text-red-400 font-medium",
+                  )}
+                >
+                  {lead.proximo_followup
+                    ? formatBR(lead.proximo_followup, "dd/MM HH:mm")
+                    : "—"}
+                </TableCell>
+                <TableCell className="text-muted-foreground whitespace-nowrap">
+                  {formatBR(lead.updated_at, "dd/MM HH:mm")}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
