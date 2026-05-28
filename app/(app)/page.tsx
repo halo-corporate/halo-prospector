@@ -160,7 +160,7 @@ export default async function DashboardPage() {
           Por vertical
         </h2>
         {verticais.length === 0 ? (
-          <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+          <div className="rounded-[18px] border border-white/10 p-4 text-sm text-muted-foreground">
             Nenhuma vertical cadastrada.
           </div>
         ) : (
@@ -169,7 +169,7 @@ export default async function DashboardPage() {
               <Link
                 key={v.id}
                 href={`/leads?vertical=${v.slug}`}
-                className="rounded-lg border border-border p-4 hover:border-foreground/30 transition-colors"
+                className="rounded-[18px] border border-white/10 p-4 hover:border-foreground/30 transition-colors"
               >
                 <p className="text-xs text-muted-foreground truncate">
                   {v.label}
@@ -188,7 +188,7 @@ export default async function DashboardPage() {
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Por status
         </h2>
-        <div className="rounded-lg border border-border p-4 text-sm">
+        <div className="rounded-[18px] border border-white/10 p-4 text-sm">
           {byStatus.size === 0 ? (
             <p className="text-muted-foreground">
               Sem leads ainda. Comece adicionando um em{" "}
@@ -279,7 +279,7 @@ function KpiCard({
   const content = (
     <div
       className={cn(
-        "rounded-lg border bg-card/40 p-4 space-y-1 transition-colors",
+        "rounded-[18px] border bg-card/40 p-4 space-y-1 transition-colors",
         toneBorderClass(tone),
         href && "hover:bg-accent",
       )}
@@ -314,7 +314,7 @@ function FollowupSection({
   return (
     <section
       className={cn(
-        "rounded-lg border bg-card/40 p-4 space-y-3",
+        "rounded-[18px] border bg-card/40 p-4 space-y-3",
         toneBorderClass(tone),
       )}
     >
@@ -389,7 +389,7 @@ function RecentActivitySection({
   interacoes: Awaited<ReturnType<typeof listRecentInteracoes>>;
 }) {
   return (
-    <section className="rounded-lg border border-border p-4 space-y-3">
+    <section className="rounded-[18px] border border-white/10 p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium tracking-wide">Atividade recente</h2>
         <span className="text-xs text-muted-foreground">
