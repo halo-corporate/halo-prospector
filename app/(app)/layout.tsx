@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { AppNav } from "./app-nav";
+import { RealtimeRefresher } from "./realtime-refresher";
 
 /**
  * Layout compartilhado das rotas autenticadas.
@@ -20,6 +21,8 @@ export default async function AppLayout({
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Sync entre abas/dispositivos via Supabase Realtime + fetch on focus */}
+      <RealtimeRefresher />
       <header className="border-b border-border sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex items-center justify-between h-14 gap-6">
           <div className="flex items-center gap-6">
