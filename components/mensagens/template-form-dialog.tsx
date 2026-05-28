@@ -58,16 +58,17 @@ export function TemplateFormDialog({ mode, template, trigger }: Props) {
   const [corpo, setCorpo] = useState(template?.corpo ?? "");
   const [pending, startTransition] = useTransition();
 
-  function reset() {
-    setTitulo(template?.titulo ?? "");
-    setCanal(template?.canal ?? "whatsapp");
-    setEtapaFunil(template?.etapa_funil ?? ETAPA_NONE);
-    setAssunto(template?.assunto ?? "");
-    setCorpo(template?.corpo ?? "");
-  }
-
+  // Sincroniza estado das props SEMPRE que o dialog abre.
+  // Antes só resetava no close — entre re-aberturas, props atualizadas
+  // via Realtime/revalidate ficavam stale no state local.
   useEffect(() => {
-    if (!open) reset();
+    if (open) {
+      setTitulo(template?.titulo ?? "");
+      setCanal(template?.canal ?? "whatsapp");
+      setEtapaFunil(template?.etapa_funil ?? ETAPA_NONE);
+      setAssunto(template?.assunto ?? "");
+      setCorpo(template?.corpo ?? "");
+    }
   }, [
     open,
     template?.id,
@@ -76,7 +77,7 @@ export function TemplateFormDialog({ mode, template, trigger }: Props) {
     template?.etapa_funil,
     template?.assunto,
     template?.corpo,
-  ]); // eslint-disable-line react-hooks/exhaustive-deps
+  ]);
 
   function handleInsertVar(name: string) {
     setCorpo((c) => `${c}{${name}}`);
