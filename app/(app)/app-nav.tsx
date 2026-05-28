@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/leads", label: "Leads" },
   { href: "/checklist", label: "Checklist" },
   { href: "/agenda", label: "Agenda" },
+  { href: "/links", label: "Links" },
 ];
 
 export function AppNav() {

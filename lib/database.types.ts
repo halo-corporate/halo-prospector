@@ -349,6 +349,42 @@ export interface Database {
           updated_at?: string;
         };
       };
+      links: {
+        Relationships: [];
+        Row: {
+          id: string;
+          user_id: string;
+          titulo: string;
+          url: string;
+          descricao: string | null;
+          tipo: string;
+          ordem: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          titulo: string;
+          url: string;
+          descricao?: string | null;
+          tipo?: string;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          titulo?: string;
+          url?: string;
+          descricao?: string | null;
+          tipo?: string;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       tarefas_semanais: {
         Relationships: [];
         Row: {
@@ -422,3 +458,44 @@ export type TarefaSemanal =
   Database["public"]["Tables"]["tarefas_semanais"]["Row"];
 export type TarefaSemanalInsert =
   Database["public"]["Tables"]["tarefas_semanais"]["Insert"];
+
+export type Link = Database["public"]["Tables"]["links"]["Row"];
+export type LinkInsert = Database["public"]["Tables"]["links"]["Insert"];
+export type LinkUpdate = Database["public"]["Tables"]["links"]["Update"];
+
+// ---------------------------------------------------------------------------
+// Tipos de link (categorias com ícone)
+// ---------------------------------------------------------------------------
+
+export const LINK_TIPOS = [
+  "notion",
+  "drive",
+  "sheets",
+  "docs",
+  "calendar",
+  "slack",
+  "whatsapp",
+  "youtube",
+  "github",
+  "email",
+  "linkedin",
+  "instagram",
+  "outro",
+] as const;
+export type LinkTipo = (typeof LINK_TIPOS)[number];
+
+export const LINK_TIPO_LABELS: Record<LinkTipo, string> = {
+  notion: "Notion",
+  drive: "Google Drive",
+  sheets: "Google Sheets",
+  docs: "Google Docs",
+  calendar: "Google Calendar",
+  slack: "Slack",
+  whatsapp: "WhatsApp",
+  youtube: "YouTube",
+  github: "GitHub",
+  email: "E-mail",
+  linkedin: "LinkedIn",
+  instagram: "Instagram",
+  outro: "Outro",
+};
