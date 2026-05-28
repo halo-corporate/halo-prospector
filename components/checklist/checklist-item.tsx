@@ -206,7 +206,7 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
                 {/* Indicador de observação no modo compact */}
                 {compact && hasObs ? (
                   <StickyNote
-                    className="h-3 w-3 text-amber-400/80 shrink-0"
+                    className="h-3 w-3 text-primary shrink-0"
                     aria-label="Tem observações"
                   />
                 ) : null}

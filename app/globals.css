@@ -49,4 +49,12 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
+  /* HALO V2 — hierarquia tipográfica: títulos top-level em Helvetica Neue
+     Bold, caixa alta, tracking generoso. Subtitles em fonte sans (Inter)
+     com case normal para criar contraste claro entre os dois. */
+  h1.title-display,
+  h2.title-display {
+    @apply font-display font-bold uppercase tracking-[0.04em];
+  }
 }

@@ -18,7 +18,7 @@ export default async function NovoLeadPage() {
         >
           <ChevronLeft className="h-3 w-3" /> Voltar para lista
         </Link>
-        <h1 className="text-2xl font-semibold tracking-tight">Novo lead</h1>
+        <h1 className="title-display text-2xl">Novo lead</h1>
         <p className="text-sm text-muted-foreground">
           Campos marcados com <span className="text-destructive">*</span> são obrigatórios.
         </p>

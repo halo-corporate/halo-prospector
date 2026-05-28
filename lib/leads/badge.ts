@@ -1,21 +1,28 @@
 import type { LeadStatus, LeadTemperatura } from "@/lib/database.types";
 
 /**
- * Classes Tailwind para o badge de status. Mantemos consistente em
- * lista, detalhe e dashboard.
+ * Classes Tailwind para o badge de status.
+ *
+ * V2: accent único = azul HALO (#0071E3 = `primary`). Removidos âmbar e
+ * laranja. Mantidos vermelho (perdido), emerald (ganho), zinc (descartado),
+ * roxo (passado_closer) por serem cores semânticas distintas — não accents.
+ *
+ * Variação de intensidade do azul HALO (sólido vs com /70) cria hierarquia
+ * dentro do fluxo: aquecido = mais quente (sólido), em_qualificação = morno
+ * (70%), pesquisando/tentativa = frio (azul mais claro / opacidade mais baixa).
  */
 export function statusBadgeClass(status: LeadStatus): string {
   switch (status) {
     case "novo":
       return "bg-slate-500/15 text-slate-300 border-slate-500/30";
     case "pesquisando":
-      return "bg-blue-500/15 text-blue-300 border-blue-500/30";
+      return "bg-primary/10 text-primary/80 border-primary/25";
     case "tentativa_contato":
-      return "bg-indigo-500/15 text-indigo-300 border-indigo-500/30";
+      return "bg-primary/15 text-primary/90 border-primary/30";
     case "em_qualificacao":
-      return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+      return "bg-primary/15 text-primary border-primary/35";
     case "aquecido":
-      return "bg-orange-500/15 text-orange-300 border-orange-500/30";
+      return "bg-primary/25 text-primary border-primary/50";
     case "passado_closer":
       return "bg-purple-500/15 text-purple-300 border-purple-500/30";
     case "ganho":
@@ -27,12 +34,19 @@ export function statusBadgeClass(status: LeadStatus): string {
   }
 }
 
+/**
+ * Cores de temperatura.
+ *
+ * V2: morno deixou de ser âmbar — passou a usar azul HALO em variação média.
+ * frio mantém sky (azul-cyan mais claro, semanticamente "frio"). quente
+ * mantém vermelho (semanticamente "alerta/calor").
+ */
 export function temperaturaBadgeClass(t: LeadTemperatura): string {
   switch (t) {
     case "frio":
       return "bg-sky-500/15 text-sky-300 border-sky-500/30";
     case "morno":
-      return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+      return "bg-primary/15 text-primary border-primary/30";
     case "quente":
       return "bg-red-500/15 text-red-300 border-red-500/30";
   }

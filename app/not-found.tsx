@@ -18,9 +18,7 @@ export default function NotFound() {
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
             Erro 404
           </p>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Página não encontrada
-          </h1>
+          <h1 className="title-display text-2xl">Página não encontrada</h1>
           <p className="text-sm text-muted-foreground">
             A URL acessada não existe nesta versão do HALO Prospector.
           </p>

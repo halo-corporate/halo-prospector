@@ -16,6 +16,15 @@ const config: Config = {
     extend: {
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "Helvetica", "system-ui", "sans-serif"],
+        display: [
+          "'Helvetica Neue'",
+          "Helvetica",
+          "var(--font-inter)",
+          "Inter",
+          "Arial",
+          "system-ui",
+          "sans-serif",
+        ],
       },
       colors: {
         border: "hsl(var(--border))",

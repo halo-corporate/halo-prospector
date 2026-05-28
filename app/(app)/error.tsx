@@ -36,7 +36,7 @@ export default function AppError({
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Erro do servidor
             </p>
-            <h1 className="text-xl font-semibold tracking-tight">
+            <h1 className="title-display text-xl">
               Não consegui renderizar essa tela
             </h1>
             {error.digest ? (
@@ -48,14 +48,14 @@ export default function AppError({
         </div>
 
         {looksLikeMissingTable ? (
-          <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-sm space-y-1">
-            <p className="font-medium text-amber-200">
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm space-y-1">
+            <p className="font-medium text-primary">
               Provavelmente é migration pendente.
             </p>
-            <p className="text-amber-100/80 text-xs">
+            <p className="text-primary/80 text-xs">
               Uma tabela usada por essa tela não existe ainda no Supabase.
               Rode a última migration em{" "}
-              <code className="bg-amber-500/10 px-1 rounded">
+              <code className="bg-primary/10 px-1 rounded">
                 supabase/migrations/
               </code>{" "}
               no SQL Editor do Supabase Dashboard.
