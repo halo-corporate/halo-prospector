@@ -32,24 +32,26 @@ export function CopyButton({ text, label = "Copiar", className }: Props) {
     });
   }
 
+  const iconOnly = label.trim() === "";
   return (
     <Button
       type="button"
-      size="sm"
-      variant={copied ? "default" : "outline"}
+      size={iconOnly ? "icon" : "sm"}
+      variant={copied ? "default" : iconOnly ? "ghost" : "outline"}
       onClick={handleCopy}
       disabled={pending}
-      className={cn("h-8", className)}
+      className={cn(iconOnly ? "h-6 w-6" : "h-8", className)}
+      aria-label={iconOnly ? (copied ? "Copiado" : "Copiar") : undefined}
     >
       {copied ? (
         <>
-          <Check className="h-3.5 w-3.5" />
-          Copiado
+          <Check className={iconOnly ? "h-3 w-3" : "h-3.5 w-3.5"} />
+          {iconOnly ? null : "Copiado"}
         </>
       ) : (
         <>
-          <Copy className="h-3.5 w-3.5" />
-          {label}
+          <Copy className={iconOnly ? "h-3 w-3" : "h-3.5 w-3.5"} />
+          {iconOnly ? null : label}
         </>
       )}
     </Button>
