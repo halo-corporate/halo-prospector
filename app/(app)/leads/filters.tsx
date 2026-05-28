@@ -78,6 +78,7 @@ export function LeadsFilters({ verticais, defaults }: Props) {
       className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 rounded-[18px] border border-white/10 p-3"
     >
       <Input
+        key={`q-${defaults.q ?? ""}`}
         name="q"
         placeholder="Buscar empresa…"
         defaultValue={defaults.q ?? ""}
@@ -129,6 +130,7 @@ export function LeadsFilters({ verticais, defaults }: Props) {
       </Select>
 
       <Input
+        key={`estado-${defaults.estado ?? ""}`}
         name="estado"
         placeholder="UF"
         maxLength={2}
