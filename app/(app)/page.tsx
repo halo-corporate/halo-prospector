@@ -75,7 +75,7 @@ export default async function DashboardPage() {
     <div className="container py-8 space-y-8">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <h1 className="title-display text-2xl">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
             {total} {total === 1 ? "lead cadastrado" : "leads cadastrados"}
           </p>
@@ -235,14 +235,16 @@ function toneBorderClass(tone: Tone): string {
   switch (tone) {
     case "danger":
       return "border-red-500/30";
+    // V2: "warning" (Hoje) usa o azul HALO em intensidade alta — ainda
+    // distinguível de "info" (Próximos 7d) que usa o azul em opacidade menor.
     case "warning":
-      return "border-amber-500/30";
+      return "border-primary/50";
     case "primary":
       return "border-primary/40";
     case "info":
-      return "border-blue-500/30";
+      return "border-primary/20";
     case "neutral":
-      return "border-border";
+      return "border-white/10";
   }
 }
 
@@ -251,11 +253,11 @@ function toneTextClass(tone: Tone): string {
     case "danger":
       return "text-red-300";
     case "warning":
-      return "text-amber-300";
+      return "text-primary";
     case "primary":
       return "text-primary";
     case "info":
-      return "text-blue-300";
+      return "text-primary/70";
     case "neutral":
       return "text-muted-foreground";
   }

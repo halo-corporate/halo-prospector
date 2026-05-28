@@ -51,7 +51,7 @@ export default async function LeadDetailPage({
           >
             <ChevronLeft className="h-3 w-3" /> Voltar para lista
           </Link>
-          <h1 className="text-2xl font-semibold tracking-tight truncate">
+          <h1 className="title-display text-2xl truncate">
             {lead.empresa}
           </h1>
           <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">

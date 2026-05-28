@@ -88,7 +88,7 @@ export function InteracoesTimeline({ interacoes, leadId }: Props) {
                 tipoIsCallMissed(i.tipo)
                   ? "border-red-500/40 text-red-300"
                   : tipoIsNota(i.tipo)
-                    ? "border-amber-500/40 text-amber-300"
+                    ? "border-primary/40 text-primary"
                     : "border-border text-muted-foreground",
               )}
               aria-hidden="true"

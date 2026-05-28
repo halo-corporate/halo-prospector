@@ -44,7 +44,7 @@ export default async function AgendaPage() {
     <div className="container py-8 space-y-6 max-w-4xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Agenda</h1>
+          <h1 className="title-display text-2xl">Agenda</h1>
           <p className="text-sm text-muted-foreground">
             {totalAgenda === 0
               ? "Sem follow-ups agendados. Adicione um a um lead pra ele aparecer aqui."
@@ -110,9 +110,9 @@ function toneBorderClass(tone: Tone): string {
     case "danger":
       return "border-red-500/30";
     case "warning":
-      return "border-amber-500/30";
+      return "border-primary/50";
     case "info":
-      return "border-blue-500/30";
+      return "border-primary/20";
   }
 }
 function toneTextClass(tone: Tone): string {
@@ -120,9 +120,9 @@ function toneTextClass(tone: Tone): string {
     case "danger":
       return "text-red-300";
     case "warning":
-      return "text-amber-300";
+      return "text-primary";
     case "info":
-      return "text-blue-300";
+      return "text-primary/70";
   }
 }
 
