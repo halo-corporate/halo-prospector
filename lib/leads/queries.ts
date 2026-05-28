@@ -58,16 +58,17 @@ export async function listLeads(filters: ListLeadsFilters = {}): Promise<Lead[]>
  * Leads com follow-up vencido (proximo_followup < agora).
  * Ordenado pelo mais antigo primeiro.
  */
-export async function listOverdueFollowups(limit = 10): Promise<Lead[]> {
+export async function listOverdueFollowups(limit?: number): Promise<Lead[]> {
   const supabase = createClient();
   const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
+  let q = supabase
     .from("leads")
     .select("*")
     .not("proximo_followup", "is", null)
     .lt("proximo_followup", nowIso)
-    .order("proximo_followup", { ascending: true })
-    .limit(limit);
+    .order("proximo_followup", { ascending: true });
+  if (limit) q = q.limit(limit);
+  const { data, error } = await q;
   if (error) {
     console.error("[listOverdueFollowups]", error);
     return [];
@@ -79,18 +80,19 @@ export async function listOverdueFollowups(limit = 10): Promise<Lead[]> {
  * Leads com follow-up de hoje (BR) que ainda não venceram (>= agora).
  * Evita overlap com vencidos.
  */
-export async function listTodayFollowups(limit = 10): Promise<Lead[]> {
+export async function listTodayFollowups(limit?: number): Promise<Lead[]> {
   const supabase = createClient();
   const { endUtc } = todayRangeBR();
   const nowIso = new Date().toISOString();
-  const { data, error } = await supabase
+  let q = supabase
     .from("leads")
     .select("*")
     .not("proximo_followup", "is", null)
     .gte("proximo_followup", nowIso)
     .lte("proximo_followup", endUtc.toISOString())
-    .order("proximo_followup", { ascending: true })
-    .limit(limit);
+    .order("proximo_followup", { ascending: true });
+  if (limit) q = q.limit(limit);
+  const { data, error } = await q;
   if (error) {
     console.error("[listTodayFollowups]", error);
     return [];
@@ -103,18 +105,19 @@ export async function listTodayFollowups(limit = 10): Promise<Lead[]> {
  */
 export async function listUpcomingFollowups(
   days = 7,
-  limit = 10,
+  limit?: number,
 ): Promise<Lead[]> {
   const supabase = createClient();
   const { startUtc, endUtc } = nextNDaysRangeBR(days);
-  const { data, error } = await supabase
+  let q = supabase
     .from("leads")
     .select("*")
     .not("proximo_followup", "is", null)
     .gte("proximo_followup", startUtc.toISOString())
     .lte("proximo_followup", endUtc.toISOString())
-    .order("proximo_followup", { ascending: true })
-    .limit(limit);
+    .order("proximo_followup", { ascending: true });
+  if (limit) q = q.limit(limit);
+  const { data, error } = await q;
   if (error) {
     console.error("[listUpcomingFollowups]", error);
     return [];
