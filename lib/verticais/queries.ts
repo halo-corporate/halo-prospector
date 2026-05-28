@@ -5,8 +5,19 @@ import {
   type Vertical,
 } from "@/lib/database.types";
 
-// Postgres code 42P01 = "undefined_table" (migration ainda não rodou)
-const PG_UNDEFINED_TABLE = "42P01";
+// O Supabase/PostgREST pode retornar a falha de tabela inexistente como:
+// - code "42P01" (Postgres direto: undefined_table)
+// - code "PGRST205" (PostgREST: schema cache miss)
+// - mensagem contendo "schema cache" ou "does not exist"
+function isMissingTableError(err: { code?: string; message?: string }): boolean {
+  if (err.code === "42P01" || err.code === "PGRST205") return true;
+  const msg = err.message ?? "";
+  return (
+    /schema cache/i.test(msg) ||
+    /relation .* does not exist/i.test(msg) ||
+    /could not find the table/i.test(msg)
+  );
+}
 
 /**
  * Fallback in-memory dos 5 defaults — usado se a tabela `verticais` ainda
@@ -41,7 +52,7 @@ export async function listVerticais(): Promise<Vertical[]> {
     .order("label", { ascending: true });
 
   if (error) {
-    if (error.code === PG_UNDEFINED_TABLE) {
+    if (isMissingTableError(error)) {
       console.warn(
         "[listVerticais] Tabela `verticais` não existe — usando defaults em memória. Rode a migration 0002.",
       );

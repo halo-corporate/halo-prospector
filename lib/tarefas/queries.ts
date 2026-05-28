@@ -2,7 +2,15 @@ import { createClient } from "@/lib/supabase/server";
 import { currentWeekStartBR } from "@/lib/timezone";
 import type { TarefaSemanal } from "@/lib/database.types";
 
-const PG_UNDEFINED_TABLE = "42P01";
+function isMissingTableError(err: { code?: string; message?: string }): boolean {
+  if (err.code === "42P01" || err.code === "PGRST205") return true;
+  const msg = err.message ?? "";
+  return (
+    /schema cache/i.test(msg) ||
+    /relation .* does not exist/i.test(msg) ||
+    /could not find the table/i.test(msg)
+  );
+}
 
 /**
  * Lista as tarefas de uma semana específica (default: semana atual em BR).
