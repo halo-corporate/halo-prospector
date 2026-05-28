@@ -1,0 +1,121 @@
+import { CalendarCheck2 } from "lucide-react";
+import { AddTarefaInput } from "@/components/checklist/add-tarefa-input";
+import { ChecklistItem } from "@/components/checklist/checklist-item";
+import { CopyPendingButton } from "./copy-pending-button";
+import { listTarefasDaSemana } from "@/lib/tarefas/queries";
+import {
+  addWeeksISO,
+  currentWeekStartBR,
+  formatWeekLabelBR,
+} from "@/lib/timezone";
+
+export const metadata = { title: "Checklist semanal — HALO Prospector" };
+export const dynamic = "force-dynamic";
+
+interface SearchParams {
+  semana?: string;
+}
+
+const WEEK_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+export default async function ChecklistPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const current = currentWeekStartBR();
+  const week =
+    searchParams.semana && WEEK_RE.test(searchParams.semana)
+      ? searchParams.semana
+      : current;
+
+  const tarefas = await listTarefasDaSemana(week);
+  const concluidas = tarefas.filter((t) => t.concluida).length;
+  const pct = tarefas.length === 0 ? 0 : Math.round((concluidas / tarefas.length) * 100);
+
+  const isCurrent = week === current;
+  const prevWeek = addWeeksISO(week, -1);
+  const nextWeek = addWeeksISO(week, 1);
+
+  return (
+    <div className="container py-6 space-y-6 max-w-3xl">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3">
+          <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center mt-0.5">
+            <CalendarCheck2 className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="space-y-0.5">
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Checklist semanal
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {isCurrent ? "Semana atual" : "Outra semana"} ·{" "}
+              {formatWeekLabelBR(week)}
+            </p>
+          </div>
+        </div>
+        {isCurrent ? <CopyPendingButton /> : null}
+      </div>
+
+      {/* Navegação entre semanas */}
+      <div className="flex items-center justify-between text-xs">
+        <a
+          href={`/checklist?semana=${prevWeek}`}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          ← {formatWeekLabelBR(prevWeek)}
+        </a>
+        {isCurrent ? (
+          <span className="text-muted-foreground">Semana atual</span>
+        ) : (
+          <a
+            href="/checklist"
+            className="text-primary hover:underline"
+          >
+            Voltar pra semana atual
+          </a>
+        )}
+        <a
+          href={`/checklist?semana=${nextWeek}`}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          {formatWeekLabelBR(nextWeek)} →
+        </a>
+      </div>
+
+      {/* Barra de progresso */}
+      {tarefas.length > 0 ? (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {concluidas} de {tarefas.length} concluídas
+            </span>
+            <span>{pct}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      <div className="rounded-lg border border-border p-4 space-y-3">
+        <AddTarefaInput weekStartISO={week} />
+
+        {tarefas.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            Nenhuma tarefa nessa semana. Adicione a primeira aí em cima.
+          </p>
+        ) : (
+          <div className="space-y-0.5">
+            {tarefas.map((t) => (
+              <ChecklistItem key={t.id} tarefa={t} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

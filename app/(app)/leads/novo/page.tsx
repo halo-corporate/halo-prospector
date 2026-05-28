@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
+import { listVerticais } from "@/lib/verticais/queries";
 import { LeadForm } from "../lead-form";
 
 export const metadata = { title: "Novo lead — HALO Prospector" };
+export const dynamic = "force-dynamic";
 
-export default function NovoLeadPage() {
+export default async function NovoLeadPage() {
+  const verticais = await listVerticais();
+
   return (
     <div className="container py-6 space-y-6 max-w-3xl">
       <div className="space-y-1">
@@ -20,7 +24,10 @@ export default function NovoLeadPage() {
         </p>
       </div>
 
-      <LeadForm mode="create" />
+      <LeadForm
+        mode="create"
+        verticais={verticais.map((v) => ({ slug: v.slug, label: v.label }))}
+      />
     </div>
   );
 }

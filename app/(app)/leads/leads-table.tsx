@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 import {
   LEAD_STATUS_LABELS,
   LEAD_TEMPERATURA_LABELS,
-  LEAD_VERTICAL_LABELS,
+  verticalLabel,
   type Lead,
 } from "@/lib/database.types";
 import { statusBadgeClass, temperaturaBadgeClass } from "@/lib/leads/badge";
@@ -31,11 +31,12 @@ const SORTABLE: { key: OrderBy; label: string }[] = [
 
 interface Props {
   leads: Lead[];
+  verticais: { slug: string; label: string }[];
   orderBy: OrderBy;
   orderDir: "asc" | "desc";
 }
 
-export function LeadsTable({ leads, orderBy, orderDir }: Props) {
+export function LeadsTable({ leads, verticais, orderBy, orderDir }: Props) {
   const router = useRouter();
   const params = useSearchParams();
 
@@ -113,7 +114,7 @@ export function LeadsTable({ leads, orderBy, orderDir }: Props) {
             >
               <TableCell className="font-medium">{lead.empresa}</TableCell>
               <TableCell className="text-muted-foreground">
-                {LEAD_VERTICAL_LABELS[lead.vertical]}
+                {verticalLabel(lead.vertical, verticais)}
               </TableCell>
               <TableCell className="text-muted-foreground">
                 {[lead.cidade, lead.estado].filter(Boolean).join("/") || "—"}

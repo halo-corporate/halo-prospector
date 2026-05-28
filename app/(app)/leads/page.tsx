@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { listLeads, type LeadOrderBy } from "@/lib/leads/queries";
-import type {
-  LeadVertical,
-  LeadStatus,
-  LeadTemperatura,
-} from "@/lib/database.types";
+import { listVerticais } from "@/lib/verticais/queries";
+import type { LeadStatus, LeadTemperatura } from "@/lib/database.types";
 import { LeadsFilters } from "./filters";
 import { LeadsTable } from "./leads-table";
 
@@ -20,13 +17,6 @@ interface SearchParams {
   orderDir?: string;
 }
 
-const VALID_VERTICALS: LeadVertical[] = [
-  "clinicas_medicas",
-  "academias",
-  "wellness",
-  "corporativo",
-  "turismo_sono",
-];
 const VALID_STATUS: LeadStatus[] = [
   "novo",
   "pesquisando",
@@ -57,8 +47,14 @@ export default async function LeadsListPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const verticais = await listVerticais();
+  const validVerticalSlugs = verticais.map((v) => v.slug);
+
   const filters = {
-    vertical: isOneOf(searchParams.vertical, VALID_VERTICALS),
+    vertical:
+      searchParams.vertical && validVerticalSlugs.includes(searchParams.vertical)
+        ? searchParams.vertical
+        : undefined,
     status: isOneOf(searchParams.status, VALID_STATUS),
     temperatura: isOneOf(searchParams.temperatura, VALID_TEMP),
     estado: searchParams.estado || undefined,
@@ -86,6 +82,7 @@ export default async function LeadsListPage({
       </div>
 
       <LeadsFilters
+        verticais={verticais.map((v) => ({ slug: v.slug, label: v.label }))}
         defaults={{
           vertical: filters.vertical,
           status: filters.status,
@@ -97,6 +94,7 @@ export default async function LeadsListPage({
 
       <LeadsTable
         leads={leads}
+        verticais={verticais.map((v) => ({ slug: v.slug, label: v.label }))}
         orderBy={filters.orderBy}
         orderDir={filters.orderDir}
       />

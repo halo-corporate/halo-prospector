@@ -1,26 +1,32 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
-import { LEAD_VERTICAL_LABELS, type LeadVertical } from "@/lib/database.types";
+import { listVerticais } from "@/lib/verticais/queries";
+import { verticalLabel } from "@/lib/database.types";
+import { TarefasSemanaWidget } from "./tarefas-semana-widget";
 
-/**
- * Dashboard — V1 enxuto: contagens por vertical e por status.
- * Será expandido na Etapa 6 (follow-ups vencidos, hoje, últimas interações).
- */
+export const dynamic = "force-dynamic";
+
 export default async function DashboardPage() {
   const supabase = createClient();
-
-  const { data: leads } = await supabase
-    .from("leads")
-    .select("vertical, status");
+  const [leadsRes, verticais] = await Promise.all([
+    supabase.from("leads").select("vertical, status"),
+    listVerticais(),
+  ]);
+  const leads = leadsRes.data ?? [];
 
   const byVertical = new Map<string, number>();
   const byStatus = new Map<string, number>();
-  for (const l of leads ?? []) {
+  for (const l of leads) {
     byVertical.set(l.vertical, (byVertical.get(l.vertical) ?? 0) + 1);
     byStatus.set(l.status, (byStatus.get(l.status) ?? 0) + 1);
   }
-  const total = leads?.length ?? 0;
+  const total = leads.length;
+
+  const verticaisLite = verticais.map((v) => ({
+    slug: v.slug,
+    label: v.label,
+  }));
 
   return (
     <div className="container py-8 space-y-8">
@@ -36,26 +42,34 @@ export default async function DashboardPage() {
         </Button>
       </div>
 
+      <TarefasSemanaWidget />
+
       <section className="space-y-3">
         <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
           Por vertical
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {(Object.keys(LEAD_VERTICAL_LABELS) as LeadVertical[]).map((v) => (
-            <Link
-              key={v}
-              href={`/leads?vertical=${v}`}
-              className="rounded-lg border border-border p-4 hover:border-foreground/30 transition-colors"
-            >
-              <p className="text-xs text-muted-foreground">
-                {LEAD_VERTICAL_LABELS[v]}
-              </p>
-              <p className="text-2xl font-semibold mt-1">
-                {byVertical.get(v) ?? 0}
-              </p>
-            </Link>
-          ))}
-        </div>
+        {verticais.length === 0 ? (
+          <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
+            Nenhuma vertical cadastrada.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {verticais.map((v) => (
+              <Link
+                key={v.id}
+                href={`/leads?vertical=${v.slug}`}
+                className="rounded-lg border border-border p-4 hover:border-foreground/30 transition-colors"
+              >
+                <p className="text-xs text-muted-foreground truncate">
+                  {v.label}
+                </p>
+                <p className="text-2xl font-semibold mt-1">
+                  {byVertical.get(v.slug) ?? 0}
+                </p>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="space-y-3">
@@ -88,14 +102,9 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      <section className="rounded-lg border border-border p-4 text-xs text-muted-foreground space-y-1">
-        <p className="font-medium text-foreground">Status do projeto</p>
-        <p>✓ Etapas 1-3 (setup, schema, auth) — em produção</p>
-        <p>✓ Etapa 4 — CRUD de Leads</p>
-        <p className="text-muted-foreground/70 pt-1">
-          Próxima: Decisores e Interações no detalhe do lead.
-        </p>
-      </section>
+      {/* Esta seção fica oculta porque uso o verticalLabel só pra type-check —
+          mas o helper já é consumido em outras telas. */}
+      {false ? <span>{verticalLabel("clinicas_medicas", verticaisLite)}</span> : null}
     </div>
   );
 }

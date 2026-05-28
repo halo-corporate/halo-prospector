@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
   Lead,
-  LeadVertical,
   LeadStatus,
   LeadTemperatura,
 } from "@/lib/database.types";
@@ -13,7 +12,7 @@ export type LeadOrderBy =
   | "proximo_followup";
 
 export interface ListLeadsFilters {
-  vertical?: LeadVertical;
+  vertical?: string;
   status?: LeadStatus;
   temperatura?: LeadTemperatura;
   estado?: string;

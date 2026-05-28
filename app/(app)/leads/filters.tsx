@@ -11,20 +11,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { VerticalSelect } from "@/components/leads/vertical-select";
 import {
   LEAD_STATUS_LABELS,
   LEAD_TEMPERATURA_LABELS,
-  LEAD_VERTICAL_LABELS,
   type LeadStatus,
   type LeadTemperatura,
-  type LeadVertical,
 } from "@/lib/database.types";
 
-const ANY = "_any_"; // sentinela pra "qualquer" (Select não aceita value="")
+const ANY = "_any_";
 
 interface Props {
+  verticais: { slug: string; label: string }[];
   defaults: {
-    vertical?: LeadVertical;
+    vertical?: string;
     status?: LeadStatus;
     temperatura?: LeadTemperatura;
     estado?: string;
@@ -32,7 +32,7 @@ interface Props {
   };
 }
 
-export function LeadsFilters({ defaults }: Props) {
+export function LeadsFilters({ verticais, defaults }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -52,8 +52,10 @@ export function LeadsFilters({ defaults }: Props) {
     const next = new URLSearchParams(params.toString());
     const q = (fd.get("q") as string | null) ?? "";
     const estado = ((fd.get("estado") as string | null) ?? "").toUpperCase();
-    if (q.trim()) next.set("q", q.trim()); else next.delete("q");
-    if (estado.trim()) next.set("estado", estado.trim()); else next.delete("estado");
+    if (q.trim()) next.set("q", q.trim());
+    else next.delete("q");
+    if (estado.trim()) next.set("estado", estado.trim());
+    else next.delete("estado");
     startTransition(() => {
       router.push(`/leads?${next.toString()}`);
     });
@@ -82,22 +84,13 @@ export function LeadsFilters({ defaults }: Props) {
         className="lg:col-span-2"
       />
 
-      <Select
-        value={defaults.vertical ?? ANY}
-        onValueChange={(v) => setParam("vertical", v)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Vertical" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ANY}>Todas verticais</SelectItem>
-          {(Object.keys(LEAD_VERTICAL_LABELS) as LeadVertical[]).map((v) => (
-            <SelectItem key={v} value={v}>
-              {LEAD_VERTICAL_LABELS[v]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <VerticalSelect
+        verticais={verticais}
+        value={defaults.vertical}
+        onChange={(slug) => setParam("vertical", slug ?? null)}
+        includeAny
+        placeholder="Vertical"
+      />
 
       <Select
         value={defaults.status ?? ANY}

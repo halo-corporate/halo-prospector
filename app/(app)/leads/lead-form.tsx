@@ -14,14 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { VerticalSelect } from "@/components/leads/vertical-select";
 import {
   LEAD_STATUS_LABELS,
   LEAD_TEMPERATURA_LABELS,
-  LEAD_VERTICAL_LABELS,
   type Lead,
   type LeadStatus,
   type LeadTemperatura,
-  type LeadVertical,
 } from "@/lib/database.types";
 import { toDateTimeLocalBR } from "@/lib/timezone";
 import {
@@ -31,7 +30,7 @@ import {
 } from "@/lib/leads/actions";
 
 const initialState: LeadActionState = { status: "idle" };
-const NONE = "_none_"; // sentinela pra "sem temperatura"
+const NONE = "_none_";
 
 function SubmitButton({ mode }: { mode: "create" | "edit" }) {
   const { pending } = useFormStatus();
@@ -46,14 +45,16 @@ function SubmitButton({ mode }: { mode: "create" | "edit" }) {
 interface Props {
   mode: "create" | "edit";
   lead?: Lead;
-  onSaved?: () => void;
+  verticais: { slug: string; label: string }[];
 }
 
-export function LeadForm({ mode, lead }: Props) {
+export function LeadForm({ mode, lead, verticais }: Props) {
   const action = mode === "create" ? createLeadAction : updateLeadAction;
   const [state, formAction] = useFormState(action, initialState);
 
-  // Controlled: status (pra mostrar/esconder motivo_perda) e temperatura
+  const [vertical, setVertical] = useState<string>(
+    lead?.vertical ?? verticais[0]?.slug ?? "",
+  );
   const [status, setStatus] = useState<LeadStatus>(lead?.status ?? "novo");
   const [temperatura, setTemperatura] = useState<LeadTemperatura | "">(
     lead?.temperatura ?? "",
@@ -76,7 +77,21 @@ export function LeadForm({ mode, lead }: Props) {
 
       <Section title="Empresa">
         <Field label="Empresa" name="empresa" required defaultValue={lead?.empresa} />
-        <FieldVertical defaultValue={lead?.vertical} />
+
+        <div className="space-y-1.5">
+          <Label htmlFor="vertical">
+            Vertical<span className="text-destructive"> *</span>
+          </Label>
+          <VerticalSelect
+            id="vertical"
+            verticais={verticais}
+            value={vertical}
+            onChange={(slug) => setVertical(slug ?? "")}
+            placeholder="Selecione…"
+          />
+          <input type="hidden" name="vertical" value={vertical} />
+        </div>
+
         <Field
           label="Sub-nicho"
           name="sub_nicho"
@@ -239,8 +254,6 @@ export function LeadForm({ mode, lead }: Props) {
   );
 }
 
-// ---------- helpers ---------------------------------------------------
-
 function Section({
   title,
   children,
@@ -300,35 +313,6 @@ function Field({
         min={min}
         className={inputClassName}
       />
-    </div>
-  );
-}
-
-function FieldVertical({ defaultValue }: { defaultValue?: LeadVertical }) {
-  const [value, setValue] = useState<LeadVertical>(
-    defaultValue ?? "clinicas_medicas",
-  );
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor="vertical">
-        Vertical<span className="text-destructive"> *</span>
-      </Label>
-      <Select
-        value={value}
-        onValueChange={(v) => setValue(v as LeadVertical)}
-      >
-        <SelectTrigger id="vertical">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {(Object.keys(LEAD_VERTICAL_LABELS) as LeadVertical[]).map((v) => (
-            <SelectItem key={v} value={v}>
-              {LEAD_VERTICAL_LABELS[v]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <input type="hidden" name="vertical" value={value} />
     </div>
   );
 }

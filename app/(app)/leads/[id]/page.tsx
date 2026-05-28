@@ -4,9 +4,10 @@ import { ChevronLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getLeadById } from "@/lib/leads/queries";
+import { listVerticais } from "@/lib/verticais/queries";
 import {
   LEAD_STATUS_LABELS,
-  LEAD_VERTICAL_LABELS,
+  verticalLabel,
 } from "@/lib/database.types";
 import { statusBadgeClass } from "@/lib/leads/badge";
 import { formatBR } from "@/lib/timezone";
@@ -20,8 +21,16 @@ export default async function LeadDetailPage({
 }: {
   params: { id: string };
 }) {
-  const lead = await getLeadById(params.id);
+  const [lead, verticais] = await Promise.all([
+    getLeadById(params.id),
+    listVerticais(),
+  ]);
   if (!lead) notFound();
+
+  const verticaisLite = verticais.map((v) => ({
+    slug: v.slug,
+    label: v.label,
+  }));
 
   return (
     <div className="container py-6 space-y-6 max-w-5xl">
@@ -44,7 +53,7 @@ export default async function LeadDetailPage({
               {LEAD_STATUS_LABELS[lead.status]}
             </Badge>
             <span>·</span>
-            <span>{LEAD_VERTICAL_LABELS[lead.vertical]}</span>
+            <span>{verticalLabel(lead.vertical, verticaisLite)}</span>
             <span>·</span>
             <span>
               {[lead.cidade, lead.estado].filter(Boolean).join("/") || "sem local"}
@@ -57,10 +66,9 @@ export default async function LeadDetailPage({
       </div>
 
       <div className="rounded-lg border border-border p-4 sm:p-6">
-        <LeadForm mode="edit" lead={lead} />
+        <LeadForm mode="edit" lead={lead} verticais={verticaisLite} />
       </div>
 
-      {/* Decisores + Interações virão na Etapa 5 */}
       <div className="rounded-lg border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
         Decisores e timeline de interações chegam na próxima etapa.
       </div>

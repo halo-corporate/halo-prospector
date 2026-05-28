@@ -1,5 +1,5 @@
 /**
- * Types do banco — espelham `supabase/migrations/0001_init.sql`.
+ * Types do banco — espelham `supabase/migrations/*.sql`.
  *
  * Mantidos à mão (não geramos via `supabase gen types` na V1 para evitar
  * dependência da CLI). Se o schema mudar, atualizar AQUI E NO SQL juntos.
@@ -14,15 +14,19 @@ export type Json =
   | Json[];
 
 // ---------------------------------------------------------------------------
-// Enums
+// Enums (Postgres enums e tipos restritos via convenção)
 // ---------------------------------------------------------------------------
 
-export type LeadVertical =
-  | "clinicas_medicas"
-  | "academias"
-  | "wellness"
-  | "corporativo"
-  | "turismo_sono";
+// `vertical` agora é text livre (registro em `verticais`); estes 5 slugs
+// continuam sendo os defaults seedados.
+export const DEFAULT_VERTICAL_SLUGS = [
+  "clinicas_medicas",
+  "academias",
+  "wellness",
+  "corporativo",
+  "turismo_sono",
+] as const;
+export type DefaultVerticalSlug = (typeof DEFAULT_VERTICAL_SLUGS)[number];
 
 export type LeadStatus =
   | "novo"
@@ -59,13 +63,36 @@ export type InteracaoTipo =
 // Listas pra renderizar selects / labels em PT-BR
 // ---------------------------------------------------------------------------
 
-export const LEAD_VERTICAL_LABELS: Record<LeadVertical, string> = {
+/**
+ * Labels dos 5 slugs default. Usado como fallback quando renderizamos um
+ * slug sem ter a lista de verticais do banco em mãos. A fonte canônica
+ * dos labels é a tabela `verticais`.
+ */
+export const DEFAULT_VERTICAL_LABELS: Record<DefaultVerticalSlug, string> = {
   clinicas_medicas: "Clínicas Médicas",
   academias: "Academias & Studios",
   wellness: "Wellness",
   corporativo: "Corporativo (Tech)",
   turismo_sono: "Turismo do Sono",
 };
+
+/**
+ * Resolve um slug pra label legível. Se a lista de verticais for fornecida,
+ * usa ela; senão usa o map de defaults; senão devolve o próprio slug.
+ */
+export function verticalLabel(
+  slug: string,
+  verticais?: { slug: string; label: string }[],
+): string {
+  if (verticais) {
+    const v = verticais.find((x) => x.slug === slug);
+    if (v) return v.label;
+  }
+  if (slug in DEFAULT_VERTICAL_LABELS) {
+    return DEFAULT_VERTICAL_LABELS[slug as DefaultVerticalSlug];
+  }
+  return slug;
+}
 
 export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   novo: "Novo",
@@ -124,7 +151,7 @@ export interface Database {
           created_at: string;
           updated_at: string;
           empresa: string;
-          vertical: LeadVertical;
+          vertical: string;
           cidade: string | null;
           estado: string | null;
           bairro_regiao: string | null;
@@ -147,7 +174,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
           empresa: string;
-          vertical: LeadVertical;
+          vertical: string;
           cidade?: string | null;
           estado?: string | null;
           bairro_regiao?: string | null;
@@ -170,7 +197,7 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
           empresa?: string;
-          vertical?: LeadVertical;
+          vertical?: string;
           cidade?: string | null;
           estado?: string | null;
           bairro_regiao?: string | null;
@@ -289,12 +316,80 @@ export interface Database {
           resumo?: string;
         };
       };
+      verticais: {
+        Relationships: [];
+        Row: {
+          id: string;
+          user_id: string;
+          slug: string;
+          label: string;
+          is_default: boolean;
+          ordem: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          slug: string;
+          label: string;
+          is_default?: boolean;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          slug?: string;
+          label?: string;
+          is_default?: boolean;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      tarefas_semanais: {
+        Relationships: [];
+        Row: {
+          id: string;
+          user_id: string;
+          semana: string; // ISO date (yyyy-MM-dd)
+          texto: string;
+          concluida: boolean;
+          concluida_em: string | null;
+          ordem: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          semana: string;
+          texto: string;
+          concluida?: boolean;
+          concluida_em?: string | null;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          semana?: string;
+          texto?: string;
+          concluida?: boolean;
+          concluida_em?: string | null;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
     CompositeTypes: { [_ in never]: never };
     Enums: {
-      lead_vertical: LeadVertical;
       lead_status: LeadStatus;
       lead_temperatura: LeadTemperatura;
       decisor_prioridade: DecisorPrioridade;
@@ -316,3 +411,11 @@ export type DecisorUpdate = Database["public"]["Tables"]["decisores"]["Update"];
 export type Interacao = Database["public"]["Tables"]["interacoes"]["Row"];
 export type InteracaoInsert = Database["public"]["Tables"]["interacoes"]["Insert"];
 export type InteracaoUpdate = Database["public"]["Tables"]["interacoes"]["Update"];
+
+export type Vertical = Database["public"]["Tables"]["verticais"]["Row"];
+export type VerticalInsert = Database["public"]["Tables"]["verticais"]["Insert"];
+
+export type TarefaSemanal =
+  Database["public"]["Tables"]["tarefas_semanais"]["Row"];
+export type TarefaSemanalInsert =
+  Database["public"]["Tables"]["tarefas_semanais"]["Insert"];

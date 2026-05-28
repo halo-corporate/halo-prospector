@@ -1,12 +1,13 @@
 import { z } from "zod";
 
-const enumLeadVertical = z.enum([
-  "clinicas_medicas",
-  "academias",
-  "wellness",
-  "corporativo",
-  "turismo_sono",
-]);
+// `vertical` agora é text livre (slug) validado em outro lugar pela tabela
+// verticais. Aqui só garantimos formato e tamanho.
+const verticalSlug = z
+  .string()
+  .trim()
+  .min(2, "Vertical inválida")
+  .max(40, "Vertical inválida")
+  .regex(/^[a-z][a-z0-9_]*$/, "Vertical inválida");
 
 const enumLeadStatus = z.enum([
   "novo",
@@ -65,7 +66,7 @@ const optDateTime = z.preprocess(
  */
 export const leadBaseSchema = z.object({
   empresa: z.string().trim().min(1, "Empresa obrigatória"),
-  vertical: enumLeadVertical,
+  vertical: verticalSlug,
   cidade: optStr,
   estado: optEstado,
   bairro_regiao: optStr,
