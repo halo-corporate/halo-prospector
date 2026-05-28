@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/agenda", label: "Agenda" },
   { href: "/mensagens", label: "Mensagens" },
   { href: "/links", label: "Links" },
+  { href: "/informacoes", label: "Internas" },
 ];
 
 export function AppNav() {

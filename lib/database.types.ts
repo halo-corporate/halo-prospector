@@ -372,6 +372,45 @@ export interface Database {
           updated_at?: string;
         };
       };
+      informacoes: {
+        Relationships: [];
+        Row: {
+          id: string;
+          user_id: string;
+          categoria: string;
+          titulo: string;
+          valor: string;
+          valor_secreto: string | null;
+          observacoes: string | null;
+          ordem: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          categoria: string;
+          titulo: string;
+          valor: string;
+          valor_secreto?: string | null;
+          observacoes?: string | null;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          categoria?: string;
+          titulo?: string;
+          valor?: string;
+          valor_secreto?: string | null;
+          observacoes?: string | null;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       mensagem_templates: {
         Relationships: [];
         Row: {
@@ -531,6 +570,42 @@ export type MensagemTemplateInsert =
   Database["public"]["Tables"]["mensagem_templates"]["Insert"];
 export type MensagemTemplateUpdate =
   Database["public"]["Tables"]["mensagem_templates"]["Update"];
+
+export type Informacao = Database["public"]["Tables"]["informacoes"]["Row"];
+export type InformacaoInsert =
+  Database["public"]["Tables"]["informacoes"]["Insert"];
+export type InformacaoUpdate =
+  Database["public"]["Tables"]["informacoes"]["Update"];
+
+// Categorias sugeridas (UI usa estas como autocomplete, mas user pode digitar livremente)
+export const INFORMACAO_CATEGORIAS_SUGERIDAS = [
+  "identificacao",
+  "bancario",
+  "contato",
+  "credencial",
+  "outro",
+] as const;
+
+export const INFORMACAO_CATEGORIA_LABELS: Record<string, string> = {
+  identificacao: "Identificação",
+  bancario: "Bancário",
+  contato: "Contato",
+  credencial: "Credenciais",
+  outro: "Outro",
+};
+
+/**
+ * Label legível para uma categoria. Se não estiver no map, faz fallback
+ * humanizando o slug (snake_case → "Snake Case").
+ */
+export function informacaoCategoriaLabel(slug: string): string {
+  if (slug in INFORMACAO_CATEGORIA_LABELS) {
+    return INFORMACAO_CATEGORIA_LABELS[slug];
+  }
+  return slug
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 // ---------------------------------------------------------------------------
 // Tipos de link (categorias com ícone)
