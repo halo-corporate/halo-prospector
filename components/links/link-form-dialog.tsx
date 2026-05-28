@@ -48,17 +48,16 @@ export function LinkFormDialog({ mode, link, trigger }: Props) {
   );
   const [pending, startTransition] = useTransition();
 
-  function reset() {
-    setTitulo(link?.titulo ?? "");
-    setUrl(link?.url ?? "");
-    setDescricao(link?.descricao ?? "");
-    setTipo((link?.tipo as LinkTipo) ?? "outro");
-  }
-
-  // Sincroniza quando o link de fora muda (ex: Realtime update)
+  // Sincroniza estado a partir das props SEMPRE que o dialog abre,
+  // pra refletir mudanças do prop entre re-aberturas (Realtime/revalidate).
   useEffect(() => {
-    if (!open) reset();
-  }, [open, link?.id, link?.titulo, link?.url, link?.descricao, link?.tipo]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (open) {
+      setTitulo(link?.titulo ?? "");
+      setUrl(link?.url ?? "");
+      setDescricao(link?.descricao ?? "");
+      setTipo((link?.tipo as LinkTipo) ?? "outro");
+    }
+  }, [open, link?.id, link?.titulo, link?.url, link?.descricao, link?.tipo]);
 
   function handleSubmit() {
     const fd = new FormData();

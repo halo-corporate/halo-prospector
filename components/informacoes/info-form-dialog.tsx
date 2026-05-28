@@ -51,19 +51,28 @@ export function InfoFormDialog({
   const [observacoes, setObservacoes] = useState(info?.observacoes ?? "");
   const [pending, startTransition] = useTransition();
 
-  function reset() {
-    setCategoria(info?.categoria ?? "");
-    setTitulo(info?.titulo ?? "");
-    setValor(info?.valor ?? "");
-    setHasSecret(Boolean(info?.valor_secreto));
-    setValorSecreto(info?.valor_secreto ?? "");
-    setRevealSecret(false);
-    setObservacoes(info?.observacoes ?? "");
-  }
-
+  // Sincroniza estado a partir das props SEMPRE que o dialog abre.
+  // (Antes só resetava em close, então valores do prop atualizados via
+  // Realtime/revalidate ficavam stale entre re-aberturas.)
   useEffect(() => {
-    if (!open) reset();
-  }, [open, info?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (open) {
+      setCategoria(info?.categoria ?? "");
+      setTitulo(info?.titulo ?? "");
+      setValor(info?.valor ?? "");
+      setHasSecret(Boolean(info?.valor_secreto));
+      setValorSecreto(info?.valor_secreto ?? "");
+      setRevealSecret(false);
+      setObservacoes(info?.observacoes ?? "");
+    }
+  }, [
+    open,
+    info?.id,
+    info?.categoria,
+    info?.titulo,
+    info?.valor,
+    info?.valor_secreto,
+    info?.observacoes,
+  ]);
 
   function handleSubmit() {
     const fd = new FormData();
