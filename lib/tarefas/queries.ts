@@ -29,7 +29,7 @@ export async function listTarefasDaSemana(
     .order("created_at", { ascending: true });
 
   if (error) {
-    if (error.code === PG_UNDEFINED_TABLE) {
+    if (isMissingTableError(error)) {
       console.warn(
         "[listTarefasDaSemana] Tabela `tarefas_semanais` não existe — rode a migration 0002.",
       );
@@ -51,6 +51,6 @@ export async function tarefasTableExists(): Promise<boolean> {
     .from("tarefas_semanais")
     .select("id")
     .limit(1);
-  if (error && error.code === PG_UNDEFINED_TABLE) return false;
+  if (error && isMissingTableError(error)) return false;
   return true;
 }
