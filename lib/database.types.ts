@@ -117,6 +117,7 @@ export interface Database {
   public: {
     Tables: {
       leads: {
+        Relationships: [];
         Row: {
           id: string;
           user_id: string;
@@ -188,6 +189,14 @@ export interface Database {
         };
       };
       decisores: {
+        Relationships: [
+          {
+            foreignKeyName: "decisores_lead_id_fkey";
+            columns: ["lead_id"];
+            referencedRelation: "leads";
+            referencedColumns: ["id"];
+          },
+        ];
         Row: {
           id: string;
           user_id: string;
@@ -232,6 +241,20 @@ export interface Database {
         };
       };
       interacoes: {
+        Relationships: [
+          {
+            foreignKeyName: "interacoes_lead_id_fkey";
+            columns: ["lead_id"];
+            referencedRelation: "leads";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "interacoes_decisor_id_fkey";
+            columns: ["decisor_id"];
+            referencedRelation: "decisores";
+            referencedColumns: ["id"];
+          },
+        ];
         Row: {
           id: string;
           user_id: string;
@@ -267,8 +290,9 @@ export interface Database {
         };
       };
     };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Views: { [_ in never]: never };
+    Functions: { [_ in never]: never };
+    CompositeTypes: { [_ in never]: never };
     Enums: {
       lead_vertical: LeadVertical;
       lead_status: LeadStatus;

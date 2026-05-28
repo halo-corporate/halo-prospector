@@ -1,0 +1,26 @@
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
+import { LeadForm } from "../lead-form";
+
+export const metadata = { title: "Novo lead — HALO Prospector" };
+
+export default function NovoLeadPage() {
+  return (
+    <div className="container py-6 space-y-6 max-w-3xl">
+      <div className="space-y-1">
+        <Link
+          href="/leads"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="h-3 w-3" /> Voltar para lista
+        </Link>
+        <h1 className="text-2xl font-semibold tracking-tight">Novo lead</h1>
+        <p className="text-sm text-muted-foreground">
+          Campos marcados com <span className="text-destructive">*</span> são obrigatórios.
+        </p>
+      </div>
+
+      <LeadForm mode="create" />
+    </div>
+  );
+}

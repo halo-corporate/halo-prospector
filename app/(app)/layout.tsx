@@ -1,0 +1,46 @@
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { LogoutButton } from "@/components/auth/logout-button";
+import { AppNav } from "./app-nav";
+
+/**
+ * Layout compartilhado das rotas autenticadas.
+ * O middleware já garante que `user` existe quando chega aqui — mas
+ * fazemos getUser() também para usar o email no header.
+ */
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <header className="border-b border-border sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex items-center justify-between h-14 gap-6">
+          <div className="flex items-center gap-6">
+            <Link
+              href="/"
+              className="font-semibold tracking-tight hover:opacity-80"
+            >
+              HALO<span className="text-muted-foreground"> Prospector</span>
+            </Link>
+            <AppNav />
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {user?.email}
+            </span>
+            <LogoutButton />
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1">{children}</main>
+    </div>
+  );
+}
