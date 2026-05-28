@@ -1,21 +1,32 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Check, Trash2, Edit2, X } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Edit2,
+  FileText,
+  StickyNote,
+  Trash2,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   deleteTarefaAction,
   toggleTarefaAction,
+  updateTarefaObservacoesAction,
   updateTarefaTextoAction,
 } from "@/lib/tarefas/actions";
 import type { TarefaSemanal } from "@/lib/database.types";
 
 interface Props {
   tarefa: TarefaSemanal;
-  /** Se true, esconde botão de editar/excluir (modo compacto pro dashboard). */
+  /** Se true, esconde botão de editar/excluir e o card de observações (modo compacto pro dashboard). */
   compact?: boolean;
 }
 
@@ -24,9 +35,21 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(tarefa.texto);
 
+  // Observações: visível por default se já há conteúdo; senão, retraído.
+  const [obsOpen, setObsOpen] = useState(Boolean(tarefa.observacoes));
+  const [obsEditing, setObsEditing] = useState(false);
+  const [obsDraft, setObsDraft] = useState(tarefa.observacoes ?? "");
+  const obsTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Sincroniza drafts quando a tarefa vier nova/atualizada (router.refresh).
+  useEffect(() => {
+    setDraft(tarefa.texto);
+  }, [tarefa.texto]);
+  useEffect(() => {
+    setObsDraft(tarefa.observacoes ?? "");
+  }, [tarefa.observacoes]);
+
   function handleToggle() {
-    // Otimismo controlado: NÃO mudamos o estado local — o revalidatePath
-    // re-renderiza após o sucesso (regra do projeto: banco = fonte da verdade).
     startTransition(async () => {
       const res = await toggleTarefaAction(tarefa.id, !tarefa.concluida);
       if (!res.ok) toast.error(res.message);
@@ -62,104 +85,280 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
     setDraft(tarefa.texto);
   }
 
+  function openObsEditor() {
+    setObsOpen(true);
+    setObsEditing(true);
+    setObsDraft(tarefa.observacoes ?? "");
+    // Focar com pequeno delay pra esperar o render do textarea
+    setTimeout(() => obsTextareaRef.current?.focus(), 30);
+  }
+
+  function handleSaveObs() {
+    const next = obsDraft.trim();
+    const original = (tarefa.observacoes ?? "").trim();
+    if (next === original) {
+      setObsEditing(false);
+      return;
+    }
+    startTransition(async () => {
+      const res = await updateTarefaObservacoesAction(
+        tarefa.id,
+        next.length === 0 ? null : next,
+      );
+      if (!res.ok) {
+        toast.error(res.message);
+        return;
+      }
+      setObsEditing(false);
+      if (next.length === 0) setObsOpen(false);
+      toast.success(
+        next.length === 0 ? "Observação removida" : "Observação salva",
+      );
+    });
+  }
+
+  function handleCancelObs() {
+    setObsEditing(false);
+    setObsDraft(tarefa.observacoes ?? "");
+  }
+
+  const hasObs = Boolean(tarefa.observacoes);
+
   return (
     <div
       className={cn(
-        "group flex items-start gap-2 rounded-md border border-transparent px-2 py-1.5 -mx-2 transition-colors",
-        !editing && "hover:border-border hover:bg-accent/30",
+        "group rounded-md border border-transparent px-2 py-1.5 -mx-2 transition-colors",
+        !editing && !obsEditing && "hover:border-border hover:bg-accent/30",
       )}
     >
-      <button
-        type="button"
-        onClick={handleToggle}
-        disabled={pending || editing}
-        aria-label={tarefa.concluida ? "Marcar como pendente" : "Marcar como concluída"}
-        className={cn(
-          "mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors",
-          tarefa.concluida
-            ? "bg-primary border-primary text-primary-foreground"
-            : "border-muted-foreground/40 hover:border-foreground",
-          pending && "opacity-50",
-        )}
-      >
-        {tarefa.concluida ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
-      </button>
-
-      {editing ? (
-        <div className="flex-1 flex items-center gap-1">
-          <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                handleSaveEdit();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                handleCancelEdit();
-              }
-            }}
-            autoFocus
-            maxLength={200}
-            className="h-7 text-sm"
-          />
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7"
-            onClick={handleSaveEdit}
-            disabled={pending}
-            aria-label="Salvar"
-          >
-            <Check className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7"
-            onClick={handleCancelEdit}
-            disabled={pending}
-            aria-label="Cancelar"
-          >
-            <X className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      ) : (
-        <>
-          <p
-            className={cn(
-              "flex-1 text-sm leading-snug",
-              tarefa.concluida && "line-through text-muted-foreground",
-            )}
-          >
-            {tarefa.texto}
-          </p>
-          {!compact ? (
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6"
-                onClick={() => setEditing(true)}
-                disabled={pending}
-                aria-label="Editar"
-              >
-                <Edit2 className="h-3 w-3" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-6 w-6 hover:text-destructive"
-                onClick={handleDelete}
-                disabled={pending}
-                aria-label="Excluir"
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
+      <div className="flex items-start gap-2">
+        <button
+          type="button"
+          onClick={handleToggle}
+          disabled={pending || editing || obsEditing}
+          aria-label={
+            tarefa.concluida ? "Marcar como pendente" : "Marcar como concluída"
+          }
+          className={cn(
+            "mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors",
+            tarefa.concluida
+              ? "bg-primary border-primary text-primary-foreground"
+              : "border-muted-foreground/40 hover:border-foreground",
+            pending && "opacity-50",
+          )}
+        >
+          {tarefa.concluida ? (
+            <Check className="h-3 w-3" strokeWidth={3} />
           ) : null}
-        </>
-      )}
+        </button>
+
+        {editing ? (
+          <div className="flex-1 flex items-center gap-1">
+            <Input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSaveEdit();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  handleCancelEdit();
+                }
+              }}
+              autoFocus
+              maxLength={200}
+              className="h-7 text-sm"
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={handleSaveEdit}
+              disabled={pending}
+              aria-label="Salvar"
+            >
+              <Check className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={handleCancelEdit}
+              disabled={pending}
+              aria-label="Cancelar"
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 min-w-0 space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <p
+                  className={cn(
+                    "text-sm leading-snug flex-1",
+                    tarefa.concluida && "line-through text-muted-foreground",
+                  )}
+                >
+                  {tarefa.texto}
+                </p>
+                {/* Indicador de observação no modo compact */}
+                {compact && hasObs ? (
+                  <StickyNote
+                    className="h-3 w-3 text-amber-400/80 shrink-0"
+                    aria-label="Tem observações"
+                  />
+                ) : null}
+              </div>
+
+              {/* Toggle pra abrir/fechar a área de observações (só modo completo) */}
+              {!compact ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (obsEditing) return;
+                    if (!obsOpen && !hasObs) {
+                      openObsEditor();
+                    } else {
+                      setObsOpen((o) => !o);
+                    }
+                  }}
+                  className={cn(
+                    "inline-flex items-center gap-1 text-[10px] leading-none text-muted-foreground/70 hover:text-muted-foreground transition-colors",
+                    hasObs ? "" : "opacity-0 group-hover:opacity-100",
+                  )}
+                >
+                  {obsOpen ? (
+                    <ChevronDown className="h-2.5 w-2.5" />
+                  ) : (
+                    <ChevronRight className="h-2.5 w-2.5" />
+                  )}
+                  {hasObs ? (
+                    <span>
+                      <FileText className="inline h-2.5 w-2.5 -mt-px mr-0.5" />
+                      Observações
+                    </span>
+                  ) : (
+                    <span>+ Adicionar observação</span>
+                  )}
+                </button>
+              ) : null}
+            </div>
+
+            {!compact ? (
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6"
+                  onClick={() => setEditing(true)}
+                  disabled={pending}
+                  aria-label="Editar texto"
+                >
+                  <Edit2 className="h-3 w-3" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-6 w-6 hover:text-destructive"
+                  onClick={handleDelete}
+                  disabled={pending}
+                  aria-label="Excluir"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
+
+      {/* Card de observações — só no modo completo */}
+      {!compact && obsOpen && !editing ? (
+        <div className="mt-2 ml-6 rounded-md border border-border/60 bg-card/40 p-2.5 space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+              <FileText className="h-3 w-3" />
+              <span>Observações</span>
+            </div>
+            {!obsEditing ? (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-5 w-5"
+                onClick={openObsEditor}
+                disabled={pending}
+                aria-label={hasObs ? "Editar observações" : "Adicionar observações"}
+              >
+                <Edit2 className="h-2.5 w-2.5" />
+              </Button>
+            ) : null}
+          </div>
+
+          {obsEditing ? (
+            <div className="space-y-1.5">
+              <Textarea
+                ref={obsTextareaRef}
+                value={obsDraft}
+                onChange={(e) => setObsDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                    e.preventDefault();
+                    handleSaveObs();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    handleCancelObs();
+                  }
+                }}
+                rows={3}
+                maxLength={1000}
+                placeholder="Contexto, dados pra revisar, links, etc."
+                className="text-xs"
+              />
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] text-muted-foreground">
+                  {obsDraft.length}/1000 · ⌘+Enter salva · Esc cancela
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 px-2 text-xs"
+                    onClick={handleCancelObs}
+                    disabled={pending}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={handleSaveObs}
+                    disabled={pending}
+                  >
+                    {pending ? "Salvando…" : "Salvar"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : hasObs ? (
+            <p className="text-xs text-foreground/80 whitespace-pre-wrap break-words leading-snug">
+              {tarefa.observacoes}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground italic">
+              Nenhuma observação ainda.{" "}
+              <button
+                type="button"
+                onClick={openObsEditor}
+                className="underline hover:text-foreground"
+              >
+                Adicionar
+              </button>
+            </p>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

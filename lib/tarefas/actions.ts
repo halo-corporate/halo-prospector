@@ -11,6 +11,16 @@ const textoSchema = z
   .min(1, "Texto obrigatório")
   .max(200, "Máx 200 caracteres");
 
+// Observações: opcional, trimadas, max 1000. String vazia → null.
+const observacoesSchema = z
+  .string()
+  .max(1000, "Máx 1000 caracteres")
+  .transform((s) => {
+    const trimmed = s.trim();
+    return trimmed.length === 0 ? null : trimmed;
+  })
+  .nullable();
+
 const semanaSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Semana inválida")
@@ -100,6 +110,35 @@ export async function updateTarefaTextoAction(
     .eq("id", id);
   if (error) {
     console.error("[updateTarefaTextoAction]", error);
+    return { ok: false, message: error.message };
+  }
+  revalidatePath("/checklist");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Atualiza as observações da tarefa. String vazia ou só whitespace remove
+ * a observação (vira null).
+ */
+export async function updateTarefaObservacoesAction(
+  id: string,
+  observacoes: string | null,
+): Promise<TarefaActionResult> {
+  if (typeof id !== "string" || id.length < 10) {
+    return { ok: false, message: "ID inválido" };
+  }
+  const parsed = observacoesSchema.safeParse(observacoes ?? "");
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]!.message };
+  }
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("tarefas_semanais")
+    .update({ observacoes: parsed.data })
+    .eq("id", id);
+  if (error) {
+    console.error("[updateTarefaObservacoesAction]", error);
     return { ok: false, message: error.message };
   }
   revalidatePath("/checklist");

@@ -356,6 +356,7 @@ export interface Database {
           user_id: string;
           semana: string; // ISO date (yyyy-MM-dd)
           texto: string;
+          observacoes: string | null;
           concluida: boolean;
           concluida_em: string | null;
           ordem: number;
@@ -367,6 +368,7 @@ export interface Database {
           user_id?: string;
           semana: string;
           texto: string;
+          observacoes?: string | null;
           concluida?: boolean;
           concluida_em?: string | null;
           ordem?: number;
@@ -378,6 +380,7 @@ export interface Database {
           user_id?: string;
           semana?: string;
           texto?: string;
+          observacoes?: string | null;
           concluida?: boolean;
           concluida_em?: string | null;
           ordem?: number;
