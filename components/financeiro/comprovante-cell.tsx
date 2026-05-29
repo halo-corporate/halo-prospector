@@ -72,7 +72,19 @@ export function ComprovanteCell({ vendaId, comprovanteUrl }: Props) {
     setOpeningUrl(true);
     // Abre uma aba IMEDIATAMENTE (precisa ser dentro do click handler pro
     // popup blocker não bloquear) e seta a URL depois que o signed vier.
-    const win = window.open("about:blank", "_blank", "noopener,noreferrer");
+    //
+    // IMPORTANTE: SEM `noopener`/`noreferrer` aqui — esses flags fazem
+    // window.open retornar null, o que cairia no fallback de navegar a
+    // aba atual. Pra mitigar o risco de tabnabbing, fazemos
+    // `win.opener = null` assim que conseguimos a referência.
+    const win = window.open("about:blank", "_blank");
+    if (win) {
+      try {
+        win.opener = null;
+      } catch {
+        /* algumas versões não permitem; ignoramos */
+      }
+    }
     getComprovanteSignedUrlAction(comprovanteUrl)
       .then((res) => {
         if (!res.ok) {
@@ -80,10 +92,10 @@ export function ComprovanteCell({ vendaId, comprovanteUrl }: Props) {
           win?.close();
           return;
         }
-        if (win) {
+        if (win && !win.closed) {
           win.location.href = res.url;
         } else {
-          // Popup blocker bloqueou; fallback abre na mesma tab
+          // Popup foi bloqueado; usa a aba atual com aviso
           toast.info("Permita popups pra abrir em nova aba.");
           window.location.href = res.url;
         }
