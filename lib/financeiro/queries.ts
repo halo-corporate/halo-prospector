@@ -88,7 +88,14 @@ export async function getVendasAggregate(
     .select("valor_bruto, valor_liquido, comissao_valor");
 
   if (filters.responsavel) query = query.eq("responsavel", filters.responsavel);
-  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.status) {
+    query = query.eq("status", filters.status);
+  } else {
+    // Regra de DRE: cancelado não conta em faturamento/comissão a não ser
+    // que o user EXPLICITAMENTE filtre por cancelado (ai ele quer ver
+    // esse dado isoladamente).
+    query = query.neq("status", "cancelado");
+  }
   if (filters.mes) {
     const b = monthBounds(filters.mes);
     if (b) query = query.gte("data_venda", b.start).lte("data_venda", b.end);
@@ -137,7 +144,12 @@ export async function getBreakdownByResponsavel(
     .select("responsavel, valor_liquido, comissao_valor");
 
   // Aplica todos filtros EXCETO responsavel (queremos quebrar por ele)
-  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.status) {
+    query = query.eq("status", filters.status);
+  } else {
+    // Mesma regra do DRE — cancelado fora salvo filtro explicito.
+    query = query.neq("status", "cancelado");
+  }
   if (filters.mes) {
     const b = monthBounds(filters.mes);
     if (b) query = query.gte("data_venda", b.start).lte("data_venda", b.end);
