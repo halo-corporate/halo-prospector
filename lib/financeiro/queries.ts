@@ -62,6 +62,160 @@ export async function listVendas(
   return data ?? [];
 }
 
+/**
+ * Aggregate de vendas para um conjunto de filtros (usado no DRE).
+ * Calcula em SQL via aggregate functions pra evitar trazer todas as rows
+ * quando o usuário só precisa dos totais.
+ *
+ * Como o Supabase REST API não suporta `select(sum(...))` direto, fazemos
+ * select dos campos numéricos e agregamos em memória. Para um single-user
+ * com volumes razoáveis (<10k vendas/mês) isso é ok.
+ */
+export interface VendaAggregate {
+  bruto: number;
+  liquido: number;
+  comissao: number;
+  quantidade: number;
+  ticketMedio: number;
+}
+
+export async function getVendasAggregate(
+  filters: ListVendasFilters = {},
+): Promise<VendaAggregate> {
+  const supabase = createClient();
+  let query = supabase
+    .from("vendas")
+    .select("valor_bruto, valor_liquido, comissao_valor");
+
+  if (filters.responsavel) query = query.eq("responsavel", filters.responsavel);
+  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.mes) {
+    const b = monthBounds(filters.mes);
+    if (b) query = query.gte("data_venda", b.start).lte("data_venda", b.end);
+  }
+  if (filters.q && filters.q.trim()) {
+    query = query.ilike("cliente", `%${filters.q.trim()}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    if (isMissingTableError(error))
+      return { bruto: 0, liquido: 0, comissao: 0, quantidade: 0, ticketMedio: 0 };
+    console.error("[getVendasAggregate]", error);
+    return { bruto: 0, liquido: 0, comissao: 0, quantidade: 0, ticketMedio: 0 };
+  }
+
+  let bruto = 0;
+  let liquido = 0;
+  let comissao = 0;
+  for (const r of data ?? []) {
+    bruto += Number(r.valor_bruto ?? 0);
+    liquido += Number(r.valor_liquido ?? 0);
+    comissao += Number(r.comissao_valor ?? 0);
+  }
+  const qtd = (data ?? []).length;
+  const ticketMedio = qtd > 0 ? liquido / qtd : 0;
+  return { bruto, liquido, comissao, quantidade: qtd, ticketMedio };
+}
+
+/**
+ * Breakdown por responsável (líquido + comissão + qtd).
+ */
+export interface ResponsavelBreakdown {
+  responsavel: VendaResponsavel;
+  liquido: number;
+  comissao: number;
+  quantidade: number;
+}
+
+export async function getBreakdownByResponsavel(
+  filters: ListVendasFilters = {},
+): Promise<ResponsavelBreakdown[]> {
+  const supabase = createClient();
+  let query = supabase
+    .from("vendas")
+    .select("responsavel, valor_liquido, comissao_valor");
+
+  // Aplica todos filtros EXCETO responsavel (queremos quebrar por ele)
+  if (filters.status) query = query.eq("status", filters.status);
+  if (filters.mes) {
+    const b = monthBounds(filters.mes);
+    if (b) query = query.gte("data_venda", b.start).lte("data_venda", b.end);
+  }
+  if (filters.q && filters.q.trim()) {
+    query = query.ilike("cliente", `%${filters.q.trim()}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    if (isMissingTableError(error)) return [];
+    console.error("[getBreakdownByResponsavel]", error);
+    return [];
+  }
+
+  const map = new Map<VendaResponsavel, ResponsavelBreakdown>();
+  for (const r of data ?? []) {
+    const cur = map.get(r.responsavel) ?? {
+      responsavel: r.responsavel,
+      liquido: 0,
+      comissao: 0,
+      quantidade: 0,
+    };
+    cur.liquido += Number(r.valor_liquido ?? 0);
+    cur.comissao += Number(r.comissao_valor ?? 0);
+    cur.quantidade += 1;
+    map.set(r.responsavel, cur);
+  }
+  return Array.from(map.values()).sort((a, b) => b.liquido - a.liquido);
+}
+
+/**
+ * Breakdown por status (contagem + soma líquida).
+ */
+export interface StatusBreakdown {
+  status: VendaStatus;
+  quantidade: number;
+  liquido: number;
+}
+
+export async function getBreakdownByStatus(
+  filters: ListVendasFilters = {},
+): Promise<StatusBreakdown[]> {
+  const supabase = createClient();
+  let query = supabase
+    .from("vendas")
+    .select("status, valor_liquido");
+
+  if (filters.responsavel) query = query.eq("responsavel", filters.responsavel);
+  if (filters.mes) {
+    const b = monthBounds(filters.mes);
+    if (b) query = query.gte("data_venda", b.start).lte("data_venda", b.end);
+  }
+  if (filters.q && filters.q.trim()) {
+    query = query.ilike("cliente", `%${filters.q.trim()}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    if (isMissingTableError(error)) return [];
+    console.error("[getBreakdownByStatus]", error);
+    return [];
+  }
+
+  const map = new Map<VendaStatus, StatusBreakdown>();
+  for (const r of data ?? []) {
+    const cur = map.get(r.status) ?? {
+      status: r.status,
+      quantidade: 0,
+      liquido: 0,
+    };
+    cur.quantidade += 1;
+    cur.liquido += Number(r.valor_liquido ?? 0);
+    map.set(r.status, cur);
+  }
+  return Array.from(map.values());
+}
+
 export async function getVendaById(id: string): Promise<Venda | null> {
   const supabase = createClient();
   const { data, error } = await supabase

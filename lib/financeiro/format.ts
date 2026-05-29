@@ -96,3 +96,37 @@ export function formatDateBR(iso: string | null | undefined): string {
   if (!m) return iso;
   return `${m[3]}/${m[2]}/${m[1]}`;
 }
+
+/**
+ * Label de um mês "yyyy-MM" → "Maio/2026".
+ */
+export function formatMonthLabel(monthYYYYMM: string): string {
+  const m = /^(\d{4})-(\d{2})$/.exec(monthYYYYMM);
+  if (!m) return monthYYYYMM;
+  const y = parseInt(m[1]!, 10);
+  const mm = parseInt(m[2]!, 10);
+  const d = new Date(y, mm - 1, 1);
+  const label = d.toLocaleString("pt-BR", { month: "long", year: "numeric" });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/**
+ * Devolve o mês anterior em formato yyyy-MM.
+ */
+export function previousMonth(monthYYYYMM: string): string | null {
+  const m = /^(\d{4})-(\d{2})$/.exec(monthYYYYMM);
+  if (!m) return null;
+  const y = parseInt(m[1]!, 10);
+  const mm = parseInt(m[2]!, 10);
+  const d = new Date(y, mm - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Variação percentual entre dois valores. Retorna null se o anterior
+ * for 0 (não dá pra comparar).
+ */
+export function pctChange(current: number, previous: number): number | null {
+  if (previous === 0) return null;
+  return ((current - previous) / previous) * 100;
+}
