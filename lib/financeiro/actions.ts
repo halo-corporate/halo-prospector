@@ -196,6 +196,20 @@ export async function deleteVendaAction(
 ): Promise<VendaActionResult> {
   if (!id || id.length < 10) return { ok: false, message: "ID inválido" };
   const supabase = createClient();
+
+  // Antes de deletar a row, apaga o comprovante do storage (se houver) —
+  // o DB não cascateia pra storage automaticamente.
+  const { data: venda } = await supabase
+    .from("vendas")
+    .select("comprovante_url")
+    .eq("id", id)
+    .maybeSingle();
+  if (venda?.comprovante_url) {
+    await supabase.storage
+      .from("comprovantes")
+      .remove([venda.comprovante_url]);
+  }
+
   const { error } = await supabase.from("vendas").delete().eq("id", id);
   if (error) {
     console.error("[deleteVendaAction]", error);
@@ -203,4 +217,164 @@ export async function deleteVendaAction(
   }
   revalidatePath("/financeiro");
   return { ok: true };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Comprovante (Storage)
+// ────────────────────────────────────────────────────────────────────────────
+
+const ALLOWED_MIMES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+]);
+const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+const EXT_BY_MIME: Record<string, string> = {
+  "application/pdf": "pdf",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/png": "png",
+};
+
+/**
+ * Upload do comprovante pra Supabase Storage.
+ *  - Path: `{user_id}/{venda_id}-{timestamp}.{ext}`
+ *  - Substitui o arquivo anterior (se houver) antes de subir o novo.
+ *  - Atualiza vendas.comprovante_url com o path final.
+ */
+export async function uploadComprovanteAction(
+  vendaId: string,
+  fd: FormData,
+): Promise<VendaActionResult> {
+  if (!vendaId || vendaId.length < 10) {
+    return { ok: false, message: "ID inválido" };
+  }
+  const file = fd.get("file");
+  if (!(file instanceof File)) {
+    return { ok: false, message: "Arquivo não recebido" };
+  }
+  if (!ALLOWED_MIMES.has(file.type)) {
+    return { ok: false, message: "Tipo de arquivo não suportado (use PDF, JPG ou PNG)" };
+  }
+  if (file.size > MAX_SIZE_BYTES) {
+    return { ok: false, message: "Arquivo muito grande (máx 5 MB)" };
+  }
+
+  const supabase = createClient();
+  const {
+    data: { user },
+    error: userErr,
+  } = await supabase.auth.getUser();
+  if (userErr || !user) {
+    return { ok: false, message: "Sessão inválida" };
+  }
+
+  // Confere ownership da venda antes (RLS já protege, mas fail fast).
+  const { data: venda, error: errVenda } = await supabase
+    .from("vendas")
+    .select("id, comprovante_url")
+    .eq("id", vendaId)
+    .maybeSingle();
+  if (errVenda || !venda) {
+    return { ok: false, message: "Venda não encontrada" };
+  }
+
+  const ext = EXT_BY_MIME[file.type] ?? "bin";
+  const path = `${user.id}/${vendaId}-${Date.now()}.${ext}`;
+
+  // Remove o anterior, se existir
+  if (venda.comprovante_url) {
+    await supabase.storage
+      .from("comprovantes")
+      .remove([venda.comprovante_url]);
+  }
+
+  const { error: errUpload } = await supabase.storage
+    .from("comprovantes")
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: true,
+      contentType: file.type,
+    });
+  if (errUpload) {
+    console.error("[uploadComprovanteAction]", errUpload);
+    return { ok: false, message: errUpload.message };
+  }
+
+  const { error: errUpdate } = await supabase
+    .from("vendas")
+    .update({ comprovante_url: path })
+    .eq("id", vendaId);
+  if (errUpdate) {
+    console.error("[uploadComprovanteAction update]", errUpdate);
+    // Best-effort: tenta limpar o arquivo subido pra evitar lixo
+    await supabase.storage.from("comprovantes").remove([path]);
+    return { ok: false, message: errUpdate.message };
+  }
+
+  revalidatePath("/financeiro");
+  return { ok: true };
+}
+
+/**
+ * Remove comprovante: apaga do storage e zera comprovante_url da venda.
+ */
+export async function deleteComprovanteAction(
+  vendaId: string,
+): Promise<VendaActionResult> {
+  if (!vendaId || vendaId.length < 10) {
+    return { ok: false, message: "ID inválido" };
+  }
+  const supabase = createClient();
+  const { data: venda } = await supabase
+    .from("vendas")
+    .select("comprovante_url")
+    .eq("id", vendaId)
+    .maybeSingle();
+  if (!venda?.comprovante_url) {
+    return { ok: true }; // nada a remover
+  }
+
+  const { error: errRemove } = await supabase.storage
+    .from("comprovantes")
+    .remove([venda.comprovante_url]);
+  if (errRemove) {
+    console.error("[deleteComprovanteAction remove]", errRemove);
+    return { ok: false, message: errRemove.message };
+  }
+
+  const { error: errUpdate } = await supabase
+    .from("vendas")
+    .update({ comprovante_url: null })
+    .eq("id", vendaId);
+  if (errUpdate) {
+    console.error("[deleteComprovanteAction update]", errUpdate);
+    return { ok: false, message: errUpdate.message };
+  }
+
+  revalidatePath("/financeiro");
+  return { ok: true };
+}
+
+/**
+ * Gera signed URL temporária (10 min) pra abrir o comprovante em nova aba.
+ * Não revalida — leitura apenas.
+ */
+export async function getComprovanteSignedUrlAction(
+  path: string,
+): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+  if (!path) return { ok: false, message: "Path vazio" };
+  const supabase = createClient();
+  const { data, error } = await supabase.storage
+    .from("comprovantes")
+    .createSignedUrl(path, 60 * 10);
+  if (error || !data?.signedUrl) {
+    console.error("[getComprovanteSignedUrlAction]", error);
+    return {
+      ok: false,
+      message: error?.message ?? "Erro ao gerar URL do comprovante",
+    };
+  }
+  return { ok: true, url: data.signedUrl };
 }

@@ -34,6 +34,7 @@ import {
 import { deleteVendaAction } from "@/lib/financeiro/actions";
 import { formatBRL, formatDateBR, formatPercent } from "@/lib/financeiro/format";
 import { VendaFormDialog } from "./venda-form-dialog";
+import { ComprovanteCell } from "./comprovante-cell";
 
 function statusBadgeClass(s: VendaStatus): string {
   switch (s) {
@@ -83,12 +84,16 @@ export function VendasTable({ vendas }: Props) {
             <TableHead>Resp.</TableHead>
             <TableHead className="text-right">Comissão</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead className="text-center w-[110px]">Comprovante</TableHead>
             <TableHead className="text-right w-[100px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {vendas.map((v) => (
-            <TableRow key={v.id} className={cn(pending && "opacity-50")}>
+            <TableRow
+              key={v.id}
+              className={cn("group/row", pending && "opacity-50")}
+            >
               <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                 {formatDateBR(v.data_venda)}
               </TableCell>
@@ -133,6 +138,14 @@ export function VendasTable({ vendas }: Props) {
                 >
                   {VENDA_STATUS_LABELS[v.status]}
                 </Badge>
+              </TableCell>
+              <TableCell className="text-center">
+                <div className="flex items-center justify-center">
+                  <ComprovanteCell
+                    vendaId={v.id}
+                    comprovanteUrl={v.comprovante_url}
+                  />
+                </div>
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-0.5">
