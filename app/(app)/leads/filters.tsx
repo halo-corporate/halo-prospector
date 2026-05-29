@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,8 @@ export function LeadsFilters({ verticais, defaults }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
+  const [clearTick, setClearTick] = useState(0);
 
   function setParam(key: string, value: string | null) {
     const next = new URLSearchParams(params.toString());
@@ -62,6 +64,8 @@ export function LeadsFilters({ verticais, defaults }: Props) {
   }
 
   function clear() {
+    formRef.current?.reset();
+    setClearTick((t) => t + 1);
     startTransition(() => router.push("/leads"));
   }
 
@@ -74,11 +78,12 @@ export function LeadsFilters({ verticais, defaults }: Props) {
 
   return (
     <form
+      ref={formRef}
       onSubmit={onSubmit}
       className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 rounded-[18px] border border-white/10 p-3"
     >
       <Input
-        key={`q-${defaults.q ?? ""}`}
+        key={`q-${defaults.q ?? ""}-${clearTick}`}
         name="q"
         placeholder="Buscar empresa…"
         defaultValue={defaults.q ?? ""}
@@ -130,7 +135,7 @@ export function LeadsFilters({ verticais, defaults }: Props) {
       </Select>
 
       <Input
-        key={`estado-${defaults.estado ?? ""}`}
+        key={`estado-${defaults.estado ?? ""}-${clearTick}`}
         name="estado"
         placeholder="UF"
         maxLength={2}

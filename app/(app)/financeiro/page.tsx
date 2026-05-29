@@ -45,6 +45,16 @@ export default async function FinanceiroPage({
     q: searchParams.q || undefined,
   };
 
+  // `mes` default = mês atual; só não é "filtro ativo" no sentido de
+  // empty state quando NÃO foi explicitamente escolhido pelo usuário e
+  // não há outros filtros.
+  const hasFiltersActive = Boolean(
+    filters.responsavel ||
+      filters.status ||
+      filters.q ||
+      searchParams.mes !== undefined,
+  );
+
   const vendas = await listVendas(filters);
 
   // Totais visíveis (do que está filtrado)
@@ -108,6 +118,14 @@ export default async function FinanceiroPage({
       ) : null}
 
       {vendas.length === 0 ? (
+        // Distingue "filtros vazios" (filtros ativos, sem match) de
+        // "banco vazio" (sem filtros, sem dados): CTA grande só quando
+        // realmente não há venda nenhuma.
+        hasFiltersActive ? (
+          <div className="rounded-[18px] border border-white/10 p-12 text-center text-sm text-muted-foreground">
+            Nenhuma venda encontrada com os filtros atuais.
+          </div>
+        ) : (
         <div className="rounded-[18px] border border-dashed border-white/10 p-12 text-center space-y-4">
           <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
             <Wallet className="h-5 w-5 text-primary" />
@@ -131,6 +149,7 @@ export default async function FinanceiroPage({
             }
           />
         </div>
+        )
       ) : (
         <VendasTable vendas={vendas} />
       )}

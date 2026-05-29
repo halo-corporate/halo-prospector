@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,10 @@ export function VendasFilters({ defaults }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
+  // Incrementa em cada "Limpar" pra forçar remount de inputs não-controlados
+  // mesmo quando a URL já estava sem param (texto digitado mas não aplicado).
+  const [clearTick, setClearTick] = useState(0);
 
   function setParam(key: string, value: string | null) {
     const next = new URLSearchParams(params.toString());
@@ -59,6 +63,8 @@ export function VendasFilters({ defaults }: Props) {
   }
 
   function clear() {
+    formRef.current?.reset();
+    setClearTick((t) => t + 1);
     startTransition(() => router.push("/financeiro"));
   }
 
@@ -68,11 +74,12 @@ export function VendasFilters({ defaults }: Props) {
 
   return (
     <form
+      ref={formRef}
       onSubmit={onSubmit}
       className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 rounded-[18px] border border-white/10 p-3"
     >
       <Input
-        key={`q-${defaults.q ?? ""}`}
+        key={`q-${defaults.q ?? ""}-${clearTick}`}
         name="q"
         placeholder="Buscar cliente…"
         defaultValue={defaults.q ?? ""}
