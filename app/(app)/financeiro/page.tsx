@@ -18,6 +18,7 @@ import { VendasFilters } from "@/components/financeiro/vendas-filters";
 import { VendasTable } from "@/components/financeiro/vendas-table";
 import { DREPanel } from "@/components/financeiro/dre-panel";
 import { BreakdownPanel } from "@/components/financeiro/breakdown-panel";
+import { ExportPdfButton } from "@/components/financeiro/export-pdf-button";
 
 export const metadata = { title: "Financeiro — HALO Prospector" };
 export const dynamic = "force-dynamic";
@@ -88,7 +89,10 @@ export default async function FinanceiroPage({
               : `${vendas.length} ${vendas.length === 1 ? "venda" : "vendas"} encontradas`}
           </p>
         </div>
-        <VendaFormDialog mode="create" />
+        <div className="flex items-center gap-2">
+          <ExportPdfButton />
+          <VendaFormDialog mode="create" />
+        </div>
       </div>
 
       <VendasFilters
