@@ -20,7 +20,7 @@ import {
   type VendaResponsavel,
   type VendaStatus,
 } from "@/lib/database.types";
-import { PrintTrigger } from "./print-trigger";
+import { PrintButton, PrintTrigger } from "./print-trigger";
 
 export const metadata = { title: "DRE — Exportação PDF" };
 export const dynamic = "force-dynamic";
@@ -139,22 +139,7 @@ export default async function PrintDREPage({
       >
         {/* Toolbar (não imprime) */}
         <div className="print-hide" style={{ marginBottom: "12px" }}>
-          <button
-            type="button"
-            onClick={() => window.print()}
-            style={{
-              padding: "6px 14px",
-              border: "1px solid #ccc",
-              borderRadius: 6,
-              background: "#fff",
-              color: "#111",
-              cursor: "pointer",
-              fontSize: 13,
-              fontFamily: "inherit",
-            }}
-          >
-            Imprimir / Salvar como PDF
-          </button>
+          <PrintButton />
         </div>
 
         {/* Header */}
