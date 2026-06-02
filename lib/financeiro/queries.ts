@@ -143,7 +143,12 @@ export async function getBreakdownByResponsavel(
     .from("vendas")
     .select("responsavel, valor_liquido, comissao_valor");
 
-  // Aplica todos filtros EXCETO responsavel (queremos quebrar por ele)
+  // V2 Entrega 4.4 fix: aplica TODOS os filtros, inclusive responsavel.
+  // Antes a query intencionalmente ignorava responsavel pra "sempre
+  // mostrar os 4". Mas isso quebrava os percentuais quando o user
+  // filtrava por um responsavel (denominador filtrado vs numerador nao
+  // filtrado = somam > 100%). Coerencia com o aggregate total agora.
+  if (filters.responsavel) query = query.eq("responsavel", filters.responsavel);
   if (filters.status) {
     query = query.eq("status", filters.status);
   } else {
@@ -198,6 +203,11 @@ export async function getBreakdownByStatus(
     .from("vendas")
     .select("status, valor_liquido");
 
+  // V2 Entrega 4.4 fix: aplica TODOS os filtros, inclusive status,
+  // pela mesma razao do getBreakdownByResponsavel — coerencia com o
+  // aggregate total. Se o user filtra status=pago, o breakdown
+  // mostra so pago.
+  if (filters.status) query = query.eq("status", filters.status);
   if (filters.responsavel) query = query.eq("responsavel", filters.responsavel);
   if (filters.mes) {
     const b = monthBounds(filters.mes);
