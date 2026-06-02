@@ -78,6 +78,12 @@ export type VendaCanalPagamento =
 
 export type VendaStatus = "pendente" | "pago" | "parcial" | "cancelado";
 
+export type PropostaStatus =
+  | "aberto"
+  | "negociacao"
+  | "recusado"
+  | "convertido";
+
 // ---------------------------------------------------------------------------
 // Listas pra renderizar selects / labels em PT-BR
 // ---------------------------------------------------------------------------
@@ -212,6 +218,19 @@ export const VENDA_STATUS_LABELS: Record<VendaStatus, string> = {
   pago: "Pago",
   parcial: "Parcial",
   cancelado: "Cancelado",
+};
+
+export const PROPOSTA_STATUSES: PropostaStatus[] = [
+  "aberto",
+  "negociacao",
+  "recusado",
+  "convertido",
+];
+export const PROPOSTA_STATUS_LABELS: Record<PropostaStatus, string> = {
+  aberto: "Aberto",
+  negociacao: "Negociação",
+  recusado: "Recusado",
+  convertido: "Convertido",
 };
 
 // ---------------------------------------------------------------------------
@@ -422,6 +441,80 @@ export interface Database {
           slug?: string;
           label?: string;
           is_default?: boolean;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      propostas: {
+        Relationships: [
+          {
+            foreignKeyName: "propostas_lead_id_fkey";
+            columns: ["lead_id"];
+            referencedRelation: "leads";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "propostas_venda_id_fkey";
+            columns: ["venda_id"];
+            referencedRelation: "vendas";
+            referencedColumns: ["id"];
+          },
+        ];
+        Row: {
+          id: string;
+          user_id: string;
+          lead_id: string | null;
+          cliente: string;
+          titulo: string;
+          descricao: string | null;
+          quantidade: number;
+          valor_unitario: number;
+          valor_total: number; // generated
+          status: PropostaStatus;
+          data_envio: string;
+          data_resposta: string | null;
+          motivo_recusa: string | null;
+          venda_id: string | null;
+          observacoes: string | null;
+          ordem: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          lead_id?: string | null;
+          cliente: string;
+          titulo: string;
+          descricao?: string | null;
+          quantidade?: number;
+          valor_unitario: number;
+          status?: PropostaStatus;
+          data_envio?: string;
+          data_resposta?: string | null;
+          motivo_recusa?: string | null;
+          venda_id?: string | null;
+          observacoes?: string | null;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          lead_id?: string | null;
+          cliente?: string;
+          titulo?: string;
+          descricao?: string | null;
+          quantidade?: number;
+          valor_unitario?: number;
+          status?: PropostaStatus;
+          data_envio?: string;
+          data_resposta?: string | null;
+          motivo_recusa?: string | null;
+          venda_id?: string | null;
+          observacoes?: string | null;
           ordem?: number;
           created_at?: string;
           updated_at?: string;
@@ -711,6 +804,12 @@ export type InformacaoUpdate =
 export type Venda = Database["public"]["Tables"]["vendas"]["Row"];
 export type VendaInsert = Database["public"]["Tables"]["vendas"]["Insert"];
 export type VendaUpdate = Database["public"]["Tables"]["vendas"]["Update"];
+
+export type Proposta = Database["public"]["Tables"]["propostas"]["Row"];
+export type PropostaInsert =
+  Database["public"]["Tables"]["propostas"]["Insert"];
+export type PropostaUpdate =
+  Database["public"]["Tables"]["propostas"]["Update"];
 
 // Categorias sugeridas (UI usa estas como autocomplete, mas user pode digitar livremente)
 export const INFORMACAO_CATEGORIAS_SUGERIDAS = [
