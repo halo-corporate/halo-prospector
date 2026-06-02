@@ -1,11 +1,16 @@
 # HALO Prospector
 
 Sistema web single-user para prospecção B2B da HALO (haloqring.com).
-V1 completa em produção: [halo-prospector.vercel.app](https://halo-prospector.vercel.app).
+**V2 completa** em produção: [halo-prospector.vercel.app](https://halo-prospector.vercel.app).
 
 > Substitui a planilha de prospecção do Gabriel. Banco como única fonte de
 > verdade, sync entre dispositivos via Supabase Realtime, fuso BR explícito
 > em toda apresentação, validação dupla (zod + HTML) em tudo que muta dados.
+>
+> **V2 entrega**: rebranding visual + módulos de Propostas, Financeiro (DRE
+> com PDF), Mensagens-modelo, Central de Links e Informações Internas
+> (credenciais com reveal-on-click). Sem integrações externas — dados
+> inseridos manualmente.
 
 ---
 
@@ -24,31 +29,35 @@ V1 completa em produção: [halo-prospector.vercel.app](https://halo-prospector.
 
 ---
 
-## Funcionalidades V1
+## Módulos (V1 + V2)
 
-| Área                       | O que tem                                                                                                                                |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| **Auth**                   | Login email + senha (Supabase Auth). Signup público desabilitado — single user.                                                          |
-| **Leads (CRUD)**           | Lista com filtros (vertical, status, temperatura, UF, busca), ordenação por coluna, criar/editar/excluir, 17 campos.                     |
-| **Decisores**              | Card no detalhe do lead. D1/D2/D3, contato (telefone/email/IG clicáveis), marcar como contatado, editar inline, AlertDialog pra excluir. |
-| **Interações**             | Timeline cronológica reversa no detalhe. Modal de registrar: canal/tipo/decisor/data-hora BR/resumo. Ícones por canal e estado.          |
-| **Verticais customizáveis** | 5 defaults seedados + criar nova inline com slug auto-gerado (`+ Nova vertical` no Select).                                              |
-| **Checklist semanal**      | Tarefas por semana BR (segunda–domingo). Navegação entre semanas. Observações expansíveis por tarefa. "Puxar pendentes da semana anterior". |
-| **Dashboard**              | KPIs (Total, Vencidos, Hoje, Aquecidos), follow-ups vencidos/hoje/próximos 7 dias, checklist da semana, últimas 5 interações, por vertical, por status. |
-| **Agenda**                 | `/agenda` com 3 buckets completos (Vencidos · Hoje · Próximos 7 dias), sem limit, click → detalhe.                                       |
-| **Sync entre dispositivos** | Supabase Realtime nas 5 tabelas + fetch on `window.focus` / `visibilitychange`. Sem reload manual.                                       |
-| **Tema**                   | Dark mode default, paleta HALO (preto base, branco texto, `#0071E3` accent).                                                             |
-| **Error boundaries**       | `/app/(app)/error.tsx` + `app/not-found.tsx` + `app/global-error.tsx` — tudo estilizado, com detecção de migration pendente.            |
-| **Persistência rígida**    | Toda mutação é `await` Server Action; UI só atualiza após sucesso confirmado; erro → toast vermelho, estado não muda.                    |
+| Módulo / Rota                | O que tem                                                                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Auth**                     | Login email + senha (Supabase Auth). Signup público desabilitado — single user.                                                          |
+| **Dashboard** (`/`)          | KPIs (Total, Vencidos, Hoje, Aquecidos), follow-ups vencidos/hoje/próximos 7 dias, checklist da semana, últimas 5 interações, por vertical, por status. |
+| **Leads** (`/leads`)         | Lista com filtros (vertical, status, temperatura, UF, busca), ordenação por coluna, CRUD com 17 campos.                                  |
+| **Decisores + Interações**   | No detalhe do lead. D1/D2/D3, timeline cronológica reversa, modal de registrar interação com BR→UTC.                                     |
+| **Verticais customizáveis**  | 5 defaults seedados + criar nova inline (`+ Nova vertical` no Select).                                                                   |
+| **Propostas** (`/propostas`) | **V2** — 4 status pills (Aberto / Negociação / Recusado / Convertido), filtros (cliente, valor mín/máx, datas), botão 1-click "Converter em venda" que cria venda no Financeiro com responsável + comissão custom e linka via `venda_id`. |
+| **Financeiro** (`/financeiro`) | **V2** — Tabela vendas com generated columns (bruto/líquido/comissão calculados pelo Postgres). DRE com Faturamento Bruto em destaque + 4 sub-KPIs + MoM com tooltip "MÊS EM ANDAMENTO — COMPARAÇÃO PARCIAL". Breakdowns por responsável (Pedro/Bessa/Davi/Gabriel — mini-barras) e por status. Upload de comprovante inline (Supabase Storage privado + signed URLs 10min + RLS por `user_id`). Exportar PDF via `window.print()` + `@media print` (rota dedicada `/financeiro/dre/print` em light theme). Cancelados excluídos do DRE por default. |
+| **Checklist** (`/checklist`) | Tarefas por semana BR (segunda–domingo). Navegação entre semanas. Observações expansíveis por tarefa. "Puxar pendentes da semana anterior". |
+| **Agenda** (`/agenda`)       | 3 buckets completos (Vencidos · Hoje · Próximos 7 dias), sem limit, click → detalhe.                                                     |
+| **Mensagens-modelo** (`/mensagens`) | **V2** — Biblioteca de templates por canal (WhatsApp/E-mail/Instagram/SMS) e etapa do funil. Variáveis tipo `{nome_cliente}` `{empresa}` `{valor}` destacadas em pill azul HALO. Botão **COPIAR** preserva as variáveis intactas no clipboard. |
+| **Links** (`/links`)         | **V2** — Central de links/favoritos. URLs coladas manualmente, agrupadas por tipo (Notion/Drive/Sheets/Calendar/Slack/WhatsApp/etc.), `https://` auto-prepended, ícone por tipo. |
+| **Informações Internas** (`/informacoes`) | **V2** — Registro de dados da empresa (CNPJ, bancário, contatos, credenciais). `valor_secreto` mascarado com bullets por default; reveal-on-click; copy preserva valor real. Agrupado por categoria livre. |
+| **Sync entre dispositivos**  | Supabase Realtime em todas as 9 tabelas + fetch on `window.focus` / `visibilitychange`. Sem reload manual.                              |
+| **Tema (V2)**                | Dark mode default, paleta HALO. **Único accent: `#0071E3`** (zero âmbar/amarelo). Cards `rounded-[18px]` + `border-white/10`. H1/H2 em Helvetica Neue Bold caixa alta. |
+| **Error boundaries**         | `/app/(app)/error.tsx` + `app/not-found.tsx` + `app/global-error.tsx` — tudo estilizado, com detecção de migration pendente.            |
+| **Persistência rígida**      | Toda mutação é `await` Server Action; UI só atualiza após sucesso confirmado; erro → toast vermelho, estado não muda.                    |
 
-### O que NÃO está em V1 (vai pra V2)
+### O que ainda NÃO está implementado (V3+)
 
-- Integração com WhatsApp / Instagram API
+- Integração com WhatsApp / Instagram API (envio real de mensagens)
+- Integração com Mercado Pago / API de pagamentos
 - Import de CSV/Excel
 - Notificações por email/push
-- Múltiplos usuários ou compartilhamento
-- Dashboards com gráficos complexos
-- Exportação de relatórios
+- Auth multi-user real (hoje `responsavel` em vendas é só categoria, não Auth)
+- Encriptação at-rest dos `valor_secreto` via Supabase Vault
 - Sugestões automáticas via IA
 
 ---
@@ -97,6 +106,12 @@ ser aplicadas **em ordem**:
 | `0001_init.sql`                                | Enums, tabelas `leads` / `decisores` / `interacoes`, RLS por `user_id`, trigger `updated_at`, Realtime |
 | `0002_verticais_e_checklist.sql`               | Tabela `verticais` (com seed dos 5 defaults), converte `leads.vertical` enum→text, tabela `tarefas_semanais` |
 | `0003_tarefas_observacoes.sql`                 | Adiciona coluna `observacoes` em `tarefas_semanais`                                                |
+| `0004_links.sql`                               | **V2** — Tabela `links` (central de favoritos)                                                     |
+| `0005_mensagens_templates.sql`                 | **V2** — Enum `mensagem_canal` + tabela `mensagem_templates`                                       |
+| `0006_informacoes.sql`                         | **V2** — Tabela `informacoes` (com `valor_secreto` mascarado)                                      |
+| `0007_vendas.sql`                              | **V2** — Enums `venda_responsavel`/`canal_pagamento`/`status` + tabela `vendas` com generated columns (bruto/líquido/comissão automáticos via Postgres) |
+| `0008_comprovantes_storage.sql`                | **V2** — Bucket privado `comprovantes` no Supabase Storage + 4 RLS policies em `storage.objects`   |
+| `0009_propostas.sql`                           | **V2** — Enum `proposta_status` + tabela `propostas` com FK opcional pra `leads` e `vendas` (link 1↔1 quando convertida) |
 
 **Via SQL Editor (recomendado):**
 
