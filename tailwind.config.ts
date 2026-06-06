@@ -15,12 +15,20 @@ const config: Config = {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-inter)", "Inter", "Helvetica", "system-ui", "sans-serif"],
+        // HALO body: Open Sans 300/400/600 — leve, espaçada, premium
+        sans: [
+          "var(--font-open-sans)",
+          "'Open Sans'",
+          "Helvetica",
+          "system-ui",
+          "sans-serif",
+        ],
+        // HALO display: Helvetica Neue Bold em títulos H1/H2 (uppercase)
         display: [
           "'Helvetica Neue'",
           "Helvetica",
-          "var(--font-inter)",
-          "Inter",
+          "var(--font-open-sans)",
+          "'Open Sans'",
           "Arial",
           "system-ui",
           "sans-serif",
@@ -69,6 +77,9 @@ const config: Config = {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        // HALO brand — cards grandes 18px, cards menores 12px
+        halo: "18px",
+        "halo-sm": "12px",
       },
       keyframes: {
         "accordion-down": {
@@ -79,10 +90,16 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        // HALO brand — fade-up suave usado em heros e seções (.fu)
+        "halo-fade-up": {
+          from: { opacity: "0", transform: "translateY(14px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "halo-fade-up": "halo-fade-up 0.6s ease both",
       },
     },
   },

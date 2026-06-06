@@ -8,7 +8,11 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-[18px] border border-white/10 bg-card text-card-foreground shadow",
+      // HALO brand — radius 18px, borda translúcida e transição leve no
+      // hover (background fica um pouco mais claro, borda também). Mantém
+      // bg-card como fallback nos lugares onde o glass não rola.
+      "rounded-halo border border-white/10 bg-card text-card-foreground shadow",
+      "transition-colors duration-200 hover:bg-white/[0.03] hover:border-white/20",
       className,
     )}
     {...props}

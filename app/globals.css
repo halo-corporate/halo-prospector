@@ -48,13 +48,42 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* HALO brand — body em peso 300 (light), line-height arejada. Cor base
+       do texto fica em rgba(255,255,255,.78) pra remover peso visual. */
+    font-weight: 300;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
   }
 
   /* HALO V2 — hierarquia tipográfica: títulos top-level em Helvetica Neue
-     Bold, caixa alta, tracking generoso. Subtitles em fonte sans (Inter)
-     com case normal para criar contraste claro entre os dois. */
+     Bold, caixa alta, tracking generoso. Subtitles em fonte sans (Open
+     Sans) com case normal para criar contraste claro entre os dois. */
   h1.title-display,
   h2.title-display {
     @apply font-display font-bold uppercase tracking-[0.04em];
+  }
+}
+
+@layer components {
+  /* HALO brand — "eyebrow" label que precede H1/H2 nas seções.
+     Sempre azul HALO, uppercase, tracking aberto, peso semi-bold. */
+  .halo-eyebrow {
+    @apply text-[12px] font-semibold uppercase text-primary;
+    letter-spacing: 0.18em;
+  }
+
+  /* HALO brand — glass card. Background translúcido + blur + borda sutil
+     com transição suave no hover (mais luz, borda levemente mais clara). */
+  .halo-glass {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: background 0.25s ease, border-color 0.25s ease,
+      transform 0.25s ease;
+  }
+  .halo-glass:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
   }
 }

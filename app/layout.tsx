@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Open_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
-const inter = Inter({
+// HALO brand body font — Open Sans (300/400/600). Helvetica Neue Bold é
+// usada nos títulos (font-display) via stack do Tailwind.
+const openSans = Open_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: ["300", "400", "600", "700"],
+  variable: "--font-open-sans",
   display: "swap",
 });
 
@@ -20,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} dark`} suppressHydrationWarning>
+    <html lang="pt-BR" className={`${openSans.variable} dark`} suppressHydrationWarning>
       <body className="font-sans bg-background text-foreground">
         {children}
         <Toaster
