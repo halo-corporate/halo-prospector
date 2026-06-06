@@ -4,34 +4,36 @@
 
 @layer base {
   :root {
-    /* HALO dark theme — preto base, branco texto, azul #0071E3 accent */
-    --background: 0 0% 0%;
+    /* HALO dark theme — base navy profundo (saiu do preto chapado), branco
+       texto, azul #0071E3 accent. Todos os neutros recebem leve tom azul
+       (hue ~218) pra dar coesão de marca e profundidade. */
+    --background: 220 45% 5%;
     --foreground: 0 0% 100%;
 
-    --card: 0 0% 4%;
+    --card: 220 38% 8%;
     --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 6%;
+    --popover: 220 40% 9%;
     --popover-foreground: 0 0% 100%;
 
     /* primary = HALO blue #0071E3 ≈ hsl(211, 100%, 45%) */
     --primary: 211 100% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 0 0% 10%;
+    --secondary: 220 30% 14%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 65%;
+    --muted: 220 24% 16%;
+    --muted-foreground: 220 12% 66%;
 
-    --accent: 0 0% 14%;
+    --accent: 220 30% 17%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 75% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
+    --border: 220 26% 18%;
+    --input: 220 26% 18%;
     --ring: 211 100% 45%;
 
     --radius: 0.5rem;
@@ -53,6 +55,22 @@
     font-weight: 300;
     line-height: 1.6;
     letter-spacing: -0.005em;
+    /* Profundidade: brilhos azuis fixos sobre o navy — o fundo deixa de ser
+       chapado e ganha a atmosfera premium do brandbook. */
+    background-image:
+      radial-gradient(
+        70% 55% at 50% -5%,
+        rgba(0, 113, 227, 0.16),
+        transparent 70%
+      ),
+      radial-gradient(
+        45% 40% at 100% 0%,
+        rgba(0, 113, 227, 0.08),
+        transparent 70%
+      );
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    min-height: 100vh;
   }
 
   /* HALO V2 — hierarquia tipográfica: títulos top-level em Helvetica Neue
