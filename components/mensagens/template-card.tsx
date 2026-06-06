@@ -45,12 +45,24 @@ const CANAL_ICONS: Record<MensagemCanal, LucideIcon> = {
   outro: MessageCircle,
 };
 
-function etapaLabel(slug: string | null): string | null {
-  if (!slug) return null;
+function etapaLabel(slug: string): string {
   if (slug in LEAD_STATUS_LABELS) {
     return LEAD_STATUS_LABELS[slug as LeadStatus];
   }
   return slug.replace(/_/g, " ");
+}
+
+/** Lê canais do template (array novo OU fallback no escalar antigo). */
+function readCanais(t: MensagemTemplate): MensagemCanal[] {
+  if (Array.isArray(t.canais) && t.canais.length > 0) return t.canais;
+  return [t.canal];
+}
+
+/** Lê etapas do template (array novo OU fallback no escalar antigo). */
+function readEtapas(t: MensagemTemplate): string[] {
+  if (Array.isArray(t.etapas_funil) && t.etapas_funil.length > 0)
+    return t.etapas_funil;
+  return t.etapa_funil ? [t.etapa_funil] : [];
 }
 
 interface Props {
@@ -59,7 +71,6 @@ interface Props {
 
 export function TemplateCard({ template }: Props) {
   const [pending, startTransition] = useTransition();
-  const Icon = CANAL_ICONS[template.canal];
 
   function handleDelete() {
     startTransition(async () => {
@@ -68,7 +79,9 @@ export function TemplateCard({ template }: Props) {
     });
   }
 
-  const etapa = etapaLabel(template.etapa_funil);
+  const canais = readCanais(template);
+  const etapas = readEtapas(template);
+  const PrimaryIcon = CANAL_ICONS[canais[0]!];
 
   return (
     <div
@@ -79,26 +92,44 @@ export function TemplateCard({ template }: Props) {
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-start gap-2 min-w-0 flex-1">
           <div className="h-9 w-9 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-            <Icon className="h-4 w-4 text-primary" />
+            <PrimaryIcon className="h-4 w-4 text-primary" />
           </div>
-          <div className="min-w-0 space-y-0.5">
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-              {MENSAGEM_CANAL_LABELS[template.canal]}
-            </p>
-            {etapa ? (
-              <Badge
-                variant="outline"
-                className="border border-primary/25 bg-primary/5 text-primary text-[10px] py-0"
-              >
-                {etapa}
-              </Badge>
+          <div className="min-w-0 space-y-1 flex-1">
+            {/* Canais (badges com ícone) */}
+            <div className="flex items-center gap-1 flex-wrap">
+              {canais.map((c) => {
+                const Icon = CANAL_ICONS[c];
+                return (
+                  <span
+                    key={c}
+                    className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 border border-white/10 rounded-sm px-1.5 py-0.5"
+                  >
+                    <Icon className="h-2.5 w-2.5" />
+                    {MENSAGEM_CANAL_LABELS[c]}
+                  </span>
+                );
+              })}
+            </div>
+            {/* Etapas (badges azul) */}
+            {etapas.length > 0 ? (
+              <div className="flex items-center gap-1 flex-wrap">
+                {etapas.map((e) => (
+                  <Badge
+                    key={e}
+                    variant="outline"
+                    className="border border-primary/25 bg-primary/5 text-primary text-[10px] py-0"
+                  >
+                    {etapaLabel(e)}
+                  </Badge>
+                ))}
+              </div>
             ) : null}
           </div>
         </div>
 
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
           <TemplateFormDialog mode="edit" template={template} />
           <AlertDialog>
             <AlertDialogTrigger asChild>

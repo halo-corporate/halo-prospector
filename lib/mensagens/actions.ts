@@ -8,9 +8,33 @@ import { MENSAGEM_CANAIS, type MensagemCanal } from "@/lib/database.types";
 const emptyToNull = (v: unknown) =>
   typeof v === "string" && v.trim() === "" ? null : v;
 
-const canalSchema = z
-  .enum([...MENSAGEM_CANAIS] as [MensagemCanal, ...MensagemCanal[]])
-  .default("whatsapp");
+const canalEnum = z.enum([...MENSAGEM_CANAIS] as [MensagemCanal, ...MensagemCanal[]]);
+
+/** Aceita FormData onde "canais" vem como CSV "whatsapp,email". */
+const canaisFromCsv = z.preprocess(
+  (v) => {
+    if (Array.isArray(v)) return v;
+    if (typeof v !== "string") return [];
+    return v
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  },
+  z.array(canalEnum).min(1, "Selecione ao menos 1 canal"),
+);
+
+/** Etapas: array livre de slugs (lead_status ou customizado), pode ser vazio. */
+const etapasFromCsv = z.preprocess(
+  (v) => {
+    if (Array.isArray(v)) return v;
+    if (typeof v !== "string" || v.trim() === "") return [];
+    return v
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  },
+  z.array(z.string().trim().min(1).max(60)),
+);
 
 const templateSchema = z.object({
   titulo: z
@@ -18,17 +42,8 @@ const templateSchema = z.object({
     .trim()
     .min(1, "Título obrigatório")
     .max(100, "Máx 100 caracteres"),
-  canal: canalSchema,
-  etapa_funil: z.preprocess(
-    emptyToNull,
-    z
-      .string()
-      .trim()
-      .min(1)
-      .max(60, "Máx 60 caracteres")
-      .nullable()
-      .optional(),
-  ),
+  canais: canaisFromCsv,
+  etapas_funil: etapasFromCsv,
   assunto: z.preprocess(
     emptyToNull,
     z.string().max(200, "Máx 200 caracteres").nullable().optional(),
@@ -47,10 +62,28 @@ export type TemplateActionResult =
 function parseFormData(fd: FormData) {
   return {
     titulo: (fd.get("titulo") ?? "") as string,
-    canal: ((fd.get("canal") ?? "whatsapp") as string) as MensagemCanal,
-    etapa_funil: fd.get("etapa_funil"),
+    canais: fd.get("canais") ?? "",
+    etapas_funil: fd.get("etapas_funil") ?? "",
     assunto: fd.get("assunto"),
     corpo: (fd.get("corpo") ?? "") as string,
+  };
+}
+
+/**
+ * Durante a transição (migration 0010 add, 0011 drop), escrevemos tanto as
+ * colunas array novas quanto as escalares antigas (canal/etapa_funil), pra
+ * manter compat com qualquer caminho que ainda leia o escalar. Depois do
+ * drop, basta remover os campos `canal` e `etapa_funil` daqui.
+ */
+function buildPayload(parsed: z.infer<typeof templateSchema>) {
+  return {
+    titulo: parsed.titulo,
+    canal: parsed.canais[0]!, // legado: NOT NULL no banco
+    canais: parsed.canais,
+    etapa_funil: parsed.etapas_funil[0] ?? null,
+    etapas_funil: parsed.etapas_funil.length > 0 ? parsed.etapas_funil : null,
+    assunto: parsed.assunto ?? null,
+    corpo: parsed.corpo,
   };
 }
 
@@ -74,11 +107,7 @@ export async function createTemplateAction(
   const { data, error } = await supabase
     .from("mensagem_templates")
     .insert({
-      titulo: parsed.data.titulo,
-      canal: parsed.data.canal,
-      etapa_funil: parsed.data.etapa_funil ?? null,
-      assunto: parsed.data.assunto ?? null,
-      corpo: parsed.data.corpo,
+      ...buildPayload(parsed.data),
       ordem: nextOrdem,
     })
     .select("id")
@@ -104,13 +133,7 @@ export async function updateTemplateAction(
   const supabase = createClient();
   const { error } = await supabase
     .from("mensagem_templates")
-    .update({
-      titulo: parsed.data.titulo,
-      canal: parsed.data.canal,
-      etapa_funil: parsed.data.etapa_funil ?? null,
-      assunto: parsed.data.assunto ?? null,
-      corpo: parsed.data.corpo,
-    })
+    .update(buildPayload(parsed.data))
     .eq("id", id);
   if (error) {
     console.error("[updateTemplateAction]", error);

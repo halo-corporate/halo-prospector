@@ -18,10 +18,22 @@ interface SearchParams {
   q?: string;
 }
 
-function isCanal(v: string | undefined): MensagemCanal | undefined {
-  return v && (MENSAGEM_CANAIS as string[]).includes(v)
-    ? (v as MensagemCanal)
-    : undefined;
+/** Parse CSV "whatsapp,email" → array só com valores válidos. */
+function parseCanaisCsv(v: string | undefined): MensagemCanal[] {
+  if (!v) return [];
+  const allowed = new Set<string>(MENSAGEM_CANAIS);
+  return v
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => allowed.has(s)) as MensagemCanal[];
+}
+
+function parseEtapasCsv(v: string | undefined): string[] {
+  if (!v) return [];
+  return v
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 export default async function MensagensPage({
@@ -29,10 +41,14 @@ export default async function MensagensPage({
 }: {
   searchParams: SearchParams;
 }) {
+  const canais = parseCanaisCsv(searchParams.canal);
+  const etapas = parseEtapasCsv(searchParams.etapa);
+  const q = searchParams.q || undefined;
+
   const filters = {
-    canal: isCanal(searchParams.canal),
-    etapa: searchParams.etapa || undefined,
-    q: searchParams.q || undefined,
+    canais: canais.length > 0 ? canais : undefined,
+    etapas: etapas.length > 0 ? etapas : undefined,
+    q,
   };
 
   const [templates, etapasExtras] = await Promise.all([
@@ -40,7 +56,7 @@ export default async function MensagensPage({
     listEtapas(),
   ]);
 
-  const noFiltersActive = !filters.canal && !filters.etapa && !filters.q;
+  const noFiltersActive = canais.length === 0 && etapas.length === 0 && !q;
 
   return (
     <div className="container py-6 space-y-6 max-w-6xl">
@@ -57,7 +73,10 @@ export default async function MensagensPage({
         <TemplateFormDialog mode="create" />
       </div>
 
-      <TemplatesFilters defaults={filters} etapasExtras={etapasExtras} />
+      <TemplatesFilters
+        defaults={{ canais, etapas, q }}
+        etapasExtras={etapasExtras}
+      />
 
       {templates.length === 0 ? (
         noFiltersActive ? (

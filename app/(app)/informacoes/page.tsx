@@ -4,7 +4,7 @@ import {
   listInformacaoCategorias,
   listInformacoes,
 } from "@/lib/informacoes/queries";
-import { informacaoCategoriaLabel } from "@/lib/database.types";
+import { informacaoCategoriaLabel, type Informacao } from "@/lib/database.types";
 import { InfoCard } from "@/components/informacoes/info-card";
 import { InfoFormDialog } from "@/components/informacoes/info-form-dialog";
 import { InfoFilters } from "@/components/informacoes/info-filters";
@@ -17,14 +17,30 @@ interface SearchParams {
   q?: string;
 }
 
+function parseCsv(v: string | undefined): string[] {
+  if (!v) return [];
+  return v
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function readCategorias(i: Informacao): string[] {
+  if (Array.isArray(i.categorias) && i.categorias.length > 0) return i.categorias;
+  return i.categoria ? [i.categoria] : [];
+}
+
 export default async function InformacoesPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
+  const categoriasFiltro = parseCsv(searchParams.categoria);
+  const q = searchParams.q || undefined;
+
   const filters = {
-    categoria: searchParams.categoria || undefined,
-    q: searchParams.q || undefined,
+    categorias: categoriasFiltro.length > 0 ? categoriasFiltro : undefined,
+    q,
   };
 
   const [items, categoriasExistentes] = await Promise.all([
@@ -32,16 +48,21 @@ export default async function InformacoesPage({
     listInformacaoCategorias(),
   ]);
 
-  // Agrupa por categoria preservando a ordem da query (já vem ordenado por
-  // categoria asc, então só consolida).
-  const grouped = new Map<string, typeof items>();
+  // Agrupa por categoria. Uma info com 2 categorias aparece em ambos grupos.
+  const grouped = new Map<string, Informacao[]>();
   for (const it of items) {
-    const arr = grouped.get(it.categoria) ?? [];
-    arr.push(it);
-    grouped.set(it.categoria, arr);
+    const cats = readCategorias(it);
+    for (const cat of cats) {
+      const arr = grouped.get(cat) ?? [];
+      arr.push(it);
+      grouped.set(cat, arr);
+    }
   }
+  const groupedSorted = Array.from(grouped.entries()).sort(([a], [b]) =>
+    a.localeCompare(b),
+  );
 
-  const noFiltersActive = !filters.categoria && !filters.q;
+  const noFiltersActive = categoriasFiltro.length === 0 && !q;
 
   return (
     <div className="container py-6 space-y-6 max-w-5xl">
@@ -62,7 +83,7 @@ export default async function InformacoesPage({
       </div>
 
       <InfoFilters
-        defaults={filters}
+        defaults={{ categorias: categoriasFiltro, q }}
         categoriasExistentes={categoriasExistentes}
       />
 
@@ -100,7 +121,7 @@ export default async function InformacoesPage({
         )
       ) : (
         <div className="space-y-6">
-          {Array.from(grouped.entries()).map(([cat, list]) => (
+          {groupedSorted.map(([cat, list]) => (
             <section key={cat} className="space-y-2">
               <h2 className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
                 {informacaoCategoriaLabel(cat)}{" "}
@@ -108,7 +129,11 @@ export default async function InformacoesPage({
               </h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                 {list.map((info) => (
-                  <InfoCard key={info.id} info={info} />
+                  <InfoCard
+                    key={`${cat}-${info.id}`}
+                    info={info}
+                    primaryCategoria={cat}
+                  />
                 ))}
               </div>
             </section>

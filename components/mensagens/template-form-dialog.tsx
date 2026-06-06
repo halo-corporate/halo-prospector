@@ -8,12 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  MultiSelectChips,
+  type MultiSelectOption,
+} from "@/components/ui/multi-select-chips";
 import {
   Dialog,
   DialogContent,
@@ -37,35 +34,54 @@ import {
 } from "@/lib/mensagens/actions";
 import { DEFAULT_TEMPLATE_VARS } from "@/lib/mensagens/highlight";
 
-const ETAPA_NONE = "_none_";
-
 interface Props {
   mode: "create" | "edit";
   template?: MensagemTemplate;
   trigger?: React.ReactNode;
 }
 
+const CANAL_OPTIONS: MultiSelectOption[] = MENSAGEM_CANAIS.map((c) => ({
+  value: c,
+  label: MENSAGEM_CANAL_LABELS[c],
+}));
+
+const ETAPA_OPTIONS: MultiSelectOption[] = (
+  Object.keys(LEAD_STATUS_LABELS) as LeadStatus[]
+).map((s) => ({
+  value: s,
+  label: LEAD_STATUS_LABELS[s],
+}));
+
+/** Lê canais do template (array novo OU fallback no escalar antigo). */
+function readCanais(t: MensagemTemplate | undefined): MensagemCanal[] {
+  if (!t) return ["whatsapp"];
+  if (Array.isArray(t.canais) && t.canais.length > 0) return t.canais;
+  return [t.canal];
+}
+
+/** Lê etapas do template (array novo OU fallback no escalar antigo). */
+function readEtapas(t: MensagemTemplate | undefined): string[] {
+  if (!t) return [];
+  if (Array.isArray(t.etapas_funil) && t.etapas_funil.length > 0)
+    return t.etapas_funil;
+  return t.etapa_funil ? [t.etapa_funil] : [];
+}
+
 export function TemplateFormDialog({ mode, template, trigger }: Props) {
   const [open, setOpen] = useState(false);
   const [titulo, setTitulo] = useState(template?.titulo ?? "");
-  const [canal, setCanal] = useState<MensagemCanal>(
-    template?.canal ?? "whatsapp",
-  );
-  const [etapaFunil, setEtapaFunil] = useState<string>(
-    template?.etapa_funil ?? ETAPA_NONE,
-  );
+  const [canais, setCanais] = useState<MensagemCanal[]>(readCanais(template));
+  const [etapas, setEtapas] = useState<string[]>(readEtapas(template));
   const [assunto, setAssunto] = useState(template?.assunto ?? "");
   const [corpo, setCorpo] = useState(template?.corpo ?? "");
   const [pending, startTransition] = useTransition();
 
   // Sincroniza estado das props SEMPRE que o dialog abre.
-  // Antes só resetava no close — entre re-aberturas, props atualizadas
-  // via Realtime/revalidate ficavam stale no state local.
   useEffect(() => {
     if (open) {
       setTitulo(template?.titulo ?? "");
-      setCanal(template?.canal ?? "whatsapp");
-      setEtapaFunil(template?.etapa_funil ?? ETAPA_NONE);
+      setCanais(readCanais(template));
+      setEtapas(readEtapas(template));
       setAssunto(template?.assunto ?? "");
       setCorpo(template?.corpo ?? "");
     }
@@ -74,7 +90,9 @@ export function TemplateFormDialog({ mode, template, trigger }: Props) {
     template?.id,
     template?.titulo,
     template?.canal,
+    template?.canais,
     template?.etapa_funil,
+    template?.etapas_funil,
     template?.assunto,
     template?.corpo,
   ]);
@@ -84,10 +102,14 @@ export function TemplateFormDialog({ mode, template, trigger }: Props) {
   }
 
   function handleSubmit() {
+    if (canais.length === 0) {
+      toast.error("Selecione ao menos 1 canal");
+      return;
+    }
     const fd = new FormData();
     fd.set("titulo", titulo);
-    fd.set("canal", canal);
-    fd.set("etapa_funil", etapaFunil === ETAPA_NONE ? "" : etapaFunil);
+    fd.set("canais", canais.join(","));
+    fd.set("etapas_funil", etapas.join(","));
     fd.set("assunto", assunto);
     fd.set("corpo", corpo);
 
@@ -107,7 +129,7 @@ export function TemplateFormDialog({ mode, template, trigger }: Props) {
     });
   }
 
-  const showAssunto = canal === "email";
+  const showAssunto = canais.includes("email");
 
   const defaultTrigger =
     mode === "create" ? (
@@ -148,44 +170,22 @@ export function TemplateFormDialog({ mode, template, trigger }: Props) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="tpl-canal">Canal *</Label>
-              <Select
-                value={canal}
-                onValueChange={(v) => setCanal(v as MensagemCanal)}
-              >
-                <SelectTrigger id="tpl-canal">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {MENSAGEM_CANAIS.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {MENSAGEM_CANAL_LABELS[c]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1.5">
+            <Label>Canais * <span className="text-muted-foreground font-normal">(1+)</span></Label>
+            <MultiSelectChips
+              options={CANAL_OPTIONS}
+              value={canais}
+              onChange={(v) => setCanais(v as MensagemCanal[])}
+            />
+          </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="tpl-etapa">Etapa do funil</Label>
-              <Select value={etapaFunil} onValueChange={setEtapaFunil}>
-                <SelectTrigger id="tpl-etapa">
-                  <SelectValue placeholder="—" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ETAPA_NONE}>— Genérico</SelectItem>
-                  {(Object.keys(LEAD_STATUS_LABELS) as LeadStatus[]).map(
-                    (s) => (
-                      <SelectItem key={s} value={s}>
-                        {LEAD_STATUS_LABELS[s]}
-                      </SelectItem>
-                    ),
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1.5">
+            <Label>Etapas do funil <span className="text-muted-foreground font-normal">(opcional — vazio = genérico)</span></Label>
+            <MultiSelectChips
+              options={ETAPA_OPTIONS}
+              value={etapas}
+              onChange={setEtapas}
+            />
           </div>
 
           {showAssunto ? (
@@ -245,7 +245,9 @@ export function TemplateFormDialog({ mode, template, trigger }: Props) {
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={pending || !titulo.trim() || !corpo.trim()}
+            disabled={
+              pending || !titulo.trim() || !corpo.trim() || canais.length === 0
+            }
           >
             {pending
               ? "Salvando…"

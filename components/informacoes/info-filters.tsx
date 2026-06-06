@@ -4,22 +4,18 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  MultiSelectChips,
+  type MultiSelectOption,
+} from "@/components/ui/multi-select-chips";
 import {
   INFORMACAO_CATEGORIAS_SUGERIDAS,
   informacaoCategoriaLabel,
 } from "@/lib/database.types";
 
-const ANY = "_any_";
-
 interface Props {
-  defaults: { categoria?: string; q?: string };
+  defaults: { categorias?: string[]; q?: string };
   categoriasExistentes: string[];
 }
 
@@ -30,10 +26,10 @@ export function InfoFilters({ defaults, categoriasExistentes }: Props) {
   const formRef = useRef<HTMLFormElement>(null);
   const [clearTick, setClearTick] = useState(0);
 
-  function setParam(key: string, value: string | null) {
+  function setMultiParam(key: string, values: string[]) {
     const next = new URLSearchParams(params.toString());
-    if (!value || value === ANY) next.delete(key);
-    else next.set(key, value);
+    if (values.length === 0) next.delete(key);
+    else next.set(key, values.join(","));
     startTransition(() => {
       router.push(`/informacoes?${next.toString()}`);
     });
@@ -61,54 +57,54 @@ export function InfoFilters({ defaults, categoriasExistentes }: Props) {
     new Set([...INFORMACAO_CATEGORIAS_SUGERIDAS, ...categoriasExistentes]),
   );
 
-  const hasAny = !!defaults.categoria || !!defaults.q;
+  const CATEGORIA_OPTIONS: MultiSelectOption[] = allCategorias.map((c) => ({
+    value: c,
+    label: informacaoCategoriaLabel(c),
+  }));
+
+  const hasAny =
+    (defaults.categorias && defaults.categorias.length > 0) || !!defaults.q;
 
   return (
     <form
       ref={formRef}
       onSubmit={onSubmit}
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 halo-glass rounded-halo p-3"
+      className="halo-glass rounded-halo p-3 space-y-3"
     >
-      <Input
-        key={`q-${defaults.q ?? ""}-${clearTick}`}
-        name="q"
-        placeholder="Buscar título…"
-        defaultValue={defaults.q ?? ""}
-        className="lg:col-span-2"
-      />
-
-      <Select
-        value={defaults.categoria ?? ANY}
-        onValueChange={(v) => setParam("categoria", v)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Categoria" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ANY}>Todas categorias</SelectItem>
-          {allCategorias.map((c) => (
-            <SelectItem key={c} value={c}>
-              {informacaoCategoriaLabel(c)}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <div className="flex items-center gap-2 lg:justify-end">
-        <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Filtrando…" : "Aplicar"}
-        </Button>
-        {hasAny ? (
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            onClick={clear}
-            disabled={pending}
-          >
-            Limpar
+      <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
+        <Input
+          key={`q-${defaults.q ?? ""}-${clearTick}`}
+          name="q"
+          placeholder="Buscar título…"
+          defaultValue={defaults.q ?? ""}
+        />
+        <div className="flex items-center gap-2">
+          <Button type="submit" size="sm" disabled={pending}>
+            {pending ? "Filtrando…" : "Aplicar"}
           </Button>
-        ) : null}
+          {hasAny ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={clear}
+              disabled={pending}
+            >
+              Limpar
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          Categorias
+        </Label>
+        <MultiSelectChips
+          options={CATEGORIA_OPTIONS}
+          value={defaults.categorias ?? []}
+          onChange={(v) => setMultiParam("categoria", v)}
+        />
       </div>
     </form>
   );

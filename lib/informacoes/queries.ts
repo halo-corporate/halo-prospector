@@ -12,13 +12,13 @@ function isMissingTableError(err: { code?: string; message?: string }): boolean 
 }
 
 export interface ListInformacoesFilters {
-  categoria?: string;
+  /** Filtro multi por categoria. Usa `.overlaps()` no array `categorias`. */
+  categorias?: string[];
   q?: string;
 }
 
 /**
- * Lista informações do usuário. Tolerante a migration 0006 pendente
- * (retorna lista vazia + warning).
+ * Lista informações do usuário. Tolerante a migration 0006/0010 pendente.
  */
 export async function listInformacoes(
   filters: ListInformacoesFilters = {},
@@ -32,7 +32,9 @@ export async function listInformacoes(
     .order("ordem", { ascending: true })
     .order("titulo", { ascending: true });
 
-  if (filters.categoria) query = query.eq("categoria", filters.categoria);
+  if (filters.categorias && filters.categorias.length > 0) {
+    query = query.overlaps("categorias", filters.categorias);
+  }
   if (filters.q && filters.q.trim()) {
     query = query.ilike("titulo", `%${filters.q.trim()}%`);
   }
@@ -52,19 +54,25 @@ export async function listInformacoes(
 }
 
 /**
- * Lista categorias distintas presentes no banco (para alimentar filtro).
+ * Lista categorias distintas (achatadas dos arrays `categorias` de cada
+ * informação). Alimenta o filtro multi.
  */
 export async function listInformacaoCategorias(): Promise<string[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("informacoes")
-    .select("categoria");
+    .select("categorias");
   if (error) {
     if (isMissingTableError(error)) return [];
     console.error("[listInformacaoCategorias]", error);
     return [];
   }
   const set = new Set<string>();
-  for (const r of data ?? []) set.add(r.categoria);
+  for (const r of data ?? []) {
+    const arr = (r as { categorias: string[] | null }).categorias;
+    if (Array.isArray(arr)) {
+      for (const c of arr) if (c) set.add(c);
+    }
+  }
   return Array.from(set).sort();
 }

@@ -12,14 +12,19 @@ function isMissingTableError(err: { code?: string; message?: string }): boolean 
 }
 
 export interface ListTemplatesFilters {
-  canal?: MensagemCanal;
-  etapa?: string;
+  /** Aceita 1+ canais (filtro multi). Vazio = sem filtro de canal. */
+  canais?: MensagemCanal[];
+  /** Aceita 1+ etapas (filtro multi). Vazio = sem filtro de etapa. */
+  etapas?: string[];
   q?: string;
 }
 
 /**
- * Lista templates do usuário. Tolerante a migration 0005 pendente
- * (retorna lista vazia + warning).
+ * Lista templates do usuário. Tolerante a migration 0005/0010 pendente.
+ *
+ * Filtro por canal/etapa usa `.overlaps()` nas colunas array (canais,
+ * etapas_funil) — retorna templates que tenham QUALQUER um dos valores
+ * passados.
  */
 export async function listTemplates(
   filters: ListTemplatesFilters = {},
@@ -32,8 +37,12 @@ export async function listTemplates(
     .order("ordem", { ascending: true })
     .order("created_at", { ascending: false });
 
-  if (filters.canal) query = query.eq("canal", filters.canal);
-  if (filters.etapa) query = query.eq("etapa_funil", filters.etapa);
+  if (filters.canais && filters.canais.length > 0) {
+    query = query.overlaps("canais", filters.canais);
+  }
+  if (filters.etapas && filters.etapas.length > 0) {
+    query = query.overlaps("etapas_funil", filters.etapas);
+  }
   if (filters.q && filters.q.trim()) {
     query = query.ilike("titulo", `%${filters.q.trim()}%`);
   }
@@ -53,15 +62,14 @@ export async function listTemplates(
 }
 
 /**
- * Devolve a lista distinta de etapas de funil usadas pelo usuário,
- * pra alimentar dropdown de filtro.
+ * Devolve a lista distinta de etapas de funil usadas pelo usuário (achatada
+ * dos arrays `etapas_funil` de cada template). Alimenta o filtro.
  */
 export async function listEtapas(): Promise<string[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("mensagem_templates")
-    .select("etapa_funil")
-    .not("etapa_funil", "is", null);
+    .select("etapas_funil");
   if (error) {
     if (isMissingTableError(error)) return [];
     console.error("[listEtapas]", error);
@@ -69,7 +77,10 @@ export async function listEtapas(): Promise<string[]> {
   }
   const set = new Set<string>();
   for (const r of data ?? []) {
-    if (r.etapa_funil) set.add(r.etapa_funil);
+    const arr = (r as { etapas_funil: string[] | null }).etapas_funil;
+    if (Array.isArray(arr)) {
+      for (const e of arr) if (e) set.add(e);
+    }
   }
   return Array.from(set).sort();
 }

@@ -601,7 +601,9 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          /** @deprecated use `categorias` (multi). Mantido até migration 0011. */
           categoria: string;
+          categorias: string[];
           titulo: string;
           valor: string;
           valor_secreto: string | null;
@@ -614,6 +616,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           categoria: string;
+          categorias?: string[];
           titulo: string;
           valor: string;
           valor_secreto?: string | null;
@@ -626,6 +629,7 @@ export interface Database {
           id?: string;
           user_id?: string;
           categoria?: string;
+          categorias?: string[];
           titulo?: string;
           valor?: string;
           valor_secreto?: string | null;
@@ -641,8 +645,12 @@ export interface Database {
           id: string;
           user_id: string;
           titulo: string;
+          /** @deprecated use `canais` (multi). Mantido até migration 0011. */
           canal: MensagemCanal;
+          canais: MensagemCanal[];
+          /** @deprecated use `etapas_funil` (multi). Mantido até migration 0011. */
           etapa_funil: string | null;
+          etapas_funil: string[] | null;
           assunto: string | null;
           corpo: string;
           ordem: number;
@@ -654,7 +662,9 @@ export interface Database {
           user_id?: string;
           titulo: string;
           canal?: MensagemCanal;
+          canais?: MensagemCanal[];
           etapa_funil?: string | null;
+          etapas_funil?: string[] | null;
           assunto?: string | null;
           corpo: string;
           ordem?: number;
@@ -666,7 +676,9 @@ export interface Database {
           user_id?: string;
           titulo?: string;
           canal?: MensagemCanal;
+          canais?: MensagemCanal[];
           etapa_funil?: string | null;
+          etapas_funil?: string[] | null;
           assunto?: string | null;
           corpo?: string;
           ordem?: number;

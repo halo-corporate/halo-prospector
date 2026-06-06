@@ -17,18 +17,33 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CopyButton } from "@/components/mensagens/copy-button";
-import type { Informacao } from "@/lib/database.types";
+import {
+  informacaoCategoriaLabel,
+  type Informacao,
+} from "@/lib/database.types";
 import { deleteInformacaoAction } from "@/lib/informacoes/actions";
 import { SecretReveal } from "./secret-reveal";
 import { InfoFormDialog } from "./info-form-dialog";
 
 interface Props {
   info: Informacao;
+  /** Categoria pela qual a info foi agrupada na página — omitida do chip pra evitar redundância. */
+  primaryCategoria?: string;
 }
 
-export function InfoCard({ info }: Props) {
+function readCategorias(i: Informacao): string[] {
+  if (Array.isArray(i.categorias) && i.categorias.length > 0) return i.categorias;
+  return i.categoria ? [i.categoria] : [];
+}
+
+export function InfoCard({ info, primaryCategoria }: Props) {
   const [pending, startTransition] = useTransition();
   const hasSecret = Boolean(info.valor_secreto);
+  const allCategorias = readCategorias(info);
+  // Esconde a categoria do grupo no chip — só mostra as "extras"
+  const extraCategorias = primaryCategoria
+    ? allCategorias.filter((c) => c !== primaryCategoria)
+    : allCategorias;
 
   function handleDelete() {
     startTransition(async () => {
@@ -108,6 +123,20 @@ export function InfoCard({ info }: Props) {
           </AlertDialog>
         </div>
       </div>
+
+      {/* Badges das categorias extras (além da do grupo) */}
+      {extraCategorias.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {extraCategorias.map((c) => (
+            <span
+              key={c}
+              className="inline-flex items-center text-[10px] uppercase tracking-wide text-muted-foreground bg-muted/40 border border-white/10 rounded-sm px-1.5 py-0.5"
+            >
+              {informacaoCategoriaLabel(c)}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       {/* Valor publico */}
       <div className="flex items-center gap-1.5 min-w-0">

@@ -7,24 +7,35 @@ import { createClient } from "@/lib/supabase/server";
 const emptyToNull = (v: unknown) =>
   typeof v === "string" && v.trim() === "" ? null : v;
 
-const categoriaSlug = z
-  .string()
-  .trim()
-  .min(1, "Categoria obrigatória")
-  .max(40, "Categoria muito longa")
-  .transform((s) =>
-    s
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
-      .slice(0, 40),
-  )
-  .refine((s) => s.length >= 1, { message: "Categoria inválida" });
+/** Normaliza string livre pra slug snake_case. */
+function toSlug(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
+
+/** Aceita CSV ou array, devolve slugs únicos, ≥1. */
+const categoriasFromCsv = z.preprocess(
+  (v) => {
+    const arr = Array.isArray(v)
+      ? v
+      : typeof v === "string"
+        ? v.split(",")
+        : [];
+    const slugs = arr
+      .map((s) => (typeof s === "string" ? toSlug(s) : ""))
+      .filter((s) => s.length > 0);
+    return Array.from(new Set(slugs));
+  },
+  z.array(z.string().min(1).max(40)).min(1, "Selecione ao menos 1 categoria"),
+);
 
 const informacaoSchema = z.object({
-  categoria: categoriaSlug,
+  categorias: categoriasFromCsv,
   titulo: z
     .string()
     .trim()
@@ -51,11 +62,26 @@ export type InformacaoActionResult =
 
 function parseFormData(fd: FormData) {
   return {
-    categoria: (fd.get("categoria") ?? "") as string,
+    categorias: fd.get("categorias") ?? "",
     titulo: (fd.get("titulo") ?? "") as string,
     valor: (fd.get("valor") ?? "") as string,
     valor_secreto: fd.get("valor_secreto"),
     observacoes: fd.get("observacoes"),
+  };
+}
+
+/**
+ * Escreve tanto a coluna escalar antiga (categoria = categorias[0]) quanto
+ * a array nova. Migration 0011 dropa a antiga depois.
+ */
+function buildPayload(parsed: z.infer<typeof informacaoSchema>) {
+  return {
+    categoria: parsed.categorias[0]!,
+    categorias: parsed.categorias,
+    titulo: parsed.titulo,
+    valor: parsed.valor,
+    valor_secreto: parsed.valor_secreto ?? null,
+    observacoes: parsed.observacoes ?? null,
   };
 }
 
@@ -68,10 +94,11 @@ export async function createInformacaoAction(
   }
   const supabase = createClient();
 
+  // Ordem por primeira categoria (mantém agrupamento da UI atual coerente).
   const { data: max } = await supabase
     .from("informacoes")
     .select("ordem")
-    .eq("categoria", parsed.data.categoria)
+    .eq("categoria", parsed.data.categorias[0]!)
     .order("ordem", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -80,11 +107,7 @@ export async function createInformacaoAction(
   const { data, error } = await supabase
     .from("informacoes")
     .insert({
-      categoria: parsed.data.categoria,
-      titulo: parsed.data.titulo,
-      valor: parsed.data.valor,
-      valor_secreto: parsed.data.valor_secreto ?? null,
-      observacoes: parsed.data.observacoes ?? null,
+      ...buildPayload(parsed.data),
       ordem: nextOrdem,
     })
     .select("id")
@@ -110,13 +133,7 @@ export async function updateInformacaoAction(
   const supabase = createClient();
   const { error } = await supabase
     .from("informacoes")
-    .update({
-      categoria: parsed.data.categoria,
-      titulo: parsed.data.titulo,
-      valor: parsed.data.valor,
-      valor_secreto: parsed.data.valor_secreto ?? null,
-      observacoes: parsed.data.observacoes ?? null,
-    })
+    .update(buildPayload(parsed.data))
     .eq("id", id);
   if (error) {
     console.error("[updateInformacaoAction]", error);
