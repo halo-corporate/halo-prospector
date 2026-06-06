@@ -72,11 +72,13 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <div className="container py-8 space-y-8">
+    <div className="container py-8 relative">
+      <div className="halo-glow" aria-hidden />
+      <div className="relative z-10 space-y-8">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <p className="halo-eyebrow">Dashboard</p>
-          <h1 className="title-display text-2xl">Dashboard</h1>
+          <h1 className="title-display text-3xl sm:text-4xl">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
             {total} {total === 1 ? "lead cadastrado" : "leads cadastrados"}
           </p>
@@ -218,6 +220,7 @@ export default async function DashboardPage() {
           )}
         </div>
       </section>
+      </div>
     </div>
   );
 }
@@ -285,7 +288,9 @@ function KpiCard({
         {icon}
         <span>{label}</span>
       </div>
-      <p className="text-2xl font-semibold tracking-tight">{value}</p>
+      <p className="font-display font-bold text-3xl sm:text-4xl tracking-[0.02em]">
+        {value}
+      </p>
     </div>
   );
   return href ? <Link href={href}>{content}</Link> : content;

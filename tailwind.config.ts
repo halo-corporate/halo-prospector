@@ -10,7 +10,7 @@ const config: Config = {
   // HALO brand — utilities da fundação que ainda não têm uso no JSX (vão
   // ser aplicadas em camadas seguintes: eyebrow nas seções, glass no
   // dashboard, fade-up no hero do login). Sem safelist o JIT remove.
-  safelist: ["halo-eyebrow", "halo-glass", "animate-halo-fade-up"],
+  safelist: ["halo-eyebrow", "halo-glass", "halo-glow", "animate-halo-fade-up"],
   theme: {
     container: {
       center: true,

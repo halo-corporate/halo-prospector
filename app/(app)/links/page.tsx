@@ -15,7 +15,7 @@ export default async function LinksPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
           <p className="halo-eyebrow">Links</p>
-          <h1 className="title-display text-2xl">Central de Links</h1>
+          <h1 className="title-display text-3xl sm:text-4xl">Central de Links</h1>
           <p className="text-sm text-muted-foreground">
             {links.length === 0
               ? "Atalhos rápidos pra seus recursos externos."

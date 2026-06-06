@@ -46,7 +46,7 @@ export default async function ChecklistPage({
           </div>
           <div className="space-y-0.5">
             <p className="halo-eyebrow">Checklist</p>
-            <h1 className="title-display text-2xl">Checklist semanal</h1>
+            <h1 className="title-display text-3xl sm:text-4xl">Checklist semanal</h1>
             <p className="text-sm text-muted-foreground">
               {isCurrent ? "Semana atual" : "Outra semana"} ·{" "}
               {formatWeekLabelBR(week)}

@@ -48,7 +48,7 @@ export default async function InformacoesPage({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
           <p className="halo-eyebrow">Internas</p>
-          <h1 className="title-display text-2xl">Informações Internas</h1>
+          <h1 className="title-display text-3xl sm:text-4xl">Informações Internas</h1>
           <p className="text-sm text-muted-foreground">
             {items.length === 0 && noFiltersActive
               ? "CNPJ, dados bancários, contatos e credenciais da HALO num só lugar."

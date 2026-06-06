@@ -83,7 +83,7 @@ export default async function FinanceiroPage({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
           <p className="halo-eyebrow">Financeiro</p>
-          <h1 className="title-display text-2xl">Financeiro</h1>
+          <h1 className="title-display text-3xl sm:text-4xl">Financeiro</h1>
           <p className="text-sm text-muted-foreground">
             {vendas.length === 0
               ? "Registre vendas, comissões e pagamentos."

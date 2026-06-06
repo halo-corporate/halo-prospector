@@ -47,7 +47,7 @@ export default async function MensagensPage({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
           <p className="halo-eyebrow">Mensagens</p>
-          <h1 className="title-display text-2xl">Mensagens-modelo</h1>
+          <h1 className="title-display text-3xl sm:text-4xl">Mensagens-modelo</h1>
           <p className="text-sm text-muted-foreground">
             {templates.length === 0 && noFiltersActive
               ? "Templates reutilizáveis de WhatsApp, e-mail e outros canais."

@@ -45,7 +45,7 @@ export default async function AgendaPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
           <p className="halo-eyebrow">Agenda</p>
-          <h1 className="title-display text-2xl">Agenda</h1>
+          <h1 className="title-display text-3xl sm:text-4xl">Agenda</h1>
           <p className="text-sm text-muted-foreground">
             {totalAgenda === 0
               ? "Sem follow-ups agendados. Adicione um a um lead pra ele aparecer aqui."
