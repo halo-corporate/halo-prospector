@@ -82,7 +82,7 @@ export function LeadsTable({
   }
 
   return (
-    <div className="rounded-[18px] border border-white/10 overflow-hidden">
+    <div className="halo-glass rounded-halo overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">

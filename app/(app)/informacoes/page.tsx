@@ -47,6 +47,7 @@ export default async function InformacoesPage({
     <div className="container py-6 space-y-6 max-w-5xl">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1">
+          <p className="halo-eyebrow">Internas</p>
           <h1 className="title-display text-2xl">Informações Internas</h1>
           <p className="text-sm text-muted-foreground">
             {items.length === 0 && noFiltersActive

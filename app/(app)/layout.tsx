@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { HaloLogo } from "@/components/halo-logo";
 import { AppNav } from "./app-nav";
 import { RealtimeRefresher } from "./realtime-refresher";
 
@@ -28,9 +29,12 @@ export default async function AppLayout({
           <div className="flex items-center gap-6">
             <Link
               href="/"
-              className="font-semibold tracking-tight hover:opacity-80"
+              className="flex items-center gap-2.5 hover:opacity-80"
             >
-              HALO<span className="text-muted-foreground"> Prospector</span>
+              <HaloLogo className="h-5 w-auto text-foreground" />
+              <span className="text-xs text-muted-foreground hidden sm:inline">
+                Prospector
+              </span>
             </Link>
             <AppNav />
           </div>

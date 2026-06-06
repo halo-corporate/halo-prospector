@@ -75,6 +75,7 @@ export default async function DashboardPage() {
     <div className="container py-8 space-y-8">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
+          <p className="halo-eyebrow">Dashboard</p>
           <h1 className="title-display text-2xl">Dashboard</h1>
           <p className="text-sm text-muted-foreground">
             {total} {total === 1 ? "lead cadastrado" : "leads cadastrados"}
@@ -156,11 +157,9 @@ export default async function DashboardPage() {
 
       {/* Por vertical */}
       <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          Por vertical
-        </h2>
+        <h2 className="halo-eyebrow">Por vertical</h2>
         {verticais.length === 0 ? (
-          <div className="rounded-[18px] border border-white/10 p-4 text-sm text-muted-foreground">
+          <div className="halo-glass rounded-halo p-4 text-sm text-muted-foreground">
             Nenhuma vertical cadastrada.
           </div>
         ) : (
@@ -169,7 +168,7 @@ export default async function DashboardPage() {
               <Link
                 key={v.id}
                 href={`/leads?vertical=${v.slug}`}
-                className="rounded-[18px] border border-white/10 p-4 hover:border-foreground/30 transition-colors"
+                className="halo-glass rounded-halo p-4"
               >
                 <p className="text-xs text-muted-foreground truncate">
                   {v.label}
@@ -185,10 +184,8 @@ export default async function DashboardPage() {
 
       {/* Por status */}
       <section className="space-y-3">
-        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-          Por status
-        </h2>
-        <div className="rounded-[18px] border border-white/10 p-4 text-sm">
+        <h2 className="halo-eyebrow">Por status</h2>
+        <div className="halo-glass rounded-halo p-4 text-sm">
           {byStatus.size === 0 ? (
             <p className="text-muted-foreground">
               Sem leads ainda. Comece adicionando um em{" "}
@@ -279,7 +276,7 @@ function KpiCard({
   const content = (
     <div
       className={cn(
-        "rounded-[18px] border bg-card/40 p-4 space-y-1 transition-colors",
+        "rounded-halo border bg-white/[0.04] backdrop-blur-[16px] p-4 space-y-1 transition-colors",
         toneBorderClass(tone),
         href && "hover:bg-accent",
       )}
@@ -314,7 +311,7 @@ function FollowupSection({
   return (
     <section
       className={cn(
-        "rounded-[18px] border bg-card/40 p-4 space-y-3",
+        "rounded-halo border bg-white/[0.04] backdrop-blur-[16px] p-4 space-y-3",
         toneBorderClass(tone),
       )}
     >
@@ -389,7 +386,7 @@ function RecentActivitySection({
   interacoes: Awaited<ReturnType<typeof listRecentInteracoes>>;
 }) {
   return (
-    <section className="rounded-[18px] border border-white/10 p-4 space-y-3">
+    <section className="halo-glass rounded-halo p-4 space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-medium tracking-wide">Atividade recente</h2>
         <span className="text-xs text-muted-foreground">

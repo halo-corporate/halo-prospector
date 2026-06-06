@@ -18,8 +18,9 @@ export default function LoginPage({
 }) {
   return (
     <main className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm animate-halo-fade-up">
         <CardHeader className="space-y-1">
+          <p className="halo-eyebrow">Acesso</p>
           <CardTitle className="text-2xl">HALO Prospector</CardTitle>
           <CardDescription>Entre com seu e-mail e senha.</CardDescription>
         </CardHeader>

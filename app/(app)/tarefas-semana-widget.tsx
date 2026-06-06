@@ -16,7 +16,7 @@ export async function TarefasSemanaWidget() {
   const visiveis = tarefas.slice(0, 6);
 
   return (
-    <section className="rounded-[18px] border border-white/10 p-4 space-y-3">
+    <section className="halo-glass rounded-halo p-4 space-y-3">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <CalendarCheck2 className="h-4 w-4 text-muted-foreground" />

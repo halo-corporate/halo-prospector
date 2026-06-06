@@ -42,7 +42,7 @@ export function InfoCard({ info }: Props) {
   return (
     <div
       className={cn(
-        "group rounded-[18px] border border-white/10 bg-card/40 p-4 transition-colors hover:border-white/20 flex flex-col gap-2",
+        "group halo-glass rounded-halo p-4 flex flex-col gap-2",
         pending && "opacity-50 pointer-events-none",
       )}
     >

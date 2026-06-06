@@ -65,14 +65,14 @@ export function VendasTable({ vendas }: Props) {
 
   if (vendas.length === 0) {
     return (
-      <div className="rounded-[18px] border border-white/10 p-12 text-center text-sm text-muted-foreground">
+      <div className="halo-glass rounded-halo p-12 text-center text-sm text-muted-foreground">
         Nenhuma venda encontrada com os filtros atuais.
       </div>
     );
   }
 
   return (
-    <div className="rounded-[18px] border border-white/10 overflow-hidden">
+    <div className="halo-glass rounded-halo overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">

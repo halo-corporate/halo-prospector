@@ -51,7 +51,7 @@ export function LinkCard({ link }: Props) {
   return (
     <div
       className={cn(
-        "group relative rounded-[18px] border border-white/10 bg-card/40 p-4 transition-colors hover:border-white/20 hover:bg-card/70 flex flex-col gap-3 min-h-[140px]",
+        "group relative halo-glass rounded-halo p-4 flex flex-col gap-3 min-h-[140px]",
         pending && "opacity-50 pointer-events-none",
       )}
     >
