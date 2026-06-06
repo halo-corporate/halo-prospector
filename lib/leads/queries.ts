@@ -13,7 +13,8 @@ export type LeadOrderBy =
   | "proximo_followup";
 
 export interface ListLeadsFilters {
-  vertical?: string;
+  /** Aceita 1+ verticais. Vazio = sem filtro. Usa `.overlaps()`. */
+  verticais?: string[];
   status?: LeadStatus;
   temperatura?: LeadTemperatura;
   estado?: string;
@@ -26,6 +27,9 @@ export interface ListLeadsFilters {
 /**
  * Lista leads aplicando filtros. RLS no banco garante que só vêm os do usuário.
  * Default: ordenado por updated_at desc.
+ *
+ * Filtro de vertical usa `.overlaps('verticais', ...)` — retorna leads que
+ * tenham QUALQUER um dos slugs passados.
  */
 export async function listLeads(filters: ListLeadsFilters = {}): Promise<Lead[]> {
   const supabase = createClient();
@@ -37,7 +41,9 @@ export async function listLeads(filters: ListLeadsFilters = {}): Promise<Lead[]>
     .select("*")
     .order(orderBy, { ascending, nullsFirst: false });
 
-  if (filters.vertical) query = query.eq("vertical", filters.vertical);
+  if (filters.verticais && filters.verticais.length > 0) {
+    query = query.overlaps("verticais", filters.verticais);
+  }
   if (filters.status) query = query.eq("status", filters.status);
   if (filters.temperatura) query = query.eq("temperatura", filters.temperatura);
   if (filters.estado) query = query.eq("estado", filters.estado.toUpperCase());

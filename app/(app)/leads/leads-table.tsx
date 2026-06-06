@@ -16,6 +16,7 @@ import {
   INTERACAO_CANAL_LABELS,
   LEAD_STATUS_LABELS,
   LEAD_TEMPERATURA_LABELS,
+  readLeadVerticais,
   verticalLabel,
   type Lead,
   type InteracaoCanal,
@@ -127,7 +128,13 @@ export function LeadsTable({
               >
                 <TableCell className="font-medium">{lead.empresa}</TableCell>
                 <TableCell className="text-muted-foreground">
-                  {verticalLabel(lead.vertical, verticais)}
+                  {(() => {
+                    const slugs = readLeadVerticais(lead);
+                    if (slugs.length === 0) return "—";
+                    return slugs
+                      .map((s) => verticalLabel(s, verticais))
+                      .join(" · ");
+                  })()}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {[lead.cidade, lead.estado].filter(Boolean).join("/") || "—"}

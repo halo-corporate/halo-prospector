@@ -102,6 +102,20 @@ export const DEFAULT_VERTICAL_LABELS: Record<DefaultVerticalSlug, string> = {
 };
 
 /**
+ * Lê os verticais de um lead com fallback pro escalar legado. Garante array
+ * não-vazio quando o lead tem ao menos `vertical` setado.
+ */
+export function readLeadVerticais(lead: {
+  verticais?: string[] | null;
+  vertical?: string | null;
+}): string[] {
+  if (Array.isArray(lead.verticais) && lead.verticais.length > 0) {
+    return lead.verticais;
+  }
+  return lead.vertical ? [lead.vertical] : [];
+}
+
+/**
  * Resolve um slug pra label legível. Se a lista de verticais for fornecida,
  * usa ela; senão usa o map de defaults; senão devolve o próprio slug.
  */
@@ -248,7 +262,9 @@ export interface Database {
           created_at: string;
           updated_at: string;
           empresa: string;
+          /** @deprecated use `verticais` (multi). Mantido até migration 0011. */
           vertical: string;
+          verticais: string[];
           cidade: string | null;
           estado: string | null;
           bairro_regiao: string | null;
@@ -272,6 +288,7 @@ export interface Database {
           updated_at?: string;
           empresa: string;
           vertical: string;
+          verticais?: string[];
           cidade?: string | null;
           estado?: string | null;
           bairro_regiao?: string | null;
@@ -295,6 +312,7 @@ export interface Database {
           updated_at?: string;
           empresa?: string;
           vertical?: string;
+          verticais?: string[];
           cidade?: string | null;
           estado?: string | null;
           bairro_regiao?: string | null;

@@ -37,6 +37,34 @@ function formatZodErrors(issues: import("zod").ZodIssue[]): {
 }
 
 /**
+ * Durante a transição (migration 0010 add, 0011 drop), escrevemos tanto a
+ * coluna array nova (`verticais`) quanto o escalar antigo (`vertical`), pra
+ * compat. Depois do drop 0011, basta remover `vertical` daqui.
+ */
+function buildLeadPayload(parsed: import("zod").infer<typeof leadFormSchema>) {
+  return {
+    empresa: parsed.empresa,
+    vertical: parsed.verticais[0]!, // legado: NOT NULL no banco
+    verticais: parsed.verticais,
+    cidade: parsed.cidade ?? null,
+    estado: parsed.estado ?? null,
+    bairro_regiao: parsed.bairro_regiao ?? null,
+    sub_nicho: parsed.sub_nicho ?? null,
+    site: parsed.site ?? null,
+    instagram: parsed.instagram ?? null,
+    telefone: parsed.telefone ?? null,
+    email: parsed.email ?? null,
+    ticket_estimado: parsed.ticket_estimado ?? null,
+    status: parsed.status,
+    temperatura: parsed.temperatura ?? null,
+    proximo_passo: parsed.proximo_passo ?? null,
+    proximo_followup: brDateTimeLocalToUtcIso(parsed.proximo_followup),
+    motivo_perda: parsed.motivo_perda ?? null,
+    observacoes: parsed.observacoes ?? null,
+  };
+}
+
+/**
  * CREATE — Cria um lead novo. Redireciona pro detalhe em sucesso.
  */
 export async function createLeadAction(
@@ -52,25 +80,7 @@ export async function createLeadAction(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("leads")
-    .insert({
-      empresa: parsed.data.empresa,
-      vertical: parsed.data.vertical,
-      cidade: parsed.data.cidade ?? null,
-      estado: parsed.data.estado ?? null,
-      bairro_regiao: parsed.data.bairro_regiao ?? null,
-      sub_nicho: parsed.data.sub_nicho ?? null,
-      site: parsed.data.site ?? null,
-      instagram: parsed.data.instagram ?? null,
-      telefone: parsed.data.telefone ?? null,
-      email: parsed.data.email ?? null,
-      ticket_estimado: parsed.data.ticket_estimado ?? null,
-      status: parsed.data.status,
-      temperatura: parsed.data.temperatura ?? null,
-      proximo_passo: parsed.data.proximo_passo ?? null,
-      proximo_followup: brDateTimeLocalToUtcIso(parsed.data.proximo_followup),
-      motivo_perda: parsed.data.motivo_perda ?? null,
-      observacoes: parsed.data.observacoes ?? null,
-    })
+    .insert(buildLeadPayload(parsed.data))
     .select("id")
     .single();
 
@@ -106,25 +116,7 @@ export async function updateLeadAction(
   const supabase = createClient();
   const { error } = await supabase
     .from("leads")
-    .update({
-      empresa: parsed.data.empresa,
-      vertical: parsed.data.vertical,
-      cidade: parsed.data.cidade ?? null,
-      estado: parsed.data.estado ?? null,
-      bairro_regiao: parsed.data.bairro_regiao ?? null,
-      sub_nicho: parsed.data.sub_nicho ?? null,
-      site: parsed.data.site ?? null,
-      instagram: parsed.data.instagram ?? null,
-      telefone: parsed.data.telefone ?? null,
-      email: parsed.data.email ?? null,
-      ticket_estimado: parsed.data.ticket_estimado ?? null,
-      status: parsed.data.status,
-      temperatura: parsed.data.temperatura ?? null,
-      proximo_passo: parsed.data.proximo_passo ?? null,
-      proximo_followup: brDateTimeLocalToUtcIso(parsed.data.proximo_followup),
-      motivo_perda: parsed.data.motivo_perda ?? null,
-      observacoes: parsed.data.observacoes ?? null,
-    })
+    .update(buildLeadPayload(parsed.data))
     .eq("id", id);
 
   if (error) {

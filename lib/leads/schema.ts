@@ -1,13 +1,38 @@
 import { z } from "zod";
 
-// `vertical` agora é text livre (slug) validado em outro lugar pela tabela
-// verticais. Aqui só garantimos formato e tamanho.
+// Cada slug individual: minúsculas, alfanumérico + underscore.
 const verticalSlug = z
   .string()
   .trim()
   .min(2, "Vertical inválida")
   .max(40, "Vertical inválida")
   .regex(/^[a-z][a-z0-9_]*$/, "Vertical inválida");
+
+/**
+ * Aceita CSV ("clinicas_medicas,academias") ou array. Min 1, dedup, trim.
+ * Vertical é NOT NULL no banco (legado escalar), então a UI exige pelo menos
+ * 1 selecionado.
+ */
+const verticaisFromCsv = z.preprocess(
+  (v) => {
+    let arr: unknown[] = [];
+    if (Array.isArray(v)) arr = v;
+    else if (typeof v === "string") {
+      arr = v.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+    // Dedup preservando ordem
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const x of arr) {
+      if (typeof x === "string" && !seen.has(x)) {
+        seen.add(x);
+        out.push(x);
+      }
+    }
+    return out;
+  },
+  z.array(verticalSlug).min(1, "Selecione ao menos 1 vertical"),
+);
 
 const enumLeadStatus = z.enum([
   "novo",
@@ -66,7 +91,7 @@ const optDateTime = z.preprocess(
  */
 export const leadBaseSchema = z.object({
   empresa: z.string().trim().min(1, "Empresa obrigatória"),
-  vertical: verticalSlug,
+  verticais: verticaisFromCsv,
   cidade: optStr,
   estado: optEstado,
   bairro_regiao: optStr,
@@ -106,12 +131,13 @@ export const leadFormSchema = leadBaseSchema.superRefine((val, ctx) => {
 });
 
 /**
- * Helper pra extrair valores de FormData crus.
+ * Helper pra extrair valores de FormData crus. `verticais` vem como CSV no
+ * hidden input que o form renderiza a partir do estado do multi-select.
  */
 export function leadFormDataToObject(fd: FormData) {
   return {
     empresa: fd.get("empresa"),
-    vertical: fd.get("vertical"),
+    verticais: fd.get("verticais") ?? "",
     cidade: fd.get("cidade"),
     estado: fd.get("estado"),
     bairro_regiao: fd.get("bairro_regiao"),

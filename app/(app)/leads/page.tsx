@@ -42,6 +42,16 @@ function isOneOf<T extends string>(v: string | undefined, list: T[]): T | undefi
   return v && (list as string[]).includes(v) ? (v as T) : undefined;
 }
 
+/** Parseia CSV "a,b,c" → ["a","b","c"], filtrado pelos slugs válidos. */
+function parseVerticaisCsv(raw: string | undefined, validSlugs: string[]): string[] {
+  if (!raw) return [];
+  const valid = new Set(validSlugs);
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s && valid.has(s));
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function LeadsListPage({
@@ -52,11 +62,13 @@ export default async function LeadsListPage({
   const verticais = await listVerticais();
   const validVerticalSlugs = verticais.map((v) => v.slug);
 
+  const verticaisFilter = parseVerticaisCsv(
+    searchParams.vertical,
+    validVerticalSlugs,
+  );
+
   const filters = {
-    vertical:
-      searchParams.vertical && validVerticalSlugs.includes(searchParams.vertical)
-        ? searchParams.vertical
-        : undefined,
+    verticais: verticaisFilter.length > 0 ? verticaisFilter : undefined,
     status: isOneOf(searchParams.status, VALID_STATUS),
     temperatura: isOneOf(searchParams.temperatura, VALID_TEMP),
     estado: searchParams.estado || undefined,
@@ -94,7 +106,7 @@ export default async function LeadsListPage({
       <LeadsFilters
         verticais={verticais.map((v) => ({ slug: v.slug, label: v.label }))}
         defaults={{
-          vertical: filters.vertical,
+          verticais: filters.verticais,
           status: filters.status,
           temperatura: filters.temperatura,
           estado: filters.estado,

@@ -18,6 +18,7 @@ import { VerticalSelect } from "@/components/leads/vertical-select";
 import {
   LEAD_STATUS_LABELS,
   LEAD_TEMPERATURA_LABELS,
+  readLeadVerticais,
   type Lead,
   type LeadStatus,
   type LeadTemperatura,
@@ -52,8 +53,13 @@ export function LeadForm({ mode, lead, verticais }: Props) {
   const action = mode === "create" ? createLeadAction : updateLeadAction;
   const [state, formAction] = useFormState(action, initialState);
 
-  const [vertical, setVertical] = useState<string>(
-    lead?.vertical ?? verticais[0]?.slug ?? "",
+  const initialVerticais = lead
+    ? readLeadVerticais(lead)
+    : verticais[0]
+      ? [verticais[0].slug]
+      : [];
+  const [verticaisSelecionadas, setVerticaisSelecionadas] = useState<string[]>(
+    initialVerticais,
   );
   const [status, setStatus] = useState<LeadStatus>(lead?.status ?? "novo");
   const [temperatura, setTemperatura] = useState<LeadTemperatura | "">(
@@ -78,18 +84,23 @@ export function LeadForm({ mode, lead, verticais }: Props) {
       <Section title="Empresa">
         <Field label="Empresa" name="empresa" required defaultValue={lead?.empresa} />
 
-        <div className="space-y-1.5">
-          <Label htmlFor="vertical">
-            Vertical<span className="text-destructive"> *</span>
+        <div className="space-y-1.5 sm:col-span-2">
+          <Label>
+            Verticais<span className="text-destructive"> *</span>
           </Label>
           <VerticalSelect
-            id="vertical"
             verticais={verticais}
-            value={vertical}
-            onChange={(slug) => setVertical(slug ?? "")}
-            placeholder="Selecione…"
+            value={verticaisSelecionadas}
+            onChange={setVerticaisSelecionadas}
           />
-          <input type="hidden" name="vertical" value={vertical} />
+          <input
+            type="hidden"
+            name="verticais"
+            value={verticaisSelecionadas.join(",")}
+          />
+          <p className="text-xs text-muted-foreground">
+            Selecione 1 ou mais. A primeira vira a vertical principal.
+          </p>
         </div>
 
         <Field

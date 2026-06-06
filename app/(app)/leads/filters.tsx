@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { VerticalSelect } from "@/components/leads/vertical-select";
+import { MultiSelectChips } from "@/components/ui/multi-select-chips";
 import {
   LEAD_STATUS_LABELS,
   LEAD_TEMPERATURA_LABELS,
@@ -24,7 +24,7 @@ const ANY = "_any_";
 interface Props {
   verticais: { slug: string; label: string }[];
   defaults: {
-    vertical?: string;
+    verticais?: string[];
     status?: LeadStatus;
     temperatura?: LeadTemperatura;
     estado?: string;
@@ -43,6 +43,15 @@ export function LeadsFilters({ verticais, defaults }: Props) {
     const next = new URLSearchParams(params.toString());
     if (!value || value === ANY) next.delete(key);
     else next.set(key, value);
+    startTransition(() => {
+      router.push(`/leads?${next.toString()}`);
+    });
+  }
+
+  function setMultiParam(key: string, values: string[]) {
+    const next = new URLSearchParams(params.toString());
+    if (values.length === 0) next.delete(key);
+    else next.set(key, values.join(","));
     startTransition(() => {
       router.push(`/leads?${next.toString()}`);
     });
@@ -69,8 +78,9 @@ export function LeadsFilters({ verticais, defaults }: Props) {
     startTransition(() => router.push("/leads"));
   }
 
+  const verticaisSelecionadas = defaults.verticais ?? [];
   const hasAny =
-    !!defaults.vertical ||
+    verticaisSelecionadas.length > 0 ||
     !!defaults.status ||
     !!defaults.temperatura ||
     !!defaults.estado ||
@@ -80,70 +90,76 @@ export function LeadsFilters({ verticais, defaults }: Props) {
     <form
       ref={formRef}
       onSubmit={onSubmit}
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2 halo-glass rounded-halo p-3"
+      className="halo-glass rounded-halo p-3 space-y-3"
     >
-      <Input
-        key={`q-${defaults.q ?? ""}-${clearTick}`}
-        name="q"
-        placeholder="Buscar empresa…"
-        defaultValue={defaults.q ?? ""}
-        className="lg:col-span-2"
-      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+        <Input
+          key={`q-${defaults.q ?? ""}-${clearTick}`}
+          name="q"
+          placeholder="Buscar empresa…"
+          defaultValue={defaults.q ?? ""}
+          className="lg:col-span-2"
+        />
 
-      <VerticalSelect
-        verticais={verticais}
-        value={defaults.vertical}
-        onChange={(slug) => setParam("vertical", slug ?? null)}
-        includeAny
-        placeholder="Vertical"
-      />
-
-      <Select
-        value={defaults.status ?? ANY}
-        onValueChange={(v) => setParam("status", v)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ANY}>Todos status</SelectItem>
-          {(Object.keys(LEAD_STATUS_LABELS) as LeadStatus[]).map((s) => (
-            <SelectItem key={s} value={s}>
-              {LEAD_STATUS_LABELS[s]}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      <Select
-        value={defaults.temperatura ?? ANY}
-        onValueChange={(v) => setParam("temperatura", v)}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Temperatura" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value={ANY}>Todas</SelectItem>
-          {(Object.keys(LEAD_TEMPERATURA_LABELS) as LeadTemperatura[]).map(
-            (t) => (
-              <SelectItem key={t} value={t}>
-                {LEAD_TEMPERATURA_LABELS[t]}
+        <Select
+          value={defaults.status ?? ANY}
+          onValueChange={(v) => setParam("status", v)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ANY}>Todos status</SelectItem>
+            {(Object.keys(LEAD_STATUS_LABELS) as LeadStatus[]).map((s) => (
+              <SelectItem key={s} value={s}>
+                {LEAD_STATUS_LABELS[s]}
               </SelectItem>
-            ),
-          )}
-        </SelectContent>
-      </Select>
+            ))}
+          </SelectContent>
+        </Select>
 
-      <Input
-        key={`estado-${defaults.estado ?? ""}-${clearTick}`}
-        name="estado"
-        placeholder="UF"
-        maxLength={2}
-        defaultValue={defaults.estado ?? ""}
-        className="uppercase"
-      />
+        <Select
+          value={defaults.temperatura ?? ANY}
+          onValueChange={(v) => setParam("temperatura", v)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Temperatura" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ANY}>Todas</SelectItem>
+            {(Object.keys(LEAD_TEMPERATURA_LABELS) as LeadTemperatura[]).map(
+              (t) => (
+                <SelectItem key={t} value={t}>
+                  {LEAD_TEMPERATURA_LABELS[t]}
+                </SelectItem>
+              ),
+            )}
+          </SelectContent>
+        </Select>
 
-      <div className="flex items-center gap-2 lg:col-span-6 lg:justify-end">
+        <Input
+          key={`estado-${defaults.estado ?? ""}-${clearTick}`}
+          name="estado"
+          placeholder="UF"
+          maxLength={2}
+          defaultValue={defaults.estado ?? ""}
+          className="uppercase"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          Verticais
+        </p>
+        <MultiSelectChips
+          options={verticais.map((v) => ({ value: v.slug, label: v.label }))}
+          value={verticaisSelecionadas}
+          onChange={(next) => setMultiParam("vertical", next)}
+          placeholder="Nenhuma vertical cadastrada."
+        />
+      </div>
+
+      <div className="flex items-center gap-2 justify-end">
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? "Filtrando…" : "Aplicar"}
         </Button>

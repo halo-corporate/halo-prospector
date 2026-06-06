@@ -23,6 +23,7 @@ import {
   INTERACAO_CANAL_LABELS,
   INTERACAO_TIPO_LABELS,
   LEAD_STATUS_LABELS,
+  readLeadVerticais,
   verticalLabel,
   type Lead,
   type LeadStatus,
@@ -46,7 +47,7 @@ export default async function DashboardPage() {
     buckets,
     recentInteracoes,
   ] = await Promise.all([
-    supabase.from("leads").select("vertical, status, temperatura"),
+    supabase.from("leads").select("vertical, verticais, status, temperatura"),
     listVerticais(),
     listOverdueFollowups(8),
     listTodayFollowups(8),
@@ -59,10 +60,15 @@ export default async function DashboardPage() {
   const total = leads.length;
   const aquecidos = leads.filter((l) => l.status === "aquecido").length;
 
+  // Por vertical: lead com N verticais conta em cada uma delas (option a).
+  // Total da pagina (`total` acima) usa contagem distinta de leads.
   const byVertical = new Map<string, number>();
   const byStatus = new Map<string, number>();
   for (const l of leads) {
-    byVertical.set(l.vertical, (byVertical.get(l.vertical) ?? 0) + 1);
+    const slugs = readLeadVerticais(l);
+    for (const s of slugs) {
+      byVertical.set(s, (byVertical.get(s) ?? 0) + 1);
+    }
     byStatus.set(l.status, (byStatus.get(l.status) ?? 0) + 1);
   }
 
@@ -351,7 +357,10 @@ function FollowupSection({
                     {l.empresa}
                   </span>
                   <span className="text-[10px] text-muted-foreground hidden sm:inline">
-                    · {verticalLabel(l.vertical, verticais)}
+                    ·{" "}
+                    {readLeadVerticais(l)
+                      .map((s) => verticalLabel(s, verticais))
+                      .join(" · ") || "—"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

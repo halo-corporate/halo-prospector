@@ -1,18 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -21,50 +14,44 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import { createVerticalAction } from "@/lib/verticais/actions";
 import type { Vertical } from "@/lib/database.types";
-
-const ADD_NEW = "__add_new__";
-const ANY = "__any__";
 
 interface Props {
   /** Lista de verticais do banco (default + customizadas). */
   verticais: Pick<Vertical, "slug" | "label">[];
-  /** Slug atual (controlled). undefined = "Todas" no filtro; obrigatório no form. */
-  value?: string;
-  onChange: (slug: string | undefined) => void;
-  /** Se true, mostra "Todas verticais" no topo (modo filtro). */
-  includeAny?: boolean;
-  placeholder?: string;
-  id?: string;
+  /** Slugs atualmente selecionados (controlled). */
+  value: string[];
+  onChange: (slugs: string[]) => void;
+  disabled?: boolean;
+  /** Texto exibido se a lista do banco vier vazia. */
+  emptyHint?: string;
 }
 
 /**
- * Select de vertical com "+ Nova vertical" inline.
- * Em sucesso ao criar, seleciona automaticamente a nova.
+ * Multi-select de vertical em chips, com "+ Nova vertical…" inline.
+ * Padrão coerente com MultiSelectChips, mas com o atalho de criação.
+ * Em sucesso ao criar uma nova, ela vira slug e entra na seleção atual.
  */
 export function VerticalSelect({
   verticais,
   value,
   onChange,
-  includeAny = false,
-  placeholder = "Selecione…",
-  id,
+  disabled,
+  emptyHint,
 }: Props) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [novoLabel, setNovoLabel] = useState("");
   const [pending, startTransition] = useTransition();
 
-  function handleSelectChange(v: string) {
-    if (v === ADD_NEW) {
-      setDialogOpen(true);
-      return;
+  function toggle(slug: string) {
+    if (disabled) return;
+    if (value.includes(slug)) {
+      onChange(value.filter((x) => x !== slug));
+    } else {
+      onChange([...value, slug]);
     }
-    if (v === ANY) {
-      onChange(undefined);
-      return;
-    }
-    onChange(v);
   }
 
   function handleCreate() {
@@ -79,36 +66,56 @@ export function VerticalSelect({
       toast.success(`Vertical "${res.label}" adicionada`);
       setDialogOpen(false);
       setNovoLabel("");
-      // Seleciona a recém-criada — o slug volta da action.
-      onChange(res.slug);
+      // Seleciona a recém-criada automaticamente.
+      if (!value.includes(res.slug)) {
+        onChange([...value, res.slug]);
+      }
     });
   }
 
-  const selectValue = value ?? (includeAny ? ANY : undefined);
-
   return (
     <>
-      <Select value={selectValue} onValueChange={handleSelectChange}>
-        <SelectTrigger id={id}>
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent>
-          {includeAny ? (
-            <SelectItem value={ANY}>Todas verticais</SelectItem>
-          ) : null}
-          {verticais.map((v) => (
-            <SelectItem key={v.slug} value={v.slug}>
-              {v.label}
-            </SelectItem>
-          ))}
-          <SelectItem value={ADD_NEW}>
-            <span className="flex items-center gap-1.5 text-primary">
-              <Plus className="h-3.5 w-3.5" />
-              Nova vertical…
-            </span>
-          </SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="flex flex-wrap gap-1.5">
+        {verticais.length === 0 && emptyHint ? (
+          <p className="text-xs text-muted-foreground italic">{emptyHint}</p>
+        ) : null}
+
+        {verticais.map((v) => {
+          const selected = value.includes(v.slug);
+          return (
+            <button
+              key={v.slug}
+              type="button"
+              onClick={() => toggle(v.slug)}
+              disabled={disabled}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-xs transition-colors",
+                selected
+                  ? "bg-primary/20 border-primary/50 text-primary"
+                  : "border-white/10 text-muted-foreground hover:border-white/30 hover:text-foreground",
+                disabled && "opacity-50 cursor-not-allowed",
+              )}
+              aria-pressed={selected}
+            >
+              {selected ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+              <span>{v.label}</span>
+            </button>
+          );
+        })}
+
+        <button
+          type="button"
+          onClick={() => setDialogOpen(true)}
+          disabled={disabled}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-md border border-dashed border-primary/40 text-primary px-2.5 py-1 text-xs transition-colors hover:bg-primary/10",
+            disabled && "opacity-50 cursor-not-allowed",
+          )}
+        >
+          <Plus className="h-3 w-3" />
+          <span>Nova vertical</span>
+        </button>
+      </div>
 
       <Dialog
         open={dialogOpen}

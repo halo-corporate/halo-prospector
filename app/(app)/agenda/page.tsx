@@ -16,6 +16,7 @@ import {
 import { listVerticais } from "@/lib/verticais/queries";
 import {
   LEAD_STATUS_LABELS,
+  readLeadVerticais,
   verticalLabel,
   type Lead,
 } from "@/lib/database.types";
@@ -190,7 +191,9 @@ function Bucket({
                       </Badge>
                     </div>
                     <p className="text-[11px] text-muted-foreground truncate">
-                      {verticalLabel(l.vertical, verticais)}
+                      {readLeadVerticais(l)
+                        .map((s) => verticalLabel(s, verticais))
+                        .join(" · ") || "—"}
                       {l.cidade || l.estado
                         ? ` · ${[l.cidade, l.estado].filter(Boolean).join("/")}`
                         : ""}

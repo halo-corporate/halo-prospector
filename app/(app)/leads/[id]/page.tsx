@@ -7,7 +7,11 @@ import { getLeadById } from "@/lib/leads/queries";
 import { listVerticais } from "@/lib/verticais/queries";
 import { listDecisoresByLead } from "@/lib/decisores/queries";
 import { listInteracoesByLead } from "@/lib/interacoes/queries";
-import { LEAD_STATUS_LABELS, verticalLabel } from "@/lib/database.types";
+import {
+  LEAD_STATUS_LABELS,
+  readLeadVerticais,
+  verticalLabel,
+} from "@/lib/database.types";
 import { statusBadgeClass } from "@/lib/leads/badge";
 import { formatBR } from "@/lib/timezone";
 import { LeadForm } from "../lead-form";
@@ -62,7 +66,11 @@ export default async function LeadDetailPage({
               {LEAD_STATUS_LABELS[lead.status]}
             </Badge>
             <span>·</span>
-            <span>{verticalLabel(lead.vertical, verticaisLite)}</span>
+            <span>
+              {readLeadVerticais(lead)
+                .map((s) => verticalLabel(s, verticaisLite))
+                .join(" · ") || "sem vertical"}
+            </span>
             <span>·</span>
             <span>
               {[lead.cidade, lead.estado].filter(Boolean).join("/") || "sem local"}
