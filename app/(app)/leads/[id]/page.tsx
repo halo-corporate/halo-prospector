@@ -77,14 +77,14 @@ export default async function LeadDetailPage({
       {/* 2 colunas no desktop, empilhado no mobile */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
         {/* Coluna esquerda: dados do lead */}
-        <div className="rounded-[18px] border border-white/10 p-4 sm:p-6">
+        <div className="halo-glass rounded-halo p-4 sm:p-6">
           <LeadForm mode="edit" lead={lead} verticais={verticaisLite} />
         </div>
 
         {/* Coluna direita: decisores + interações */}
         <div className="space-y-6">
           {/* Decisores */}
-          <section className="rounded-[18px] border border-white/10 p-4 space-y-3">
+          <section className="halo-glass rounded-halo p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-medium tracking-wide">
                 Decisores
@@ -110,7 +110,7 @@ export default async function LeadDetailPage({
           </section>
 
           {/* Interações */}
-          <section className="rounded-[18px] border border-white/10 p-4 space-y-3">
+          <section className="halo-glass rounded-halo p-4 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <h2 className="text-sm font-medium tracking-wide">
                 Timeline

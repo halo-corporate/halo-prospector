@@ -128,7 +128,7 @@ export default async function FinanceiroPage({
         // "banco vazio" (sem filtros, sem dados): CTA grande só quando
         // realmente não há venda nenhuma.
         hasFiltersActive ? (
-          <div className="rounded-[18px] border border-white/10 p-12 text-center text-sm text-muted-foreground">
+          <div className="halo-glass rounded-halo p-12 text-center text-sm text-muted-foreground">
             Nenhuma venda encontrada com os filtros atuais.
           </div>
         ) : (

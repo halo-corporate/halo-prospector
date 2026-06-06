@@ -87,7 +87,7 @@ export default async function MensagensPage({
             />
           </div>
         ) : (
-          <div className="rounded-[18px] border border-white/10 p-12 text-center text-sm text-muted-foreground">
+          <div className="halo-glass rounded-halo p-12 text-center text-sm text-muted-foreground">
             Nenhum template encontrado com esses filtros.
           </div>
         )

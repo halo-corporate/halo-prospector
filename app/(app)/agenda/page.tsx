@@ -147,7 +147,7 @@ function Bucket({
   return (
     <section
       className={cn(
-        "rounded-[18px] border bg-card/40 p-4 space-y-3",
+        "rounded-halo border bg-white/[0.04] backdrop-blur-[16px] p-4 space-y-3",
         toneBorderClass(tone),
       )}
     >

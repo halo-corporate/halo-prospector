@@ -54,10 +54,8 @@ export function BreakdownPanel({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
       {/* Responsáveis (col-span 2) */}
-      <section className="lg:col-span-2 rounded-[18px] border border-white/10 bg-card/40 p-4 space-y-3">
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-          Por responsável
-        </p>
+      <section className="lg:col-span-2 halo-glass rounded-halo p-4 space-y-3">
+        <p className="halo-eyebrow">Por responsável</p>
         <div className="space-y-2">
           {respFull.map((r) => {
             const pct = totalLiquido > 0 ? (r.liquido / totalLiquido) * 100 : 0;
@@ -97,10 +95,8 @@ export function BreakdownPanel({
       </section>
 
       {/* Status */}
-      <section className="rounded-[18px] border border-white/10 bg-card/40 p-4 space-y-3">
-        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-          Por status
-        </p>
+      <section className="halo-glass rounded-halo p-4 space-y-3">
+        <p className="halo-eyebrow">Por status</p>
         {statuses.length === 0 ? (
           <p className="text-xs text-muted-foreground py-1">
             Sem vendas no período.

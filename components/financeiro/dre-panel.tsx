@@ -17,12 +17,10 @@ export function DREPanel({ mes, current, previous }: Props) {
   const moMBruto = previous ? pctChange(current.bruto, previous.bruto) : null;
 
   return (
-    <section className="rounded-[18px] border border-white/10 bg-card/40 p-5 sm:p-6 space-y-5">
+    <section className="halo-glass rounded-halo p-5 sm:p-6 space-y-5">
       <div className="flex items-baseline justify-between gap-2 flex-wrap">
         <div className="space-y-0.5">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-            DRE — {periodLabel}
-          </p>
+          <p className="halo-eyebrow">DRE — {periodLabel}</p>
           <p className="text-[10px] text-muted-foreground/70">
             Faturamento bruto, comissões e métricas do período filtrado.
           </p>

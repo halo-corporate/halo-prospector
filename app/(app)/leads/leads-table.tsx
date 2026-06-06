@@ -75,7 +75,7 @@ export function LeadsTable({
 
   if (leads.length === 0) {
     return (
-      <div className="rounded-[18px] border border-white/10 p-12 text-center text-sm text-muted-foreground">
+      <div className="halo-glass rounded-halo p-12 text-center text-sm text-muted-foreground">
         Nenhum lead encontrado com os filtros atuais.
       </div>
     );

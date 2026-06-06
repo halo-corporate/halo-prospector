@@ -94,7 +94,7 @@ export default async function InformacoesPage({
             />
           </div>
         ) : (
-          <div className="rounded-[18px] border border-white/10 p-12 text-center text-sm text-muted-foreground">
+          <div className="halo-glass rounded-halo p-12 text-center text-sm text-muted-foreground">
             Nada encontrado com esses filtros.
           </div>
         )

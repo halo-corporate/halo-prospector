@@ -98,7 +98,7 @@ export default async function PropostasPage({
           {PROPOSTA_STATUSES.map((s) => (
             <div
               key={s}
-              className="rounded-[18px] border border-white/10 bg-card/40 p-3 space-y-0.5"
+              className="halo-glass rounded-halo p-3 space-y-0.5"
             >
               <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
                 {s === "negociacao"
@@ -115,7 +115,7 @@ export default async function PropostasPage({
 
       {propostas.length === 0 ? (
         hasFiltersActive ? (
-          <div className="rounded-[18px] border border-white/10 p-12 text-center text-sm text-muted-foreground">
+          <div className="halo-glass rounded-halo p-12 text-center text-sm text-muted-foreground">
             Nenhuma proposta encontrada com os filtros atuais.
           </div>
         ) : (

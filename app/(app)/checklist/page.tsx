@@ -100,7 +100,7 @@ export default async function ChecklistPage({
         </div>
       ) : null}
 
-      <div className="rounded-[18px] border border-white/10 p-4 space-y-3">
+      <div className="halo-glass rounded-halo p-4 space-y-3">
         <AddTarefaInput weekStartISO={week} />
 
         {tarefas.length === 0 ? (

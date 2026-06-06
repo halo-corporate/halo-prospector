@@ -76,7 +76,7 @@ export function VendasFilters({ defaults }: Props) {
     <form
       ref={formRef}
       onSubmit={onSubmit}
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 rounded-[18px] border border-white/10 p-3"
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2 halo-glass rounded-halo p-3"
     >
       <Input
         key={`q-${defaults.q ?? ""}-${clearTick}`}
