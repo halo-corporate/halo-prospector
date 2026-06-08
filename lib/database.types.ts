@@ -248,6 +248,77 @@ export const PROPOSTA_STATUS_LABELS: Record<PropostaStatus, string> = {
 };
 
 // ---------------------------------------------------------------------------
+// V3 — Envios + Influencers
+// ---------------------------------------------------------------------------
+
+export type EnvioStatus =
+  | "a_despachar"
+  | "embalado"
+  | "etiquetado"
+  | "postado"
+  | "em_transito"
+  | "entregue"
+  | "devolvido"
+  | "extraviado";
+
+export const ENVIO_STATUSES: EnvioStatus[] = [
+  "a_despachar",
+  "embalado",
+  "etiquetado",
+  "postado",
+  "em_transito",
+  "entregue",
+  "devolvido",
+  "extraviado",
+];
+
+export const ENVIO_STATUS_LABELS: Record<EnvioStatus, string> = {
+  a_despachar: "A despachar",
+  embalado: "Embalado",
+  etiquetado: "Etiquetado",
+  postado: "Postado",
+  em_transito: "Em trânsito",
+  entregue: "Entregue",
+  devolvido: "Devolvido",
+  extraviado: "Extraviado",
+};
+
+/** Endereço estruturado armazenado em jsonb. Todos opcionais — UI valida CEP. */
+export interface EnderecoDestino {
+  cep?: string | null;
+  rua?: string | null;
+  numero?: string | null;
+  complemento?: string | null;
+  bairro?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
+}
+
+/** Dimensões em cm pra cotação de frete. */
+export interface DimensoesCm {
+  altura?: number | null;
+  largura?: number | null;
+  comprimento?: number | null;
+}
+
+export type InfluencerStatus =
+  | "prospeccao"
+  | "contatado"
+  | "negociando"
+  | "kit_enviado"
+  | "postou"
+  | "parceria_ativa"
+  | "encerrado";
+
+export type InfluencerContratoTipo =
+  | "permuta"
+  | "pago"
+  | "permuta_e_pago";
+
+export type PagamentoTipo = "permuta" | "pago";
+export type PagamentoStatus = "pendente" | "pago" | "cancelado";
+
+// ---------------------------------------------------------------------------
 // Database interface (formato compatível com `Database` do supabase-js)
 // ---------------------------------------------------------------------------
 
@@ -779,6 +850,275 @@ export interface Database {
           updated_at?: string;
         };
       };
+      embalagens: {
+        Relationships: [];
+        Row: {
+          id: string;
+          user_id: string;
+          nome: string;
+          descricao: string | null;
+          ativo: boolean;
+          peso_g_padrao: number | null;
+          dimensoes_cm_padrao: DimensoesCm | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          nome: string;
+          descricao?: string | null;
+          ativo?: boolean;
+          peso_g_padrao?: number | null;
+          dimensoes_cm_padrao?: DimensoesCm | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          nome?: string;
+          descricao?: string | null;
+          ativo?: boolean;
+          peso_g_padrao?: number | null;
+          dimensoes_cm_padrao?: DimensoesCm | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      envios: {
+        Relationships: [
+          {
+            foreignKeyName: "envios_proposta_id_fkey";
+            columns: ["proposta_id"];
+            referencedRelation: "propostas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "envios_influencer_id_fkey";
+            columns: ["influencer_id"];
+            referencedRelation: "influencers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "envios_lead_id_fkey";
+            columns: ["lead_id"];
+            referencedRelation: "leads";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "envios_embalagem_id_fkey";
+            columns: ["embalagem_id"];
+            referencedRelation: "embalagens";
+            referencedColumns: ["id"];
+          },
+        ];
+        Row: {
+          id: string;
+          user_id: string;
+          proposta_id: string | null;
+          influencer_id: string | null;
+          lead_id: string | null;
+          destinatario_nome: string;
+          endereco_destino: EnderecoDestino | null;
+          embalagem_id: string | null;
+          peso_g: number | null;
+          dimensoes_cm: DimensoesCm | null;
+          status: EnvioStatus;
+          transportadora: string | null;
+          servico: string | null;
+          codigo_rastreio: string | null;
+          tracking_url: string | null;
+          valor_frete: number | null;
+          melhor_envio_order_id: string | null;
+          etiqueta_url: string | null;
+          data_postagem: string | null;
+          data_entrega_prevista: string | null;
+          data_entrega_efetiva: string | null;
+          observacoes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          proposta_id?: string | null;
+          influencer_id?: string | null;
+          lead_id?: string | null;
+          destinatario_nome: string;
+          endereco_destino?: EnderecoDestino | null;
+          embalagem_id?: string | null;
+          peso_g?: number | null;
+          dimensoes_cm?: DimensoesCm | null;
+          status?: EnvioStatus;
+          transportadora?: string | null;
+          servico?: string | null;
+          codigo_rastreio?: string | null;
+          tracking_url?: string | null;
+          valor_frete?: number | null;
+          melhor_envio_order_id?: string | null;
+          etiqueta_url?: string | null;
+          data_postagem?: string | null;
+          data_entrega_prevista?: string | null;
+          data_entrega_efetiva?: string | null;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          proposta_id?: string | null;
+          influencer_id?: string | null;
+          lead_id?: string | null;
+          destinatario_nome?: string;
+          endereco_destino?: EnderecoDestino | null;
+          embalagem_id?: string | null;
+          peso_g?: number | null;
+          dimensoes_cm?: DimensoesCm | null;
+          status?: EnvioStatus;
+          transportadora?: string | null;
+          servico?: string | null;
+          codigo_rastreio?: string | null;
+          tracking_url?: string | null;
+          valor_frete?: number | null;
+          melhor_envio_order_id?: string | null;
+          etiqueta_url?: string | null;
+          data_postagem?: string | null;
+          data_entrega_prevista?: string | null;
+          data_entrega_efetiva?: string | null;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      influencers: {
+        Relationships: [];
+        Row: {
+          id: string;
+          user_id: string;
+          nome: string;
+          handle_instagram: string | null;
+          handle_tiktok: string | null;
+          handle_youtube: string | null;
+          seguidores_instagram: number | null;
+          seguidores_tiktok: number | null;
+          seguidores_youtube: number | null;
+          engajamento_pct: number | null;
+          nicho: string | null;
+          cidade: string | null;
+          uf: string | null;
+          status: InfluencerStatus;
+          contrato_tipo: InfluencerContratoTipo | null;
+          valor_cache: number | null;
+          posts_url: string[];
+          alcance_total: number | null;
+          engajamento_total: number | null;
+          observacoes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          nome: string;
+          handle_instagram?: string | null;
+          handle_tiktok?: string | null;
+          handle_youtube?: string | null;
+          seguidores_instagram?: number | null;
+          seguidores_tiktok?: number | null;
+          seguidores_youtube?: number | null;
+          engajamento_pct?: number | null;
+          nicho?: string | null;
+          cidade?: string | null;
+          uf?: string | null;
+          status?: InfluencerStatus;
+          contrato_tipo?: InfluencerContratoTipo | null;
+          valor_cache?: number | null;
+          posts_url?: string[];
+          alcance_total?: number | null;
+          engajamento_total?: number | null;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          nome?: string;
+          handle_instagram?: string | null;
+          handle_tiktok?: string | null;
+          handle_youtube?: string | null;
+          seguidores_instagram?: number | null;
+          seguidores_tiktok?: number | null;
+          seguidores_youtube?: number | null;
+          engajamento_pct?: number | null;
+          nicho?: string | null;
+          cidade?: string | null;
+          uf?: string | null;
+          status?: InfluencerStatus;
+          contrato_tipo?: InfluencerContratoTipo | null;
+          valor_cache?: number | null;
+          posts_url?: string[];
+          alcance_total?: number | null;
+          engajamento_total?: number | null;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      influencer_pagamentos: {
+        Relationships: [
+          {
+            foreignKeyName: "influencer_pagamentos_influencer_id_fkey";
+            columns: ["influencer_id"];
+            referencedRelation: "influencers";
+            referencedColumns: ["id"];
+          },
+        ];
+        Row: {
+          id: string;
+          user_id: string;
+          influencer_id: string;
+          tipo: PagamentoTipo;
+          valor: number;
+          descricao_permuta: string | null;
+          data_combinada: string;
+          data_pago: string | null;
+          status: PagamentoStatus;
+          observacoes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          influencer_id: string;
+          tipo: PagamentoTipo;
+          valor?: number;
+          descricao_permuta?: string | null;
+          data_combinada?: string;
+          data_pago?: string | null;
+          status?: PagamentoStatus;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          influencer_id?: string;
+          tipo?: PagamentoTipo;
+          valor?: number;
+          descricao_permuta?: string | null;
+          data_combinada?: string;
+          data_pago?: string | null;
+          status?: PagamentoStatus;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
@@ -840,6 +1180,29 @@ export type PropostaInsert =
   Database["public"]["Tables"]["propostas"]["Insert"];
 export type PropostaUpdate =
   Database["public"]["Tables"]["propostas"]["Update"];
+
+export type Embalagem = Database["public"]["Tables"]["embalagens"]["Row"];
+export type EmbalagemInsert =
+  Database["public"]["Tables"]["embalagens"]["Insert"];
+export type EmbalagemUpdate =
+  Database["public"]["Tables"]["embalagens"]["Update"];
+
+export type Envio = Database["public"]["Tables"]["envios"]["Row"];
+export type EnvioInsert = Database["public"]["Tables"]["envios"]["Insert"];
+export type EnvioUpdate = Database["public"]["Tables"]["envios"]["Update"];
+
+export type Influencer = Database["public"]["Tables"]["influencers"]["Row"];
+export type InfluencerInsert =
+  Database["public"]["Tables"]["influencers"]["Insert"];
+export type InfluencerUpdate =
+  Database["public"]["Tables"]["influencers"]["Update"];
+
+export type InfluencerPagamento =
+  Database["public"]["Tables"]["influencer_pagamentos"]["Row"];
+export type InfluencerPagamentoInsert =
+  Database["public"]["Tables"]["influencer_pagamentos"]["Insert"];
+export type InfluencerPagamentoUpdate =
+  Database["public"]["Tables"]["influencer_pagamentos"]["Update"];
 
 // Categorias sugeridas (UI usa estas como autocomplete, mas user pode digitar livremente)
 export const INFORMACAO_CATEGORIAS_SUGERIDAS = [

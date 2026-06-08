@@ -68,6 +68,16 @@ export function RealtimeRefresher() {
         { event: "*", schema: "public", table: "propostas" },
         scheduleRefresh,
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "envios" },
+        scheduleRefresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "embalagens" },
+        scheduleRefresh,
+      )
       .subscribe();
 
     // Fetch on focus — fallback se Realtime cair ou se o user volta da
