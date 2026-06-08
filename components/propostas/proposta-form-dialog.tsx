@@ -33,7 +33,7 @@ import {
   createPropostaAction,
   updatePropostaAction,
 } from "@/lib/propostas/actions";
-import { formatBRL } from "@/lib/financeiro/format";
+import { formatBRL } from "@/lib/format";
 
 function todayISO(): string {
   const d = new Date();

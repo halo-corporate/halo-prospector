@@ -23,9 +23,8 @@ import {
 } from "@/lib/database.types";
 import { propostaStatusBadgeClass } from "@/lib/propostas/badge";
 import { deletePropostaAction } from "@/lib/propostas/actions";
-import { formatBRL, formatDateBR } from "@/lib/financeiro/format";
+import { formatBRL, formatDateBR } from "@/lib/format";
 import { PropostaFormDialog } from "./proposta-form-dialog";
-import { ConvertToVendaDialog } from "./convert-to-venda-dialog";
 
 function daysSince(iso: string): number {
   const d = new Date(iso);
@@ -88,8 +87,7 @@ export function PropostaCard({ proposta }: Props) {
                 <AlertDialogTitle>Excluir proposta?</AlertDialogTitle>
                 <AlertDialogDescription>
                   <strong className="text-foreground">{proposta.titulo}</strong>
-                  {" "}vai ser removida permanentemente. Se já foi convertida em
-                  venda, a venda continua existindo no Financeiro.
+                  {" "}vai ser removida permanentemente.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -161,10 +159,6 @@ export function PropostaCard({ proposta }: Props) {
         </span>
       </div>
 
-      {/* CTA principal */}
-      {proposta.status !== "recusado" ? (
-        <ConvertToVendaDialog proposta={proposta} />
-      ) : null}
     </div>
   );
 }

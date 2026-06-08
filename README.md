@@ -7,10 +7,8 @@ Sistema web single-user para prospecção B2B da HALO (haloqring.com).
 > verdade, sync entre dispositivos via Supabase Realtime, fuso BR explícito
 > em toda apresentação, validação dupla (zod + HTML) em tudo que muta dados.
 >
-> **V2 entrega**: rebranding visual + módulos de Propostas, Financeiro (DRE
-> com PDF), Mensagens-modelo, Central de Links e Informações Internas
-> (credenciais com reveal-on-click). Sem integrações externas — dados
-> inseridos manualmente.
+> **V2 entrega**: rebranding visual + módulos de Propostas, Mensagens-modelo
+> e Central de Links. Sem integrações externas — dados inseridos manualmente.
 
 ---
 
@@ -38,14 +36,11 @@ Sistema web single-user para prospecção B2B da HALO (haloqring.com).
 | **Leads** (`/leads`)         | Lista com filtros (vertical, status, temperatura, UF, busca), ordenação por coluna, CRUD com 17 campos.                                  |
 | **Decisores + Interações**   | No detalhe do lead. D1/D2/D3, timeline cronológica reversa, modal de registrar interação com BR→UTC.                                     |
 | **Verticais customizáveis**  | 5 defaults seedados + criar nova inline (`+ Nova vertical` no Select).                                                                   |
-| **Propostas** (`/propostas`) | **V2** — 4 status pills (Aberto / Negociação / Recusado / Convertido), filtros (cliente, valor mín/máx, datas), botão 1-click "Converter em venda" que cria venda no Financeiro com responsável + comissão custom e linka via `venda_id`. |
-| **Financeiro** (`/financeiro`) | **V2** — Tabela vendas com generated columns (bruto/líquido/comissão calculados pelo Postgres). DRE com Faturamento Bruto em destaque + 4 sub-KPIs + MoM com tooltip "MÊS EM ANDAMENTO — COMPARAÇÃO PARCIAL". Breakdowns por responsável (Pedro/Bessa/Davi/Gabriel — mini-barras) e por status. Upload de comprovante inline (Supabase Storage privado + signed URLs 10min + RLS por `user_id`). Exportar PDF via `window.print()` + `@media print` (rota dedicada `/financeiro/dre/print` em light theme). Cancelados excluídos do DRE por default. |
+| **Propostas** (`/propostas`) | **V2** — 4 status pills (Aberto / Negociação / Recusado / Convertido), filtros (cliente, valor mín/máx, datas), CRUD completo. |
 | **Checklist** (`/checklist`) | Tarefas por semana BR (segunda–domingo). Navegação entre semanas. Observações expansíveis por tarefa. "Puxar pendentes da semana anterior". |
-| **Agenda** (`/agenda`)       | 3 buckets completos (Vencidos · Hoje · Próximos 7 dias), sem limit, click → detalhe.                                                     |
 | **Mensagens-modelo** (`/mensagens`) | **V2** — Biblioteca de templates por canal (WhatsApp/E-mail/Instagram/SMS) e etapa do funil. Variáveis tipo `{nome_cliente}` `{empresa}` `{valor}` destacadas em pill azul HALO. Botão **COPIAR** preserva as variáveis intactas no clipboard. |
 | **Links** (`/links`)         | **V2** — Central de links/favoritos. URLs coladas manualmente, agrupadas por tipo (Notion/Drive/Sheets/Calendar/Slack/WhatsApp/etc.), `https://` auto-prepended, ícone por tipo. |
-| **Informações Internas** (`/informacoes`) | **V2** — Registro de dados da empresa (CNPJ, bancário, contatos, credenciais). `valor_secreto` mascarado com bullets por default; reveal-on-click; copy preserva valor real. Agrupado por categoria livre. |
-| **Sync entre dispositivos**  | Supabase Realtime em todas as 9 tabelas + fetch on `window.focus` / `visibilitychange`. Sem reload manual.                              |
+| **Sync entre dispositivos**  | Supabase Realtime nas tabelas ativas + fetch on `window.focus` / `visibilitychange`. Sem reload manual.                              |
 | **Tema (V2)**                | Dark mode default, paleta HALO. **Único accent: `#0071E3`** (zero âmbar/amarelo). Cards `rounded-[18px]` + `border-white/10`. H1/H2 em Helvetica Neue Bold caixa alta. |
 | **Error boundaries**         | `/app/(app)/error.tsx` + `app/not-found.tsx` + `app/global-error.tsx` — tudo estilizado, com detecção de migration pendente.            |
 | **Persistência rígida**      | Toda mutação é `await` Server Action; UI só atualiza após sucesso confirmado; erro → toast vermelho, estado não muda.                    |
@@ -56,8 +51,7 @@ Sistema web single-user para prospecção B2B da HALO (haloqring.com).
 - Integração com Mercado Pago / API de pagamentos
 - Import de CSV/Excel
 - Notificações por email/push
-- Auth multi-user real (hoje `responsavel` em vendas é só categoria, não Auth)
-- Encriptação at-rest dos `valor_secreto` via Supabase Vault
+- Auth multi-user real
 - Sugestões automáticas via IA
 
 ---
@@ -192,8 +186,7 @@ halo-prospector/
 │   │   │   ├── page.tsx · filters · leads-table · lead-form
 │   │   │   ├── novo/page.tsx
 │   │   │   └── [id]/page.tsx · delete-lead-button · not-found
-│   │   ├── checklist/page.tsx · copy-pending-button
-│   │   └── agenda/page.tsx
+│   │   └── checklist/page.tsx · copy-pending-button
 │   ├── login/                       # Página pública
 │   ├── globals.css                  # Paleta HALO via CSS vars
 │   ├── layout.tsx                   # Tema dark + Inter + Sonner toaster
@@ -283,7 +276,7 @@ Mínimo pra confirmar que está tudo OK em produção:
 4. `+ Novo lead` → criar → cair no detalhe
 5. Adicionar decisor + registrar interação
 6. Voltar pra `/leads` → lead aparece com D1 e última interação
-7. `/agenda` → bucket Vencidos/Hoje/Próximos 7 dias funciona
+7. Dashboard → buckets Vencidos/Hoje/Próximos 7 dias funcionam
 8. `/checklist` → adicionar tarefa, marcar concluída, adicionar observação
 9. Abrir em 2 tabs → mudança em uma reflete na outra em ~500ms (Realtime)
 

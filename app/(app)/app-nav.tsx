@@ -10,12 +10,9 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/leads", label: "Leads" },
   { href: "/propostas", label: "Propostas" },
-  { href: "/financeiro", label: "Financeiro" },
   { href: "/checklist", label: "Checklist" },
-  { href: "/agenda", label: "Agenda" },
   { href: "/mensagens", label: "Mensagens" },
   { href: "/links", label: "Links" },
-  { href: "/informacoes", label: "Internas" },
 ];
 
 function isActive(href: string, pathname: string): boolean {

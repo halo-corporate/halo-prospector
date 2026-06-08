@@ -3,7 +3,6 @@ import {
   AlertOctagon,
   CalendarCheck,
   CalendarClock,
-  ChevronRight,
   Flame,
   TrendingUp,
 } from "lucide-react";
@@ -332,14 +331,6 @@ function FollowupSection({
           <span>{title}</span>
           <span className="text-xs text-muted-foreground">({count})</span>
         </div>
-        {leads.length > 0 ? (
-          <Link
-            href="/agenda"
-            className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center"
-          >
-            Ver agenda <ChevronRight className="h-3 w-3 ml-0.5" />
-          </Link>
-        ) : null}
       </div>
 
       {leads.length === 0 ? (

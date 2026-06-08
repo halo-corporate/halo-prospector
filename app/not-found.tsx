@@ -40,8 +40,16 @@ export default function NotFound() {
               <span className="text-muted-foreground">·</span> /leads/[id]
             </li>
             <li>
-              <span className="text-muted-foreground">·</span> /agenda{" "}
-              <span className="text-muted-foreground/70">(placeholder)</span>
+              <span className="text-muted-foreground">·</span> /propostas
+            </li>
+            <li>
+              <span className="text-muted-foreground">·</span> /checklist
+            </li>
+            <li>
+              <span className="text-muted-foreground">·</span> /mensagens
+            </li>
+            <li>
+              <span className="text-muted-foreground">·</span> /links
             </li>
             <li>
               <span className="text-muted-foreground">·</span> /login
