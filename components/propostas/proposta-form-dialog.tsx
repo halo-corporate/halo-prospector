@@ -169,8 +169,9 @@ export function PropostaFormDialog({ mode, proposta, trigger }: Props) {
             {mode === "create" ? "Nova proposta" : "Editar proposta"}
           </DialogTitle>
           <DialogDescription>
-            Quando o cliente aceitar, use o botão &ldquo;Converter em venda&rdquo;
-            no card pra lançar direto no Financeiro.
+            {mode === "create"
+              ? "Registre uma proposta enviada ao cliente."
+              : "Atualize os dados da proposta."}
           </DialogDescription>
         </DialogHeader>
 
@@ -254,25 +255,13 @@ export function PropostaFormDialog({ mode, proposta, trigger }: Props) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PROPOSTA_STATUSES.filter((s) => s !== "convertido").map(
-                    (s) => (
-                      <SelectItem key={s} value={s}>
-                        {PROPOSTA_STATUS_LABELS[s]}
-                      </SelectItem>
-                    ),
-                  )}
-                  {proposta?.status === "convertido" ? (
-                    <SelectItem value="convertido">
-                      {PROPOSTA_STATUS_LABELS.convertido}
+                  {PROPOSTA_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {PROPOSTA_STATUS_LABELS[s]}
                     </SelectItem>
-                  ) : null}
+                  ))}
                 </SelectContent>
               </Select>
-              {proposta?.status !== "convertido" ? (
-                <p className="text-[10px] text-muted-foreground">
-                  Pra &ldquo;Convertido&rdquo;, use o botão &ldquo;Converter em venda&rdquo; no card.
-                </p>
-              ) : null}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="prop-resposta">Data de resposta</Label>
