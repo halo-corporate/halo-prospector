@@ -80,7 +80,7 @@ export function AppNav() {
             onClick={() => setOpen(false)}
             aria-hidden
           />
-          <nav className="md:hidden fixed inset-x-0 top-14 z-40 flex flex-col border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 p-2 text-sm">
+          <nav className="md:hidden fixed inset-x-0 top-14 z-40 flex flex-col border-b border-border bg-background p-2 text-sm shadow-lg">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
