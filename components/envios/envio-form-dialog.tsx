@@ -41,6 +41,11 @@ interface Props {
   envio?: Envio;
   embalagens: Pick<Embalagem, "id" | "nome">[];
   influencers?: Pick<Influencer, "id" | "nome">[];
+  /** Pré-preenchimento ao criar envio a partir de outro contexto (ex: proposta). */
+  prefill?: {
+    destinatarioNome?: string;
+    propostaId?: string;
+  };
   trigger?: React.ReactNode;
 }
 
@@ -49,13 +54,14 @@ export function EnvioFormDialog({
   envio,
   embalagens,
   influencers = [],
+  prefill,
   trigger,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const [destinatarioNome, setDestinatarioNome] = useState(
-    envio?.destinatario_nome ?? "",
+    envio?.destinatario_nome ?? prefill?.destinatarioNome ?? "",
   );
   const [status, setStatus] = useState<EnvioStatus>(
     envio?.status ?? "a_despachar",
@@ -125,7 +131,9 @@ export function EnvioFormDialog({
   // reset ao abrir
   useEffect(() => {
     if (!open) return;
-    setDestinatarioNome(envio?.destinatario_nome ?? "");
+    setDestinatarioNome(
+      envio?.destinatario_nome ?? prefill?.destinatarioNome ?? "",
+    );
     setStatus(envio?.status ?? "a_despachar");
     setEmbalagemId(envio?.embalagem_id ?? null);
     setInfluencerId(envio?.influencer_id ?? null);
@@ -173,6 +181,12 @@ export function EnvioFormDialog({
     fd.set("status", status);
     if (embalagemId) fd.set("embalagem_id", embalagemId);
     if (influencerId) fd.set("influencer_id", influencerId);
+    if (mode === "create" && prefill?.propostaId) {
+      fd.set("proposta_id", prefill.propostaId);
+    }
+    if (mode === "edit" && envio?.proposta_id) {
+      fd.set("proposta_id", envio.proposta_id);
+    }
     fd.set("endereco_cep", cep);
     fd.set("endereco_rua", rua);
     fd.set("endereco_numero", numero);

@@ -81,6 +81,33 @@ export async function getEnvioById(id: string): Promise<Envio | null> {
   return data;
 }
 
+/**
+ * Conta envios por proposta_id (filtra proposta_ids passados).
+ * Usado no card de proposta pra mostrar badge "N envios".
+ */
+export async function countEnviosByPropostaIds(
+  propostaIds: string[],
+): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (propostaIds.length === 0) return result;
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("envios")
+    .select("proposta_id")
+    .in("proposta_id", propostaIds);
+  if (error) {
+    if (!isMissingTableError(error)) {
+      console.error("[countEnviosByPropostaIds]", error);
+    }
+    return result;
+  }
+  for (const row of data ?? []) {
+    if (!row.proposta_id) continue;
+    result.set(row.proposta_id, (result.get(row.proposta_id) ?? 0) + 1);
+  }
+  return result;
+}
+
 /** Contagem por status — usado no dashboard / cards de KPI. */
 export async function countEnviosByStatus(): Promise<
   Record<EnvioStatus, number>

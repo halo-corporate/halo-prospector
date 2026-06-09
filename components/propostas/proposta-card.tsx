@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { Calendar, Trash2 } from "lucide-react";
+import { Calendar, Trash2, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,11 +19,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   PROPOSTA_STATUS_LABELS,
+  type Embalagem,
+  type Influencer,
   type Proposta,
 } from "@/lib/database.types";
 import { propostaStatusBadgeClass } from "@/lib/propostas/badge";
 import { deletePropostaAction } from "@/lib/propostas/actions";
 import { formatBRL, formatDateBR } from "@/lib/format";
+import { EnvioFormDialog } from "@/components/envios/envio-form-dialog";
 import { PropostaFormDialog } from "./proposta-form-dialog";
 
 function daysSince(iso: string): number {
@@ -33,9 +36,17 @@ function daysSince(iso: string): number {
 
 interface Props {
   proposta: Proposta;
+  embalagens: Pick<Embalagem, "id" | "nome">[];
+  influencers: Pick<Influencer, "id" | "nome">[];
+  enviosCount: number;
 }
 
-export function PropostaCard({ proposta }: Props) {
+export function PropostaCard({
+  proposta,
+  embalagens,
+  influencers,
+  enviosCount,
+}: Props) {
   const [pending, startTransition] = useTransition();
   const dias = daysSince(proposta.data_envio);
 
@@ -157,6 +168,37 @@ export function PropostaCard({ proposta }: Props) {
             </span>
           ) : null}
         </span>
+
+        <div className="inline-flex items-center gap-1.5">
+          {enviosCount > 0 ? (
+            <Badge
+              variant="outline"
+              className="border text-[10px] py-0 border-primary/30 bg-primary/10 text-primary"
+            >
+              <Truck className="h-3 w-3" />
+              {enviosCount} {enviosCount === 1 ? "envio" : "envios"}
+            </Badge>
+          ) : null}
+          <EnvioFormDialog
+            mode="create"
+            embalagens={embalagens}
+            influencers={influencers}
+            prefill={{
+              destinatarioNome: proposta.cliente,
+              propostaId: proposta.id,
+            }}
+            trigger={
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 px-2 text-[11px]"
+              >
+                <Truck className="h-3 w-3" />
+                Criar envio
+              </Button>
+            }
+          />
+        </div>
       </div>
 
     </div>

@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getEnvioById } from "@/lib/envios/queries";
 import { listEmbalagens } from "@/lib/embalagens/queries";
 import { listInfluencersForSelect } from "@/lib/influencers/queries";
+import { getPropostaById } from "@/lib/propostas/queries";
 import { EnvioStatusBadge } from "@/components/envios/envio-status-badge";
 import { EnvioFormDialog } from "@/components/envios/envio-form-dialog";
 import { EtiquetaUpload } from "@/components/envios/etiqueta-upload";
@@ -23,6 +24,10 @@ export default async function EnvioDetailPage({ params }: { params: Params }) {
     listInfluencersForSelect(),
   ]);
   if (!envio) notFound();
+
+  const proposta = envio.proposta_id
+    ? await getPropostaById(envio.proposta_id)
+    : null;
 
   const embalagemNome = envio.embalagem_id
     ? embalagens.find((e) => e.id === envio.embalagem_id)?.nome ?? null
@@ -74,6 +79,16 @@ export default async function EnvioDetailPage({ params }: { params: Params }) {
         </h1>
         {linhaEndereco ? (
           <p className="text-sm text-muted-foreground">{linhaEndereco}</p>
+        ) : null}
+        {proposta ? (
+          <Link
+            href={`/propostas?q=${encodeURIComponent(proposta.cliente)}`}
+            className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline mt-1"
+          >
+            <FileText className="h-3 w-3" />
+            Proposta: {proposta.titulo}
+            <ExternalLink className="h-3 w-3" />
+          </Link>
         ) : null}
       </div>
 
