@@ -74,6 +74,44 @@ export async function getInfluencerById(
   return data;
 }
 
+/**
+ * KPIs do dashboard V3 — influencers ativos + soma de posts publicados.
+ *
+ * - parceriasAtivas: status in (kit_enviado, postou, parceria_ativa)
+ * - postsPublicados: soma do array_length(posts_url) em todos os influencers
+ */
+export async function countInfluencersV3Buckets(): Promise<{
+  parceriasAtivas: number;
+  postsPublicados: number;
+}> {
+  const empty = { parceriasAtivas: 0, postsPublicados: 0 };
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("influencers")
+    .select("status, posts_url");
+  if (error) {
+    if (!isMissingTableError(error)) {
+      console.error("[countInfluencersV3Buckets]", error);
+    }
+    return empty;
+  }
+  let parceriasAtivas = 0;
+  let postsPublicados = 0;
+  for (const row of data ?? []) {
+    if (
+      row.status === "kit_enviado" ||
+      row.status === "postou" ||
+      row.status === "parceria_ativa"
+    ) {
+      parceriasAtivas++;
+    }
+    if (Array.isArray(row.posts_url)) {
+      postsPublicados += row.posts_url.length;
+    }
+  }
+  return { parceriasAtivas, postsPublicados };
+}
+
 /** Lista compacta para usar em selects (envios, vinculação). */
 export async function listInfluencersForSelect(): Promise<
   Pick<Influencer, "id" | "nome">[]
