@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,7 @@ export function PagamentoFormDialog({
   pagamento,
   trigger,
 }: Props) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -114,6 +116,7 @@ export function PagamentoFormDialog({
       toast.success(
         mode === "create" ? "Pagamento registrado" : "Pagamento atualizado",
       );
+      router.refresh();
       setOpen(false);
     });
   }

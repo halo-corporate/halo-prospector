@@ -69,6 +69,15 @@ export function nowBRInputValue(): string {
   return toDateTimeLocalBR(new Date());
 }
 
+/**
+ * Data ISO (yyyy-MM-dd) do "hoje" em fuso BR. Usar para colunas DATE
+ * (data_pago, data_combinada, etc) — nunca `new Date().toISOString().slice(0,10)`
+ * porque esse pega UTC e fica 1 dia adiantado depois das 21h BR.
+ */
+export function todayBRISO(now: Date = new Date()): string {
+  return formatInTimeZone(now, BR_TZ, "yyyy-MM-dd");
+}
+
 export function formatBRHuman(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
   const diffMs = Date.now() - d.getTime();

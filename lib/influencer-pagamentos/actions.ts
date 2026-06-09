@@ -9,6 +9,7 @@ import {
   type PagamentoStatus,
   type PagamentoTipo,
 } from "@/lib/database.types";
+import { todayBRISO } from "@/lib/timezone";
 
 const emptyToNull = (v: unknown) =>
   typeof v === "string" && v.trim() === "" ? null : v;
@@ -170,7 +171,7 @@ export async function markPagamentoPagoAction(
   influencerId: string,
 ): Promise<PagamentoActionResult> {
   if (!id || id.length < 10) return { ok: false, message: "ID inválido" };
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayBRISO();
   const supabase = createClient();
   const { error } = await supabase
     .from("influencer_pagamentos")
