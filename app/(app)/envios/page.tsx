@@ -2,6 +2,7 @@ import { Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { listEnvios } from "@/lib/envios/queries";
 import { listEmbalagens } from "@/lib/embalagens/queries";
+import { listInfluencersForSelect } from "@/lib/influencers/queries";
 import {
   ENVIO_STATUSES,
   ENVIO_STATUS_LABELS,
@@ -49,9 +50,10 @@ export default async function EnviosPage({
     dataFim: searchParams.data_fim || undefined,
   };
 
-  const [envios, embalagens] = await Promise.all([
+  const [envios, embalagens, influencers] = await Promise.all([
     listEnvios(filters),
     listEmbalagens(),
+    listInfluencersForSelect(),
   ]);
 
   const hasFiltersActive = Boolean(
@@ -79,7 +81,11 @@ export default async function EnviosPage({
               : `${envios.length} ${envios.length === 1 ? "envio" : "envios"} encontrados`}
           </p>
         </div>
-        <EnvioFormDialog mode="create" embalagens={embalagens} />
+        <EnvioFormDialog
+          mode="create"
+          embalagens={embalagens}
+          influencers={influencers}
+        />
       </div>
 
       <EnviosFilters
@@ -133,6 +139,7 @@ export default async function EnviosPage({
             <EnvioFormDialog
               mode="create"
               embalagens={embalagens}
+              influencers={influencers}
               trigger={
                 <Button size="sm">
                   <Truck className="h-3.5 w-3.5" />
@@ -143,7 +150,11 @@ export default async function EnviosPage({
           </div>
         )
       ) : (
-        <EnviosTable envios={envios} embalagens={embalagens} />
+        <EnviosTable
+          envios={envios}
+          embalagens={embalagens}
+          influencers={influencers}
+        />
       )}
     </div>
   );

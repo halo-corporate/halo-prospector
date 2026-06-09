@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/leads", label: "Leads" },
   { href: "/propostas", label: "Propostas" },
   { href: "/envios", label: "Envios" },
+  { href: "/influencers", label: "Influencers" },
   { href: "/checklist", label: "Checklist" },
   { href: "/mensagens", label: "Mensagens" },
   { href: "/links", label: "Links" },

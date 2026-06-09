@@ -24,7 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Embalagem, Envio } from "@/lib/database.types";
+import type { Embalagem, Envio, Influencer } from "@/lib/database.types";
 import { deleteEnvioAction } from "@/lib/envios/actions";
 import { formatBRL, formatDateBR } from "@/lib/format";
 import { EnvioStatusBadge } from "./envio-status-badge";
@@ -33,9 +33,10 @@ import { EnvioFormDialog } from "./envio-form-dialog";
 interface Props {
   envios: Envio[];
   embalagens: Pick<Embalagem, "id" | "nome">[];
+  influencers?: Pick<Influencer, "id" | "nome">[];
 }
 
-export function EnviosTable({ envios, embalagens }: Props) {
+export function EnviosTable({ envios, embalagens, influencers = [] }: Props) {
   const [pending, startTransition] = useTransition();
   const embalagensById = new Map(embalagens.map((e) => [e.id, e.nome]));
 
@@ -128,6 +129,7 @@ export function EnviosTable({ envios, embalagens }: Props) {
                       mode="edit"
                       envio={e}
                       embalagens={embalagens}
+                      influencers={influencers}
                     />
                     <AlertDialog>
                       <AlertDialogTrigger asChild>

@@ -318,6 +318,60 @@ export type InfluencerContratoTipo =
 export type PagamentoTipo = "permuta" | "pago";
 export type PagamentoStatus = "pendente" | "pago" | "cancelado";
 
+export const INFLUENCER_STATUSES: InfluencerStatus[] = [
+  "prospeccao",
+  "contatado",
+  "negociando",
+  "kit_enviado",
+  "postou",
+  "parceria_ativa",
+  "encerrado",
+];
+
+export const INFLUENCER_STATUS_LABELS: Record<InfluencerStatus, string> = {
+  prospeccao: "Prospecção",
+  contatado: "Contatado",
+  negociando: "Negociando",
+  kit_enviado: "Kit enviado",
+  postou: "Postou",
+  parceria_ativa: "Parceria ativa",
+  encerrado: "Encerrado",
+};
+
+export const INFLUENCER_CONTRATO_TIPOS: InfluencerContratoTipo[] = [
+  "permuta",
+  "pago",
+  "permuta_e_pago",
+];
+
+export const INFLUENCER_CONTRATO_TIPO_LABELS: Record<
+  InfluencerContratoTipo,
+  string
+> = {
+  permuta: "Permuta",
+  pago: "Pago (R$)",
+  permuta_e_pago: "Permuta + R$",
+};
+
+export const PAGAMENTO_TIPOS: PagamentoTipo[] = ["permuta", "pago"];
+
+export const PAGAMENTO_TIPO_LABELS: Record<PagamentoTipo, string> = {
+  permuta: "Permuta",
+  pago: "Pago (R$)",
+};
+
+export const PAGAMENTO_STATUSES: PagamentoStatus[] = [
+  "pendente",
+  "pago",
+  "cancelado",
+];
+
+export const PAGAMENTO_STATUS_LABELS: Record<PagamentoStatus, string> = {
+  pendente: "Pendente",
+  pago: "Pago",
+  cancelado: "Cancelado",
+};
+
 // ---------------------------------------------------------------------------
 // Database interface (formato compatível com `Database` do supabase-js)
 // ---------------------------------------------------------------------------

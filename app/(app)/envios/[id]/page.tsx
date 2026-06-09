@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getEnvioById } from "@/lib/envios/queries";
 import { listEmbalagens } from "@/lib/embalagens/queries";
+import { listInfluencersForSelect } from "@/lib/influencers/queries";
 import { EnvioStatusBadge } from "@/components/envios/envio-status-badge";
 import { EnvioFormDialog } from "@/components/envios/envio-form-dialog";
 import { EtiquetaUpload } from "@/components/envios/etiqueta-upload";
@@ -16,9 +17,10 @@ interface Params {
 }
 
 export default async function EnvioDetailPage({ params }: { params: Params }) {
-  const [envio, embalagens] = await Promise.all([
+  const [envio, embalagens, influencers] = await Promise.all([
     getEnvioById(params.id),
     listEmbalagens(),
+    listInfluencersForSelect(),
   ]);
   if (!envio) notFound();
 
@@ -55,6 +57,7 @@ export default async function EnvioDetailPage({ params }: { params: Params }) {
             mode="edit"
             envio={envio}
             embalagens={embalagens}
+            influencers={influencers}
             trigger={
               <Button size="sm" variant="outline">
                 Editar

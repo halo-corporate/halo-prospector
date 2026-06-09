@@ -29,18 +29,28 @@ import {
   type Embalagem,
   type Envio,
   type EnvioStatus,
+  type Influencer,
 } from "@/lib/database.types";
 import { createEnvioAction, updateEnvioAction } from "@/lib/envios/actions";
 import { EmbalagemSelect } from "@/components/embalagens/embalagem-select";
+
+const INFLUENCER_NONE = "_none_";
 
 interface Props {
   mode: "create" | "edit";
   envio?: Envio;
   embalagens: Pick<Embalagem, "id" | "nome">[];
+  influencers?: Pick<Influencer, "id" | "nome">[];
   trigger?: React.ReactNode;
 }
 
-export function EnvioFormDialog({ mode, envio, embalagens, trigger }: Props) {
+export function EnvioFormDialog({
+  mode,
+  envio,
+  embalagens,
+  influencers = [],
+  trigger,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
@@ -52,6 +62,9 @@ export function EnvioFormDialog({ mode, envio, embalagens, trigger }: Props) {
   );
   const [embalagemId, setEmbalagemId] = useState<string | null>(
     envio?.embalagem_id ?? null,
+  );
+  const [influencerId, setInfluencerId] = useState<string | null>(
+    envio?.influencer_id ?? null,
   );
 
   // Endereço
@@ -115,6 +128,7 @@ export function EnvioFormDialog({ mode, envio, embalagens, trigger }: Props) {
     setDestinatarioNome(envio?.destinatario_nome ?? "");
     setStatus(envio?.status ?? "a_despachar");
     setEmbalagemId(envio?.embalagem_id ?? null);
+    setInfluencerId(envio?.influencer_id ?? null);
     setCep(envio?.endereco_destino?.cep ?? "");
     setRua(envio?.endereco_destino?.rua ?? "");
     setNumero(envio?.endereco_destino?.numero ?? "");
@@ -158,6 +172,7 @@ export function EnvioFormDialog({ mode, envio, embalagens, trigger }: Props) {
     fd.set("destinatario_nome", destinatarioNome);
     fd.set("status", status);
     if (embalagemId) fd.set("embalagem_id", embalagemId);
+    if (influencerId) fd.set("influencer_id", influencerId);
     fd.set("endereco_cep", cep);
     fd.set("endereco_rua", rua);
     fd.set("endereco_numero", numero);
@@ -335,13 +350,38 @@ export function EnvioFormDialog({ mode, envio, embalagens, trigger }: Props) {
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
               Embalagem & pacote
             </p>
-            <div className="space-y-1.5">
-              <Label>Embalagem</Label>
-              <EmbalagemSelect
-                embalagens={embalagens}
-                value={embalagemId}
-                onChange={setEmbalagemId}
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Embalagem</Label>
+                <EmbalagemSelect
+                  embalagens={embalagens}
+                  value={embalagemId}
+                  onChange={setEmbalagemId}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="env-infl">Influencer (kit)</Label>
+                <Select
+                  value={influencerId ?? INFLUENCER_NONE}
+                  onValueChange={(v) =>
+                    setInfluencerId(v === INFLUENCER_NONE ? null : v)
+                  }
+                >
+                  <SelectTrigger id="env-infl">
+                    <SelectValue placeholder="Vincular a um influencer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={INFLUENCER_NONE}>
+                      Não vincular
+                    </SelectItem>
+                    {influencers.map((i) => (
+                      <SelectItem key={i.id} value={i.id}>
+                        {i.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="space-y-1.5">
