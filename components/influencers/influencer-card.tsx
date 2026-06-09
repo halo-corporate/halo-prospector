@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { Instagram, MapPin, Trash2, Youtube } from "lucide-react";
+import { Copy, Instagram, MapPin, Tag, Trash2, Youtube } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -45,6 +45,18 @@ export function InfluencerCard({ influencer }: Props) {
       const res = await deleteInfluencerAction(influencer.id);
       if (!res.ok) toast.error(res.message);
     });
+  }
+
+  async function handleCopyCodigo(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!influencer.codigo_promocional) return;
+    try {
+      await navigator.clipboard.writeText(influencer.codigo_promocional);
+      toast.success(`Código ${influencer.codigo_promocional} copiado`);
+    } catch {
+      toast.error("Não foi possível copiar");
+    }
   }
 
   return (
@@ -152,6 +164,19 @@ export function InfluencerCard({ influencer }: Props) {
           </span>
         ) : null}
       </div>
+
+      {influencer.codigo_promocional ? (
+        <button
+          type="button"
+          onClick={handleCopyCodigo}
+          className="self-start inline-flex items-center gap-1.5 rounded-md border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] font-mono uppercase tracking-wider text-primary hover:bg-primary/20 transition-colors"
+          aria-label={`Copiar código ${influencer.codigo_promocional}`}
+        >
+          <Tag className="h-3 w-3" />
+          {influencer.codigo_promocional}
+          <Copy className="h-2.5 w-2.5 opacity-60" />
+        </button>
+      ) : null}
 
       {/* Métricas + contrato */}
       <div className="flex items-baseline gap-2 flex-wrap mt-auto pt-2 border-t border-white/5">

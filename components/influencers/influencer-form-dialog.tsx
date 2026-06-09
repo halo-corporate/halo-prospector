@@ -61,6 +61,9 @@ export function InfluencerFormDialog({ mode, influencer, trigger }: Props) {
       ? String(influencer.valor_cache).replace(".", ",")
       : "",
   );
+  const [codigoPromocional, setCodigoPromocional] = useState(
+    influencer?.codigo_promocional ?? "",
+  );
 
   const [handleIg, setHandleIg] = useState(influencer?.handle_instagram ?? "");
   const [handleTt, setHandleTt] = useState(influencer?.handle_tiktok ?? "");
@@ -111,6 +114,7 @@ export function InfluencerFormDialog({ mode, influencer, trigger }: Props) {
         ? String(influencer.valor_cache).replace(".", ",")
         : "",
     );
+    setCodigoPromocional(influencer?.codigo_promocional ?? "");
     setHandleIg(influencer?.handle_instagram ?? "");
     setHandleTt(influencer?.handle_tiktok ?? "");
     setHandleYt(influencer?.handle_youtube ?? "");
@@ -156,6 +160,7 @@ export function InfluencerFormDialog({ mode, influencer, trigger }: Props) {
     fd.set("status", status);
     if (contratoTipo !== CONTRATO_NONE) fd.set("contrato_tipo", contratoTipo);
     fd.set("valor_cache", valorCache);
+    fd.set("codigo_promocional", codigoPromocional);
     fd.set("handle_instagram", handleIg);
     fd.set("handle_tiktok", handleTt);
     fd.set("handle_youtube", handleYt);
@@ -418,6 +423,24 @@ export function InfluencerFormDialog({ mode, influencer, trigger }: Props) {
                   placeholder="1.500,00"
                 />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="inf-codigo">Código promocional</Label>
+              <Input
+                id="inf-codigo"
+                value={codigoPromocional}
+                onChange={(e) =>
+                  setCodigoPromocional(
+                    e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ""),
+                  )
+                }
+                placeholder="HALO10"
+                maxLength={30}
+                className="font-mono uppercase tracking-wider"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                A-Z, 0-9, _ e -. Único por conta. Ex: HALO10, GABI20.
+              </p>
             </div>
           </div>
 

@@ -170,6 +170,16 @@ export default async function InfluencerDetailPage({
                 ? formatBRL(influencer.valor_cache)
                 : "—"}
             </dd>
+            <dt className="text-muted-foreground">Código promocional</dt>
+            <dd>
+              {influencer.codigo_promocional ? (
+                <span className="inline-flex items-center gap-1 rounded-md border border-primary/30 bg-primary/10 px-1.5 py-0.5 font-mono uppercase tracking-wider text-primary text-xs">
+                  {influencer.codigo_promocional}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">—</span>
+              )}
+            </dd>
           </dl>
         </div>
       </div>

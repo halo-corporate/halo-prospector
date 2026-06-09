@@ -102,6 +102,20 @@ const influencerSchema = z.object({
       .optional(),
   ),
   valor_cache: optionalPositiveNum,
+  codigo_promocional: z.preprocess(
+    (v) => {
+      if (typeof v !== "string") return v;
+      const s = v.trim().toUpperCase();
+      return s === "" ? null : s;
+    },
+    z
+      .string()
+      .min(2, "Mín 2 caracteres")
+      .max(30, "Máx 30 caracteres")
+      .regex(/^[A-Z0-9_-]+$/, "Use só A-Z, 0-9, _ ou -")
+      .nullable()
+      .optional(),
+  ),
   alcance_total: optionalPositiveInt,
   engajamento_total: optionalPositiveInt,
   observacoes: optionalText(2000),
@@ -110,6 +124,16 @@ const influencerSchema = z.object({
 export type InfluencerActionResult =
   | { ok: true; id?: string }
   | { ok: false; message: string };
+
+function mapInfluencerError(err: { code?: string; message?: string }): string {
+  if (
+    err.code === "23505" &&
+    /codigo_promocional/i.test(err.message ?? "")
+  ) {
+    return "Esse código promocional já está em uso";
+  }
+  return err.message ?? "Erro ao salvar influencer";
+}
 
 function stripAt(v: string | null): string | null {
   if (!v) return v;
@@ -133,6 +157,7 @@ function parseFormData(fd: FormData) {
     status: ((fd.get("status") ?? "prospeccao") as string) as InfluencerStatus,
     contrato_tipo: fd.get("contrato_tipo"),
     valor_cache: fd.get("valor_cache"),
+    codigo_promocional: fd.get("codigo_promocional"),
     alcance_total: fd.get("alcance_total"),
     engajamento_total: fd.get("engajamento_total"),
     observacoes: fd.get("observacoes"),
@@ -155,6 +180,7 @@ function buildPayload(parsed: z.infer<typeof influencerSchema>) {
     status: parsed.status,
     contrato_tipo: parsed.contrato_tipo ?? null,
     valor_cache: parsed.valor_cache ?? null,
+    codigo_promocional: parsed.codigo_promocional ?? null,
     alcance_total: parsed.alcance_total ?? null,
     engajamento_total: parsed.engajamento_total ?? null,
     observacoes: parsed.observacoes ?? null,
@@ -176,7 +202,10 @@ export async function createInfluencerAction(
     .single();
   if (error || !data) {
     console.error("[createInfluencerAction]", error);
-    return { ok: false, message: error?.message ?? "Erro ao criar influencer" };
+    return {
+      ok: false,
+      message: error ? mapInfluencerError(error) : "Erro ao criar influencer",
+    };
   }
   revalidatePath("/influencers");
   revalidatePath("/");
@@ -199,7 +228,7 @@ export async function updateInfluencerAction(
     .eq("id", id);
   if (error) {
     console.error("[updateInfluencerAction]", error);
-    return { ok: false, message: error.message };
+    return { ok: false, message: mapInfluencerError(error) };
   }
   revalidatePath("/influencers");
   revalidatePath(`/influencers/${id}`);

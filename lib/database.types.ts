@@ -1065,6 +1065,7 @@ export interface Database {
           status: InfluencerStatus;
           contrato_tipo: InfluencerContratoTipo | null;
           valor_cache: number | null;
+          codigo_promocional: string | null;
           posts_url: string[];
           alcance_total: number | null;
           engajamento_total: number | null;
@@ -1089,6 +1090,7 @@ export interface Database {
           status?: InfluencerStatus;
           contrato_tipo?: InfluencerContratoTipo | null;
           valor_cache?: number | null;
+          codigo_promocional?: string | null;
           posts_url?: string[];
           alcance_total?: number | null;
           engajamento_total?: number | null;
@@ -1113,6 +1115,7 @@ export interface Database {
           status?: InfluencerStatus;
           contrato_tipo?: InfluencerContratoTipo | null;
           valor_cache?: number | null;
+          codigo_promocional?: string | null;
           posts_url?: string[];
           alcance_total?: number | null;
           engajamento_total?: number | null;
