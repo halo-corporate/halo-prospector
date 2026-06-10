@@ -1176,6 +1176,52 @@ export interface Database {
           updated_at?: string;
         };
       };
+      influencer_vendas: {
+        Relationships: [
+          {
+            foreignKeyName: "influencer_vendas_influencer_id_fkey";
+            columns: ["influencer_id"];
+            referencedRelation: "influencers";
+            referencedColumns: ["id"];
+          },
+        ];
+        Row: {
+          id: string;
+          user_id: string;
+          influencer_id: string;
+          data_venda: string;
+          quantidade: number;
+          valor_total: number;
+          comprador_nome: string | null;
+          observacoes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          influencer_id: string;
+          data_venda?: string;
+          quantidade?: number;
+          valor_total: number;
+          comprador_nome?: string | null;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          influencer_id?: string;
+          data_venda?: string;
+          quantidade?: number;
+          valor_total?: number;
+          comprador_nome?: string | null;
+          observacoes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     Views: { [_ in never]: never };
     Functions: { [_ in never]: never };
@@ -1260,6 +1306,13 @@ export type InfluencerPagamentoInsert =
   Database["public"]["Tables"]["influencer_pagamentos"]["Insert"];
 export type InfluencerPagamentoUpdate =
   Database["public"]["Tables"]["influencer_pagamentos"]["Update"];
+
+export type InfluencerVenda =
+  Database["public"]["Tables"]["influencer_vendas"]["Row"];
+export type InfluencerVendaInsert =
+  Database["public"]["Tables"]["influencer_vendas"]["Insert"];
+export type InfluencerVendaUpdate =
+  Database["public"]["Tables"]["influencer_vendas"]["Update"];
 
 // Categorias sugeridas (UI usa estas como autocomplete, mas user pode digitar livremente)
 export const INFORMACAO_CATEGORIAS_SUGERIDAS = [

@@ -4,11 +4,13 @@ import { ArrowLeft, Instagram, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getInfluencerById } from "@/lib/influencers/queries";
 import { listPagamentosByInfluencer } from "@/lib/influencer-pagamentos/queries";
+import { listVendasByInfluencer } from "@/lib/influencer-vendas/queries";
 import { INFLUENCER_CONTRATO_TIPO_LABELS } from "@/lib/database.types";
 import { InfluencerStatusBadge } from "@/components/influencers/influencer-status-badge";
 import { InfluencerFormDialog } from "@/components/influencers/influencer-form-dialog";
 import { PostsSection } from "@/components/influencers/posts-section";
 import { PagamentosSection } from "@/components/influencer-pagamentos/pagamentos-section";
+import { VendasSection } from "@/components/influencer-vendas/vendas-section";
 import { formatBRL } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -29,9 +31,10 @@ export default async function InfluencerDetailPage({
 }: {
   params: Params;
 }) {
-  const [influencer, pagamentos] = await Promise.all([
+  const [influencer, pagamentos, vendas] = await Promise.all([
     getInfluencerById(params.id),
     listPagamentosByInfluencer(params.id),
+    listVendasByInfluencer(params.id),
   ]);
   if (!influencer) notFound();
 
@@ -188,6 +191,8 @@ export default async function InfluencerDetailPage({
         influencerId={influencer.id}
         postsUrl={influencer.posts_url ?? []}
       />
+
+      <VendasSection influencerId={influencer.id} vendas={vendas} />
 
       <PagamentosSection
         influencerId={influencer.id}
