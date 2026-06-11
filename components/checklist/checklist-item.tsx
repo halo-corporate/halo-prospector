@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import {
+  CalendarClock,
   Check,
   ChevronDown,
   ChevronRight,
@@ -23,10 +24,21 @@ import {
   toggleStandByTarefaAction,
   toggleTarefaAction,
   updateTarefaObservacoesAction,
+  updateTarefaPrazoAction,
+  updateTarefaPrioridadeAction,
   updateTarefaTextoAction,
-  updateTarefaUrgenciaAction,
 } from "@/lib/tarefas/actions";
-import type { TarefaSemanal } from "@/lib/database.types";
+import {
+  TAREFA_PRIORIDADE_CICLO,
+  TAREFA_PRIORIDADE_LABELS,
+  type TarefaSemanal,
+} from "@/lib/database.types";
+import {
+  deadlineGlowClass,
+  deadlineProximity,
+  prioridadeChipClass,
+} from "@/lib/tarefas/prazo";
+import { formatBR, fromBRInput, toDateTimeLocalBR } from "@/lib/timezone";
 
 interface Props {
   tarefa: TarefaSemanal;
@@ -44,6 +56,9 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
   const [obsEditing, setObsEditing] = useState(false);
   const [obsDraft, setObsDraft] = useState(tarefa.observacoes ?? "");
   const obsTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Prazo (deadline): editor inline com <input type="datetime-local">.
+  const [prazoEditing, setPrazoEditing] = useState(false);
 
   // Sincroniza drafts quando a tarefa vier nova/atualizada (router.refresh).
   useEffect(() => {
@@ -67,11 +82,39 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
     });
   }
 
-  function handleToggleUrgencia() {
-    const next = tarefa.urgencia === "urgente" ? "nao_urgente" : "urgente";
+  function handleCyclePrioridade() {
+    const idx = TAREFA_PRIORIDADE_CICLO.indexOf(tarefa.prioridade);
+    const next =
+      TAREFA_PRIORIDADE_CICLO[(idx + 1) % TAREFA_PRIORIDADE_CICLO.length]!;
     startTransition(async () => {
-      const res = await updateTarefaUrgenciaAction(tarefa.id, next);
+      const res = await updateTarefaPrioridadeAction(tarefa.id, next);
       if (!res.ok) toast.error(res.message);
+    });
+  }
+
+  function handleSavePrazo(localValue: string) {
+    // localValue vem de <input type="datetime-local"> (hora BR). Converte p/ UTC.
+    const iso = localValue ? fromBRInput(localValue).toISOString() : null;
+    startTransition(async () => {
+      const res = await updateTarefaPrazoAction(tarefa.id, iso);
+      if (!res.ok) {
+        toast.error(res.message);
+        return;
+      }
+      setPrazoEditing(false);
+      toast.success(iso ? "Prazo definido" : "Prazo removido");
+    });
+  }
+
+  function handleClearPrazo() {
+    startTransition(async () => {
+      const res = await updateTarefaPrazoAction(tarefa.id, null);
+      if (!res.ok) {
+        toast.error(res.message);
+        return;
+      }
+      setPrazoEditing(false);
+      toast.success("Prazo removido");
     });
   }
 
@@ -240,49 +283,52 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
                   <span
                     className={cn(
                       "inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-medium uppercase tracking-wide leading-none shrink-0",
-                      tarefa.urgencia === "urgente"
-                        ? "bg-destructive/15 text-destructive"
-                        : "bg-muted text-muted-foreground",
+                      prioridadeChipClass(tarefa.prioridade),
                     )}
                   >
-                    {tarefa.urgencia === "urgente" ? (
-                      <>
-                        <Flame className="h-2.5 w-2.5" />
-                        Urgente
-                      </>
-                    ) : (
-                      "Não urgente"
-                    )}
+                    {tarefa.prioridade === "alta" ? (
+                      <Flame className="h-2.5 w-2.5" />
+                    ) : null}
+                    {TAREFA_PRIORIDADE_LABELS[tarefa.prioridade]}
                   </span>
                 ) : (
                   <button
                     type="button"
-                    onClick={handleToggleUrgencia}
+                    onClick={handleCyclePrioridade}
                     disabled={pending}
-                    aria-label={
-                      tarefa.urgencia === "urgente"
-                        ? "Mudar pra Não urgente"
-                        : "Mudar pra Urgente"
-                    }
-                    title="Clique pra alternar urgência"
+                    aria-label={`Prioridade ${TAREFA_PRIORIDADE_LABELS[tarefa.prioridade]} — clique pra alternar`}
+                    title="Clique pra alternar prioridade (alta → média → baixa)"
                     className={cn(
-                      "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide leading-none shrink-0 transition-colors",
-                      tarefa.urgencia === "urgente"
-                        ? "bg-destructive/15 text-destructive hover:bg-destructive/25"
-                        : "bg-muted text-muted-foreground hover:bg-muted/70",
+                      "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide leading-none shrink-0 transition-colors hover:opacity-80",
+                      prioridadeChipClass(tarefa.prioridade),
                       pending && "opacity-50",
                     )}
                   >
-                    {tarefa.urgencia === "urgente" ? (
-                      <>
-                        <Flame className="h-2.5 w-2.5" />
-                        Urgente
-                      </>
-                    ) : (
-                      "Não urgente"
-                    )}
+                    {tarefa.prioridade === "alta" ? (
+                      <Flame className="h-2.5 w-2.5" />
+                    ) : null}
+                    {TAREFA_PRIORIDADE_LABELS[tarefa.prioridade]}
                   </button>
                 )}
+
+                {/* Chip de prazo (read-only) — exibido inline quando há prazo.
+                    O glow de proximidade é a sinalização visual principal. */}
+                {tarefa.prazo ? (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium leading-none shrink-0",
+                      deadlineGlowClass(
+                        deadlineProximity(tarefa.prazo),
+                      ) || "bg-muted text-muted-foreground",
+                      tarefa.concluida && "opacity-50 saturate-0",
+                    )}
+                    title={`Prazo: ${formatBR(tarefa.prazo)}`}
+                  >
+                    <CalendarClock className="h-2.5 w-2.5" />
+                    {formatBR(tarefa.prazo, "dd/MM HH:mm")}
+                  </span>
+                ) : null}
+
                 <p
                   className={cn(
                     "text-sm leading-snug flex-1 min-w-0",
@@ -301,37 +347,113 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
                 ) : null}
               </div>
 
-              {/* Toggle pra abrir/fechar a área de observações (só modo completo) */}
+              {/* Meta: observações + prazo (só modo completo) */}
               {!compact ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (obsEditing) return;
-                    if (!obsOpen && !hasObs) {
-                      openObsEditor();
-                    } else {
-                      setObsOpen((o) => !o);
+                <div className="flex items-center gap-3 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (obsEditing) return;
+                      if (!obsOpen && !hasObs) {
+                        openObsEditor();
+                      } else {
+                        setObsOpen((o) => !o);
+                      }
+                    }}
+                    className={cn(
+                      "inline-flex items-center gap-1 text-[10px] leading-none text-muted-foreground/70 hover:text-muted-foreground transition-colors",
+                      hasObs ? "" : "opacity-0 group-hover:opacity-100",
+                    )}
+                  >
+                    {obsOpen ? (
+                      <ChevronDown className="h-2.5 w-2.5" />
+                    ) : (
+                      <ChevronRight className="h-2.5 w-2.5" />
+                    )}
+                    {hasObs ? (
+                      <span>
+                        <FileText className="inline h-2.5 w-2.5 -mt-px mr-0.5" />
+                        Observações
+                      </span>
+                    ) : (
+                      <span>+ Adicionar observação</span>
+                    )}
+                  </button>
+
+                  {/* Prazo: botão pra abrir o editor (datetime-local) */}
+                  {!prazoEditing ? (
+                    <button
+                      type="button"
+                      onClick={() => setPrazoEditing(true)}
+                      disabled={pending}
+                      className={cn(
+                        "inline-flex items-center gap-1 text-[10px] leading-none text-muted-foreground/70 hover:text-muted-foreground transition-colors",
+                        tarefa.prazo ? "" : "opacity-0 group-hover:opacity-100",
+                      )}
+                    >
+                      <CalendarClock className="h-2.5 w-2.5" />
+                      {tarefa.prazo ? "Editar prazo" : "+ Definir prazo"}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {/* Editor de prazo inline */}
+              {!compact && prazoEditing ? (
+                <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                  <input
+                    type="datetime-local"
+                    defaultValue={
+                      tarefa.prazo ? toDateTimeLocalBR(tarefa.prazo) : ""
                     }
-                  }}
-                  className={cn(
-                    "inline-flex items-center gap-1 text-[10px] leading-none text-muted-foreground/70 hover:text-muted-foreground transition-colors",
-                    hasObs ? "" : "opacity-0 group-hover:opacity-100",
-                  )}
-                >
-                  {obsOpen ? (
-                    <ChevronDown className="h-2.5 w-2.5" />
-                  ) : (
-                    <ChevronRight className="h-2.5 w-2.5" />
-                  )}
-                  {hasObs ? (
-                    <span>
-                      <FileText className="inline h-2.5 w-2.5 -mt-px mr-0.5" />
-                      Observações
-                    </span>
-                  ) : (
-                    <span>+ Adicionar observação</span>
-                  )}
-                </button>
+                    autoFocus
+                    disabled={pending}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSavePrazo((e.target as HTMLInputElement).value);
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        setPrazoEditing(false);
+                      }
+                    }}
+                    id={`prazo-${tarefa.id}`}
+                    className="h-7 rounded-md border border-input bg-transparent px-2 text-xs"
+                  />
+                  <Button
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    disabled={pending}
+                    onClick={() => {
+                      const el = document.getElementById(
+                        `prazo-${tarefa.id}`,
+                      ) as HTMLInputElement | null;
+                      handleSavePrazo(el?.value ?? "");
+                    }}
+                  >
+                    Salvar
+                  </Button>
+                  {tarefa.prazo ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs hover:text-destructive"
+                      disabled={pending}
+                      onClick={handleClearPrazo}
+                    >
+                      Remover
+                    </Button>
+                  ) : null}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    disabled={pending}
+                    onClick={() => setPrazoEditing(false)}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
               ) : null}
             </div>
 

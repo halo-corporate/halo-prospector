@@ -182,4 +182,48 @@
   @media (prefers-reduced-motion: reduce) {
     .halo-neon-temp { animation: none; }
   }
+
+  /* Prazo (deadline) — chip com glow de proximidade. Quanto mais perto o
+     vencimento, mais quente e intenso o glow. `overdue` e `today` pulsam
+     pra puxar atenção; `soon` fica em glow estático âmbar. Cada variante
+     define --pz (cor RGB) que dirige borda, texto e box-shadow. */
+  .halo-deadline {
+    --pz: 251 191 36; /* amber-400 default */
+    color: rgb(var(--pz));
+    background: rgba(var(--pz) / 0.12);
+    border: 1px solid rgba(var(--pz) / 0.5);
+    box-shadow:
+      0 0 6px rgba(var(--pz) / 0.5),
+      inset 0 0 4px rgba(var(--pz) / 0.15);
+    font-weight: 600;
+  }
+  .halo-deadline.is-soon {
+    --pz: 251 191 36; /* amber-400 */
+  }
+  .halo-deadline.is-today {
+    --pz: 251 146 60; /* orange-400 */
+    animation: halo-deadline-pulse 2s ease-in-out infinite;
+  }
+  .halo-deadline.is-overdue {
+    --pz: 248 113 113; /* red-400 */
+    animation: halo-deadline-pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes halo-deadline-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 6px rgba(var(--pz) / 0.5),
+        inset 0 0 4px rgba(var(--pz) / 0.15);
+    }
+    50% {
+      box-shadow:
+        0 0 12px rgba(var(--pz) / 0.8),
+        0 0 22px rgba(var(--pz) / 0.4),
+        inset 0 0 7px rgba(var(--pz) / 0.25);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .halo-deadline { animation: none; }
+  }
 }

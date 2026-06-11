@@ -41,7 +41,7 @@ export type LeadStatus =
 
 export type LeadTemperatura = "frio" | "morno" | "quente";
 
-export type TarefaUrgencia = "urgente" | "nao_urgente";
+export type TarefaPrioridade = "alta" | "media" | "baixa";
 
 export type DecisorPrioridade = "d1" | "d2" | "d3";
 
@@ -152,6 +152,19 @@ export const LEAD_TEMPERATURA_LABELS: Record<LeadTemperatura, string> = {
   morno: "Morno",
   quente: "Quente",
 };
+
+export const TAREFA_PRIORIDADE_LABELS: Record<TarefaPrioridade, string> = {
+  alta: "Alta",
+  media: "Média",
+  baixa: "Baixa",
+};
+
+/** Ordem de ciclo ao clicar no chip de prioridade: alta → média → baixa → alta. */
+export const TAREFA_PRIORIDADE_CICLO: TarefaPrioridade[] = [
+  "alta",
+  "media",
+  "baixa",
+];
 
 export const DECISOR_PRIORIDADE_LABELS: Record<DecisorPrioridade, string> = {
   d1: "D1 (primário)",
@@ -878,7 +891,8 @@ export interface Database {
           concluida: boolean;
           concluida_em: string | null;
           stand_by: boolean;
-          urgencia: TarefaUrgencia;
+          prioridade: TarefaPrioridade;
+          prazo: string | null; // timestamptz ISO
           ordem: number;
           created_at: string;
           updated_at: string;
@@ -892,7 +906,8 @@ export interface Database {
           concluida?: boolean;
           concluida_em?: string | null;
           stand_by?: boolean;
-          urgencia?: TarefaUrgencia;
+          prioridade?: TarefaPrioridade;
+          prazo?: string | null;
           ordem?: number;
           created_at?: string;
           updated_at?: string;
@@ -906,7 +921,8 @@ export interface Database {
           concluida?: boolean;
           concluida_em?: string | null;
           stand_by?: boolean;
-          urgencia?: TarefaUrgencia;
+          prioridade?: TarefaPrioridade;
+          prazo?: string | null;
           ordem?: number;
           created_at?: string;
           updated_at?: string;

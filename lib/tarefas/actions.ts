@@ -26,7 +26,13 @@ const semanaSchema = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Semana inválida")
   .optional();
 
-const urgenciaSchema = z.enum(["urgente", "nao_urgente"]);
+const prioridadeSchema = z.enum(["alta", "media", "baixa"]);
+
+// Prazo: ISO timestamptz ou null. String vazia → null.
+const prazoSchema = z
+  .string()
+  .datetime({ offset: true })
+  .nullable();
 
 export type TarefaActionResult =
   | { ok: true }
@@ -128,24 +134,51 @@ export async function toggleStandByTarefaAction(
 }
 
 /**
- * Atualiza a etiqueta de urgência da tarefa.
+ * Atualiza a prioridade da tarefa (alta / média / baixa).
  */
-export async function updateTarefaUrgenciaAction(
+export async function updateTarefaPrioridadeAction(
   id: string,
-  urgencia: "urgente" | "nao_urgente",
+  prioridade: "alta" | "media" | "baixa",
 ): Promise<TarefaActionResult> {
   if (typeof id !== "string" || id.length < 10) {
     return { ok: false, message: "ID inválido" };
   }
-  const u = urgenciaSchema.safeParse(urgencia);
-  if (!u.success) return { ok: false, message: u.error.issues[0]!.message };
+  const p = prioridadeSchema.safeParse(prioridade);
+  if (!p.success) return { ok: false, message: p.error.issues[0]!.message };
   const supabase = createClient();
   const { error } = await supabase
     .from("tarefas_semanais")
-    .update({ urgencia: u.data })
+    .update({ prioridade: p.data })
     .eq("id", id);
   if (error) {
-    console.error("[updateTarefaUrgenciaAction]", error);
+    console.error("[updateTarefaPrioridadeAction]", error);
+    return { ok: false, message: error.message };
+  }
+  revalidatePath("/checklist");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Define ou limpa o prazo (deadline) da tarefa. `prazoIso` null remove o prazo.
+ * Espera ISO UTC com offset (o client converte de input BR pra UTC).
+ */
+export async function updateTarefaPrazoAction(
+  id: string,
+  prazoIso: string | null,
+): Promise<TarefaActionResult> {
+  if (typeof id !== "string" || id.length < 10) {
+    return { ok: false, message: "ID inválido" };
+  }
+  const p = prazoSchema.safeParse(prazoIso);
+  if (!p.success) return { ok: false, message: "Prazo inválido" };
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("tarefas_semanais")
+    .update({ prazo: p.data })
+    .eq("id", id);
+  if (error) {
+    console.error("[updateTarefaPrazoAction]", error);
     return { ok: false, message: error.message };
   }
   revalidatePath("/checklist");
