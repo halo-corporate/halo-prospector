@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/auth/logout-button";
-import { HaloLogo } from "@/components/halo-logo";
+import { HaloLockup } from "@/components/halo-lockup";
 import { AppNav } from "./app-nav";
 import { RealtimeRefresher } from "./realtime-refresher";
+import { WelcomeSplash } from "./welcome-splash";
 
 /**
  * Layout compartilhado das rotas autenticadas.
@@ -29,12 +30,11 @@ export default async function AppLayout({
           <div className="flex items-center gap-6">
             <Link
               href="/"
-              className="flex items-center gap-2.5 hover:opacity-80"
+              className="flex items-center hover:opacity-80"
             >
-              <HaloLogo className="h-5 w-auto text-foreground" />
-              <span className="text-xs text-muted-foreground hidden sm:inline">
-                Prospector
-              </span>
+              {/* Mobile: só rings + HALO. Desktop (sm+): lockup completo. */}
+              <HaloLockup className="h-5 w-auto text-foreground sm:hidden" showProspector={false} />
+              <HaloLockup className="h-5 w-auto text-foreground hidden sm:block" />
             </Link>
             <AppNav />
           </div>
@@ -48,6 +48,7 @@ export default async function AppLayout({
       </header>
 
       <main className="flex-1">{children}</main>
+      <WelcomeSplash />
     </div>
   );
 }
