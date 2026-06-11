@@ -61,7 +61,7 @@ export function LeadsTable({
       next.set("orderBy", key);
       next.set("orderDir", "desc");
     }
-    router.push(`/leads?${next.toString()}`);
+    router.push(`/crm?${next.toString()}`);
   }
 
   function SortIcon({ k }: { k: OrderBy }) {
@@ -124,7 +124,7 @@ export function LeadsTable({
               <TableRow
                 key={lead.id}
                 className="cursor-pointer"
-                onClick={() => router.push(`/leads/${lead.id}`)}
+                onClick={() => router.push(`/crm/${lead.id}`)}
               >
                 <TableCell className="font-medium">{lead.empresa}</TableCell>
                 <TableCell className="text-muted-foreground">
@@ -151,10 +151,7 @@ export function LeadsTable({
                   {lead.temperatura ? (
                     <Badge
                       variant="outline"
-                      className={cn(
-                        "border",
-                        temperaturaBadgeClass(lead.temperatura),
-                      )}
+                      className={temperaturaBadgeClass(lead.temperatura)}
                     >
                       {LEAD_TEMPERATURA_LABELS[lead.temperatura]}
                     </Badge>

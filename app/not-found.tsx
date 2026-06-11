@@ -31,13 +31,13 @@ export default function NotFound() {
               <span className="text-muted-foreground">·</span> /
             </li>
             <li>
-              <span className="text-muted-foreground">·</span> /leads
+              <span className="text-muted-foreground">·</span> /crm
             </li>
             <li>
-              <span className="text-muted-foreground">·</span> /leads/novo
+              <span className="text-muted-foreground">·</span> /crm/novo
             </li>
             <li>
-              <span className="text-muted-foreground">·</span> /leads/[id]
+              <span className="text-muted-foreground">·</span> /crm/[id]
             </li>
             <li>
               <span className="text-muted-foreground">·</span> /propostas
@@ -62,7 +62,7 @@ export default function NotFound() {
             <Link href="/">Voltar pro início</Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/leads">Ver Leads</Link>
+            <Link href="/crm">Ver CRM</Link>
           </Button>
         </div>
       </div>

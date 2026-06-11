@@ -92,9 +92,9 @@ export async function createLeadAction(
     };
   }
 
-  revalidatePath("/leads");
+  revalidatePath("/crm");
   revalidatePath("/");
-  redirect(`/leads/${data.id}`);
+  redirect(`/crm/${data.id}`);
 }
 
 /**
@@ -124,8 +124,8 @@ export async function updateLeadAction(
     return { status: "error", message: error.message };
   }
 
-  revalidatePath(`/leads/${id}`);
-  revalidatePath("/leads");
+  revalidatePath(`/crm/${id}`);
+  revalidatePath("/crm");
   revalidatePath("/");
   return { status: "success", id };
 }
@@ -141,7 +141,7 @@ export async function deleteLeadAction(id: string): Promise<void> {
     console.error("[deleteLeadAction]", error);
     throw new Error(error.message);
   }
-  revalidatePath("/leads");
+  revalidatePath("/crm");
   revalidatePath("/");
-  redirect("/leads");
+  redirect("/crm");
 }

@@ -9,7 +9,7 @@ export default function LeadNotFound() {
         Ele pode ter sido excluído, ou o link está errado.
       </p>
       <Button asChild>
-        <Link href="/leads">Voltar para lista</Link>
+        <Link href="/crm">Voltar para lista</Link>
       </Button>
     </div>
   );

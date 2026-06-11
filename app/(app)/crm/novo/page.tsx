@@ -13,7 +13,7 @@ export default async function NovoLeadPage() {
     <div className="container py-6 space-y-6 max-w-3xl">
       <div className="space-y-1">
         <Link
-          href="/leads"
+          href="/crm"
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="h-3 w-3" /> Voltar para lista

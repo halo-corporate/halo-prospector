@@ -35,19 +35,24 @@ export function statusBadgeClass(status: LeadStatus): string {
 }
 
 /**
- * Cores de temperatura.
+ * Cores de temperatura — V4: badge NEON com glow + pulse contínuo.
  *
- * V2: morno deixou de ser âmbar — passou a usar azul HALO em variação média.
- * frio mantém sky (azul-cyan mais claro, semanticamente "frio"). quente
- * mantém vermelho (semanticamente "alerta/calor").
+ * Cada temperatura tem uma cor neon dedicada via classe `.halo-neon-temp`
+ * + modifier `.is-frio|is-morno|is-quente` (definidas em globals.css).
+ * O pulse é forte e visível independente da cor.
+ *
+ * frio = sky-400 (azul gelo)
+ * morno = HALO blue (#0071E3)
+ * quente = red-400 (vermelho calor)
  */
 export function temperaturaBadgeClass(t: LeadTemperatura): string {
+  const base = "halo-neon-temp";
   switch (t) {
     case "frio":
-      return "bg-sky-500/15 text-sky-300 border-sky-500/30";
+      return `${base} is-frio`;
     case "morno":
-      return "bg-primary/15 text-primary border-primary/30";
+      return `${base} is-morno`;
     case "quente":
-      return "bg-red-500/15 text-red-300 border-red-500/30";
+      return `${base} is-quente`;
   }
 }

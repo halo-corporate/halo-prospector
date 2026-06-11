@@ -92,14 +92,14 @@ export default async function LeadsListPage({
     <div className="container py-6 space-y-4">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <p className="halo-eyebrow">Leads</p>
-          <h1 className="title-display text-3xl sm:text-4xl">Leads</h1>
+          <p className="halo-eyebrow">CRM</p>
+          <h1 className="title-display text-3xl sm:text-4xl">CRM</h1>
           <p className="text-sm text-muted-foreground">
-            {leads.length} {leads.length === 1 ? "resultado" : "resultados"}
+            {leads.length} {leads.length === 1 ? "lead" : "leads"}
           </p>
         </div>
         <Button asChild>
-          <Link href="/leads/novo">+ Novo lead</Link>
+          <Link href="/crm/novo">+ Novo lead</Link>
         </Button>
       </div>
 

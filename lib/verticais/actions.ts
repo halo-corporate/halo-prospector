@@ -50,13 +50,13 @@ export async function createVerticalAction(
       .eq("slug", slug)
       .maybeSingle();
     if (existing) {
-      revalidatePath("/leads");
+      revalidatePath("/crm");
       revalidatePath("/");
       return { ok: true, slug: existing.slug, label: existing.label };
     }
   }
 
-  revalidatePath("/leads");
+  revalidatePath("/crm");
   revalidatePath("/");
   return { ok: true, slug, label };
 }

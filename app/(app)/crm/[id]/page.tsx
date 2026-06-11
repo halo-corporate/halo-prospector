@@ -50,7 +50,7 @@ export default async function LeadDetailPage({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1 min-w-0">
           <Link
-            href="/leads"
+            href="/crm"
             className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
           >
             <ChevronLeft className="h-3 w-3" /> Voltar para lista

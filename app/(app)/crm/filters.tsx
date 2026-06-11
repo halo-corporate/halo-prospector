@@ -44,7 +44,7 @@ export function LeadsFilters({ verticais, defaults }: Props) {
     if (!value || value === ANY) next.delete(key);
     else next.set(key, value);
     startTransition(() => {
-      router.push(`/leads?${next.toString()}`);
+      router.push(`/crm?${next.toString()}`);
     });
   }
 
@@ -53,7 +53,7 @@ export function LeadsFilters({ verticais, defaults }: Props) {
     if (values.length === 0) next.delete(key);
     else next.set(key, values.join(","));
     startTransition(() => {
-      router.push(`/leads?${next.toString()}`);
+      router.push(`/crm?${next.toString()}`);
     });
   }
 
@@ -68,14 +68,14 @@ export function LeadsFilters({ verticais, defaults }: Props) {
     if (estado.trim()) next.set("estado", estado.trim());
     else next.delete("estado");
     startTransition(() => {
-      router.push(`/leads?${next.toString()}`);
+      router.push(`/crm?${next.toString()}`);
     });
   }
 
   function clear() {
     formRef.current?.reset();
     setClearTick((t) => t + 1);
-    startTransition(() => router.push("/leads"));
+    startTransition(() => router.push("/crm"));
   }
 
   const verticaisSelecionadas = defaults.verticais ?? [];

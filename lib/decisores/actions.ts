@@ -65,8 +65,8 @@ export async function createDecisorAction(
     console.error("[createDecisorAction]", error);
     return { ok: false, message: error?.message ?? "Erro ao criar decisor" };
   }
-  revalidatePath(`/leads/${parsed.data.lead_id}`);
-  revalidatePath("/leads");
+  revalidatePath(`/crm/${parsed.data.lead_id}`);
+  revalidatePath("/crm");
   return { ok: true, id: data.id };
 }
 
@@ -111,8 +111,8 @@ export async function updateDecisorAction(
     console.error("[updateDecisorAction]", error);
     return { ok: false, message: error.message };
   }
-  revalidatePath(`/leads/${leadId}`);
-  revalidatePath("/leads");
+  revalidatePath(`/crm/${leadId}`);
+  revalidatePath("/crm");
   return { ok: true, id };
 }
 
@@ -126,7 +126,7 @@ export async function deleteDecisorAction(
     console.error("[deleteDecisorAction]", error);
     return { ok: false, message: error.message };
   }
-  revalidatePath(`/leads/${leadId}`);
-  revalidatePath("/leads");
+  revalidatePath(`/crm/${leadId}`);
+  revalidatePath("/crm");
   return { ok: true };
 }

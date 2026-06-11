@@ -99,7 +99,7 @@ export default async function DashboardPage() {
           </p>
         </div>
         <Button asChild>
-          <Link href="/leads/novo">+ Novo lead</Link>
+          <Link href="/crm/novo">+ Novo lead</Link>
         </Button>
       </div>
 
@@ -109,7 +109,7 @@ export default async function DashboardPage() {
           icon={<TrendingUp className="h-4 w-4" />}
           label="Total de leads"
           value={total}
-          href="/leads"
+          href="/crm"
         />
         <KpiCard
           icon={<AlertOctagon className="h-4 w-4" />}
@@ -127,7 +127,7 @@ export default async function DashboardPage() {
           icon={<Flame className="h-4 w-4" />}
           label="Leads aquecidos"
           value={aquecidos}
-          href="/leads?status=aquecido"
+          href="/crm?status=aquecido"
           tone={aquecidos > 0 ? "primary" : "neutral"}
         />
       </div>
@@ -226,7 +226,7 @@ export default async function DashboardPage() {
             {verticais.map((v) => (
               <Link
                 key={v.id}
-                href={`/leads?vertical=${v.slug}`}
+                href={`/crm?vertical=${v.slug}`}
                 className="halo-glass rounded-halo p-4"
               >
                 <p className="text-xs text-muted-foreground truncate">
@@ -248,7 +248,7 @@ export default async function DashboardPage() {
           {byStatus.size === 0 ? (
             <p className="text-muted-foreground">
               Sem leads ainda. Comece adicionando um em{" "}
-              <Link href="/leads/novo" className="text-primary underline">
+              <Link href="/crm/novo" className="text-primary underline">
                 + Novo lead
               </Link>
               .
@@ -258,7 +258,7 @@ export default async function DashboardPage() {
               {Array.from(byStatus.entries()).map(([status, count]) => (
                 <Link
                   key={status}
-                  href={`/leads?status=${status}`}
+                  href={`/crm?status=${status}`}
                   className="hover:opacity-80 inline-flex items-center gap-2"
                 >
                   <Badge
@@ -392,7 +392,7 @@ function FollowupSection({
           {leads.map((l) => (
             <li key={l.id}>
               <Link
-                href={`/leads/${l.id}`}
+                href={`/crm/${l.id}`}
                 className="flex items-center justify-between gap-3 px-2 py-1.5 -mx-2 rounded-md hover:bg-accent/40 transition-colors"
               >
                 <div className="min-w-0 flex items-center gap-2 flex-1">
@@ -460,7 +460,7 @@ function RecentActivitySection({
           {interacoes.map((i) => (
             <li key={i.id}>
               <Link
-                href={`/leads/${i.lead_id}`}
+                href={`/crm/${i.lead_id}`}
                 className="block rounded-md px-2 py-1.5 -mx-2 hover:bg-accent/40 transition-colors"
               >
                 <div className="flex items-center justify-between gap-2">

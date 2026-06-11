@@ -74,8 +74,8 @@ export async function createInteracaoAction(
     return { ok: false, message: error?.message ?? "Erro ao registrar" };
   }
 
-  revalidatePath(`/leads/${parsed.data.lead_id}`);
-  revalidatePath("/leads");
+  revalidatePath(`/crm/${parsed.data.lead_id}`);
+  revalidatePath("/crm");
   revalidatePath("/");
   return { ok: true, id: data.id };
 }
@@ -90,7 +90,7 @@ export async function deleteInteracaoAction(
     console.error("[deleteInteracaoAction]", error);
     return { ok: false, message: error.message };
   }
-  revalidatePath(`/leads/${leadId}`);
-  revalidatePath("/leads");
+  revalidatePath(`/crm/${leadId}`);
+  revalidatePath("/crm");
   return { ok: true };
 }
