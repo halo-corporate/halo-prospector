@@ -893,6 +893,7 @@ export interface Database {
           stand_by: boolean;
           prioridade: TarefaPrioridade;
           prazo: string | null; // timestamptz ISO
+          categoria_id: string | null;
           ordem: number;
           created_at: string;
           updated_at: string;
@@ -908,6 +909,7 @@ export interface Database {
           stand_by?: boolean;
           prioridade?: TarefaPrioridade;
           prazo?: string | null;
+          categoria_id?: string | null;
           ordem?: number;
           created_at?: string;
           updated_at?: string;
@@ -923,6 +925,37 @@ export interface Database {
           stand_by?: boolean;
           prioridade?: TarefaPrioridade;
           prazo?: string | null;
+          categoria_id?: string | null;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      categorias_tarefa: {
+        Relationships: [];
+        Row: {
+          id: string;
+          user_id: string;
+          nome: string;
+          cor: string; // hex #RRGGBB
+          ordem: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string;
+          nome: string;
+          cor?: string;
+          ordem?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          nome?: string;
+          cor?: string;
           ordem?: number;
           created_at?: string;
           updated_at?: string;
@@ -1280,6 +1313,13 @@ export type TarefaSemanal =
   Database["public"]["Tables"]["tarefas_semanais"]["Row"];
 export type TarefaSemanalInsert =
   Database["public"]["Tables"]["tarefas_semanais"]["Insert"];
+
+export type CategoriaTarefa =
+  Database["public"]["Tables"]["categorias_tarefa"]["Row"];
+export type CategoriaTarefaInsert =
+  Database["public"]["Tables"]["categorias_tarefa"]["Insert"];
+export type CategoriaTarefaUpdate =
+  Database["public"]["Tables"]["categorias_tarefa"]["Update"];
 
 export type Link = Database["public"]["Tables"]["links"]["Row"];
 export type LinkInsert = Database["public"]["Tables"]["links"]["Insert"];

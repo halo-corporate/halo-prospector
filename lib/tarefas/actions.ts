@@ -187,6 +187,35 @@ export async function updateTarefaPrazoAction(
 }
 
 /**
+ * Define ou limpa a categoria da tarefa. `categoriaId` null desagrupa (volta
+ * pra "Sem categoria").
+ */
+export async function setTarefaCategoriaAction(
+  id: string,
+  categoriaId: string | null,
+): Promise<TarefaActionResult> {
+  if (typeof id !== "string" || id.length < 10) {
+    return { ok: false, message: "ID inválido" };
+  }
+  if (categoriaId !== null) {
+    const c = z.string().uuid().safeParse(categoriaId);
+    if (!c.success) return { ok: false, message: "Categoria inválida" };
+  }
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("tarefas_semanais")
+    .update({ categoria_id: categoriaId })
+    .eq("id", id);
+  if (error) {
+    console.error("[setTarefaCategoriaAction]", error);
+    return { ok: false, message: error.message };
+  }
+  revalidatePath("/checklist");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
  * Atualiza o texto da tarefa (edição inline).
  */
 export async function updateTarefaTextoAction(

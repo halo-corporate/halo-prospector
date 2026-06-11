@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { currentWeekStartBR } from "@/lib/timezone";
-import type { TarefaSemanal } from "@/lib/database.types";
+import type { CategoriaTarefa, TarefaSemanal } from "@/lib/database.types";
 
 function isMissingTableError(err: { code?: string; message?: string }): boolean {
   if (err.code === "42P01" || err.code === "PGRST205") return true;
@@ -59,6 +59,32 @@ export async function listTarefasConcluidas(
   if (error) {
     if (isMissingTableError(error)) return [];
     console.error("[listTarefasConcluidas]", error);
+    throw new Error(error.message);
+  }
+  return data ?? [];
+}
+
+/**
+ * Lista as categorias configuráveis do checklist (owner-scoped via RLS),
+ * ordenadas por `ordem` e depois por criação. Se a tabela ainda não existe
+ * (migration 0018 pendente), devolve [] — a UI segue sem agrupamento.
+ */
+export async function listCategorias(): Promise<CategoriaTarefa[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("categorias_tarefa")
+    .select("*")
+    .order("ordem", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    if (isMissingTableError(error)) {
+      console.warn(
+        "[listCategorias] Tabela `categorias_tarefa` não existe — rode a migration 0018.",
+      );
+      return [];
+    }
+    console.error("[listCategorias]", error);
     throw new Error(error.message);
   }
   return data ?? [];

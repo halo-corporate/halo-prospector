@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   deleteTarefaAction,
+  setTarefaCategoriaAction,
   toggleStandByTarefaAction,
   toggleTarefaAction,
   updateTarefaObservacoesAction,
@@ -31,6 +32,7 @@ import {
 import {
   TAREFA_PRIORIDADE_CICLO,
   TAREFA_PRIORIDADE_LABELS,
+  type CategoriaTarefa,
   type TarefaSemanal,
 } from "@/lib/database.types";
 import {
@@ -44,9 +46,15 @@ interface Props {
   tarefa: TarefaSemanal;
   /** Se true, esconde botão de editar/excluir e o card de observações (modo compacto pro dashboard). */
   compact?: boolean;
+  /** Categorias disponíveis pro seletor por tarefa (modo completo). */
+  categorias?: CategoriaTarefa[];
 }
 
-export function ChecklistItem({ tarefa, compact = false }: Props) {
+export function ChecklistItem({
+  tarefa,
+  compact = false,
+  categorias = [],
+}: Props) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(tarefa.texto);
@@ -115,6 +123,13 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
       }
       setPrazoEditing(false);
       toast.success("Prazo removido");
+    });
+  }
+
+  function handleSetCategoria(categoriaId: string | null) {
+    startTransition(async () => {
+      const res = await setTarefaCategoriaAction(tarefa.id, categoriaId);
+      if (!res.ok) toast.error(res.message);
     });
   }
 
@@ -394,6 +409,31 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
                       <CalendarClock className="h-2.5 w-2.5" />
                       {tarefa.prazo ? "Editar prazo" : "+ Definir prazo"}
                     </button>
+                  ) : null}
+
+                  {/* Categoria: seletor nativo (só se houver categorias) */}
+                  {categorias.length > 0 ? (
+                    <select
+                      value={tarefa.categoria_id ?? ""}
+                      onChange={(e) =>
+                        handleSetCategoria(e.target.value || null)
+                      }
+                      disabled={pending}
+                      aria-label="Categoria da tarefa"
+                      className={cn(
+                        "h-5 rounded border border-input bg-transparent px-1 text-[10px] leading-none text-muted-foreground/80 hover:text-foreground transition-colors max-w-[140px]",
+                        tarefa.categoria_id
+                          ? ""
+                          : "opacity-0 group-hover:opacity-100 focus:opacity-100",
+                      )}
+                    >
+                      <option value="">Sem categoria</option>
+                      {categorias.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nome}
+                        </option>
+                      ))}
+                    </select>
                   ) : null}
                 </div>
               ) : null}

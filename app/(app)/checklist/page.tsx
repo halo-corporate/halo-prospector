@@ -1,12 +1,15 @@
 import { CalendarCheck2 } from "lucide-react";
 import { AddTarefaInput } from "@/components/checklist/add-tarefa-input";
 import { ChecklistItem } from "@/components/checklist/checklist-item";
+import { GerenciarCategoriasDialog } from "@/components/checklist/gerenciar-categorias-dialog";
 import { CopyPendingButton } from "./copy-pending-button";
 import { TarefasConcluidasDialog } from "./tarefas-concluidas-dialog";
 import {
+  listCategorias,
   listTarefasConcluidas,
   listTarefasDaSemana,
 } from "@/lib/tarefas/queries";
+import type { CategoriaTarefa, TarefaSemanal } from "@/lib/database.types";
 import {
   addWeeksISO,
   currentWeekStartBR,
@@ -22,6 +25,31 @@ interface SearchParams {
 
 const WEEK_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+interface Grupo {
+  categoria: CategoriaTarefa | null; // null = "Sem categoria"
+  tarefas: TarefaSemanal[];
+}
+
+function groupByCategoria(
+  tarefas: TarefaSemanal[],
+  categorias: CategoriaTarefa[],
+): Grupo[] {
+  const grupos: Grupo[] = [];
+  for (const categoria of categorias) {
+    const ts = tarefas.filter((t) => t.categoria_id === categoria.id);
+    if (ts.length > 0) grupos.push({ categoria, tarefas: ts });
+  }
+  const conhecidas = new Set(categorias.map((c) => c.id));
+  // "Sem categoria": categoria_id null OU apontando pra categoria inexistente.
+  const semCategoria = tarefas.filter(
+    (t) => !t.categoria_id || !conhecidas.has(t.categoria_id),
+  );
+  if (semCategoria.length > 0) {
+    grupos.push({ categoria: null, tarefas: semCategoria });
+  }
+  return grupos;
+}
+
 export default async function ChecklistPage({
   searchParams,
 }: {
@@ -33,12 +61,17 @@ export default async function ChecklistPage({
       ? searchParams.semana
       : current;
 
-  const [tarefas, tarefasConcluidas] = await Promise.all([
+  const [tarefas, tarefasConcluidas, categorias] = await Promise.all([
     listTarefasDaSemana(week),
     listTarefasConcluidas(),
+    listCategorias(),
   ]);
   const concluidas = tarefas.filter((t) => t.concluida).length;
   const pct = tarefas.length === 0 ? 0 : Math.round((concluidas / tarefas.length) * 100);
+
+  // Agrupa as tarefas por categoria (na ordem das categorias), com "Sem
+  // categoria" sempre por último. Categorias vazias não aparecem.
+  const grupos = groupByCategoria(tarefas, categorias);
 
   const isCurrent = week === current;
   const prevWeek = addWeeksISO(week, -1);
@@ -61,6 +94,7 @@ export default async function ChecklistPage({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <GerenciarCategoriasDialog categorias={categorias} />
           <TarefasConcluidasDialog tarefas={tarefasConcluidas} />
           {isCurrent ? <CopyPendingButton /> : null}
         </div>
@@ -117,10 +151,44 @@ export default async function ChecklistPage({
           <p className="text-sm text-muted-foreground text-center py-8">
             Nenhuma tarefa nessa semana. Adicione a primeira aí em cima.
           </p>
-        ) : (
+        ) : grupos.length === 1 && grupos[0]!.categoria === null ? (
+          // Sem categorias atribuídas: lista plana (sem cabeçalho de grupo).
           <div className="space-y-0.5">
             {tarefas.map((t) => (
-              <ChecklistItem key={t.id} tarefa={t} />
+              <ChecklistItem key={t.id} tarefa={t} categorias={categorias} />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {grupos.map((g) => (
+              <div key={g.categoria?.id ?? "sem-categoria"} className="space-y-1">
+                <div className="flex items-center gap-2 px-1">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{
+                      backgroundColor: g.categoria?.cor ?? "transparent",
+                      border: g.categoria
+                        ? undefined
+                        : "1px solid hsl(var(--muted-foreground) / 0.4)",
+                    }}
+                  />
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {g.categoria?.nome ?? "Sem categoria"}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground/60">
+                    {g.tarefas.length}
+                  </span>
+                </div>
+                <div className="space-y-0.5">
+                  {g.tarefas.map((t) => (
+                    <ChecklistItem
+                      key={t.id}
+                      tarefa={t}
+                      categorias={categorias}
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
