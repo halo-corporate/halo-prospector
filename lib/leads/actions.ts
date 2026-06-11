@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { LeadStatus } from "@/lib/database.types";
 import { fromBRInput } from "@/lib/timezone";
 import { leadFormSchema, leadFormDataToObject } from "./schema";
 
@@ -134,7 +135,7 @@ export async function updateLeadAction(
  * UPDATE STATUS — alteração rápida de status a partir do board CRM.
  * Não roda zod do form completo; valida apenas o status contra o enum.
  */
-const VALID_STATUS_SET = new Set([
+const VALID_STATUS_SET = new Set<LeadStatus>([
   "novo",
   "pesquisando",
   "tentativa_contato",
@@ -146,12 +147,16 @@ const VALID_STATUS_SET = new Set([
   "descartado",
 ]);
 
+function isLeadStatus(v: string): v is LeadStatus {
+  return VALID_STATUS_SET.has(v as LeadStatus);
+}
+
 export async function updateLeadStatusAction(
   id: string,
   nextStatus: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   if (!id) return { ok: false, message: "ID ausente" };
-  if (!VALID_STATUS_SET.has(nextStatus)) {
+  if (!isLeadStatus(nextStatus)) {
     return { ok: false, message: "Status inválido" };
   }
   const supabase = createClient();
