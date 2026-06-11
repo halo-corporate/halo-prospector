@@ -2,7 +2,11 @@ import { CalendarCheck2 } from "lucide-react";
 import { AddTarefaInput } from "@/components/checklist/add-tarefa-input";
 import { ChecklistItem } from "@/components/checklist/checklist-item";
 import { CopyPendingButton } from "./copy-pending-button";
-import { listTarefasDaSemana } from "@/lib/tarefas/queries";
+import { WeeksHistoryDialog } from "./weeks-history-dialog";
+import {
+  listSemanasAnteriores,
+  listTarefasDaSemana,
+} from "@/lib/tarefas/queries";
 import {
   addWeeksISO,
   currentWeekStartBR,
@@ -29,7 +33,10 @@ export default async function ChecklistPage({
       ? searchParams.semana
       : current;
 
-  const tarefas = await listTarefasDaSemana(week);
+  const [tarefas, semanasAnteriores] = await Promise.all([
+    listTarefasDaSemana(week),
+    listSemanasAnteriores(week),
+  ]);
   const concluidas = tarefas.filter((t) => t.concluida).length;
   const pct = tarefas.length === 0 ? 0 : Math.round((concluidas / tarefas.length) * 100);
 
@@ -53,7 +60,10 @@ export default async function ChecklistPage({
             </p>
           </div>
         </div>
-        {isCurrent ? <CopyPendingButton /> : null}
+        <div className="flex items-center gap-2 flex-wrap">
+          <WeeksHistoryDialog semanas={semanasAnteriores} />
+          {isCurrent ? <CopyPendingButton /> : null}
+        </div>
       </div>
 
       {/* Navegação entre semanas */}
