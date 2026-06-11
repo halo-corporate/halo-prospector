@@ -130,7 +130,7 @@ export function VendasSection({ influencerId, vendas }: Props) {
                     </p>
                   ) : null}
                 </div>
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-0.5 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                   <VendaFormDialog
                     mode="edit"
                     influencerId={influencerId}
