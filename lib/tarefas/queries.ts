@@ -41,46 +41,27 @@ export async function listTarefasDaSemana(
   return data ?? [];
 }
 
-export interface SemanaResumo {
-  semana: string;
-  total: number;
-  concluidas: number;
-}
-
 /**
- * Lista as semanas anteriores à semana de referência (exclusiva), agrupando
- * por `semana` e contando total/concluídas. Ordenado mais recente primeiro.
+ * Lista TODAS as tarefas já concluídas pelo user, ordenadas por data de
+ * conclusão (mais recente primeiro). Usado pelo histórico "Tarefas concluídas".
  */
-export async function listSemanasAnteriores(
-  beforeWeekISO: string,
-  limit = 26,
-): Promise<SemanaResumo[]> {
+export async function listTarefasConcluidas(
+  limit = 500,
+): Promise<TarefaSemanal[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("tarefas_semanais")
-    .select("semana, concluida")
-    .lt("semana", beforeWeekISO)
-    .order("semana", { ascending: false });
+    .select("*")
+    .eq("concluida", true)
+    .order("concluida_em", { ascending: false, nullsFirst: false })
+    .limit(limit);
 
   if (error) {
     if (isMissingTableError(error)) return [];
-    console.error("[listSemanasAnteriores]", error);
+    console.error("[listTarefasConcluidas]", error);
     throw new Error(error.message);
   }
-
-  const map = new Map<string, { total: number; concluidas: number }>();
-  for (const row of data ?? []) {
-    const key = row.semana as string;
-    const acc = map.get(key) ?? { total: 0, concluidas: 0 };
-    acc.total++;
-    if (row.concluida) acc.concluidas++;
-    map.set(key, acc);
-  }
-
-  return Array.from(map.entries())
-    .sort(([a], [b]) => (a < b ? 1 : -1))
-    .slice(0, limit)
-    .map(([semana, agg]) => ({ semana, total: agg.total, concluidas: agg.concluidas }));
+  return data ?? [];
 }
 
 /**
