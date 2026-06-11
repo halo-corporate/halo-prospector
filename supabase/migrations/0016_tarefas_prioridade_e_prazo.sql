@@ -1,15 +1,22 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Migration 0016 — prioridade (3 níveis) + prazo em tarefas_semanais
+--                   (EXPAND — fase aditiva, zero downtime)
 --
 -- V4 PR 3a. Evolui o checklist:
 --   1. `prioridade text default 'media' check (prioridade in
---      ('alta','media','baixa'))` — substitui o `urgencia` binário por 3 níveis.
---      Migração de dados não-lossy: urgente → alta, nao_urgente → media.
---      Depois dropa a coluna `urgencia` e seu check.
+--      ('alta','media','baixa'))` — substitui conceitualmente o `urgencia`
+--      binário por 3 níveis. Migração de dados não-lossy:
+--      urgente → alta, nao_urgente → media.
 --   2. `prazo timestamptz` (nullable) — deadline da tarefa, dirige o "glow de
 --      proximidade" na UI (vencido / hoje / em breve / futuro).
 --
--- Idempotente: IF NOT EXISTS / IF EXISTS / DO blocks.
+-- IMPORTANTE — expand/contract: esta migration NÃO dropa `urgencia`. Ela só
+-- adiciona as colunas novas e copia os dados. Assim o código de produção atual
+-- (que ainda lê `urgencia`) continua funcionando enquanto o preview do PR 3a
+-- (que lê `prioridade`/`prazo`) também funciona. A coluna `urgencia` é dropada
+-- na migration 0017, que roda DEPOIS do merge do PR 3a em main.
+--
+-- Idempotente: IF NOT EXISTS / IF EXISTS / DO blocks. Seguro re-rodar.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- 1) prioridade ----------------------------------------------------------------
@@ -54,20 +61,4 @@ end $$;
 alter table public.tarefas_semanais
   add column if not exists prazo timestamptz;
 
--- 3) dropa urgencia (constraint + coluna) --------------------------------------
-do $$
-begin
-  if exists (
-    select 1
-    from information_schema.constraint_column_usage
-    where table_schema = 'public'
-      and table_name = 'tarefas_semanais'
-      and constraint_name = 'tarefas_semanais_urgencia_check'
-  ) then
-    alter table public.tarefas_semanais
-      drop constraint tarefas_semanais_urgencia_check;
-  end if;
-end $$;
-
-alter table public.tarefas_semanais
-  drop column if exists urgencia;
+-- NOTA: `urgencia` é dropada na migration 0017 (após o merge do PR 3a).
