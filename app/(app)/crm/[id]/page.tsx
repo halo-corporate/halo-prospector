@@ -9,10 +9,11 @@ import { listDecisoresByLead } from "@/lib/decisores/queries";
 import { listInteracoesByLead } from "@/lib/interacoes/queries";
 import {
   LEAD_STATUS_LABELS,
+  LEAD_TEMPERATURA_LABELS,
   readLeadVerticais,
   verticalLabel,
 } from "@/lib/database.types";
-import { statusBadgeClass } from "@/lib/leads/badge";
+import { statusBadgeClass, temperaturaBadgeClass } from "@/lib/leads/badge";
 import { formatBR } from "@/lib/timezone";
 import { LeadForm } from "../lead-form";
 import { DeleteLeadButton } from "./delete-lead-button";
@@ -65,6 +66,14 @@ export default async function LeadDetailPage({
             >
               {LEAD_STATUS_LABELS[lead.status]}
             </Badge>
+            {lead.temperatura ? (
+              <Badge
+                variant="outline"
+                className={temperaturaBadgeClass(lead.temperatura)}
+              >
+                {LEAD_TEMPERATURA_LABELS[lead.temperatura]}
+              </Badge>
+            ) : null}
             <span>·</span>
             <span>
               {readLeadVerticais(lead)

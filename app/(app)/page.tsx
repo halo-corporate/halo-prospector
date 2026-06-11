@@ -28,12 +28,14 @@ import {
   INTERACAO_CANAL_LABELS,
   INTERACAO_TIPO_LABELS,
   LEAD_STATUS_LABELS,
+  LEAD_TEMPERATURA_LABELS,
   readLeadVerticais,
   verticalLabel,
   type Lead,
   type LeadStatus,
+  type LeadTemperatura,
 } from "@/lib/database.types";
-import { statusBadgeClass } from "@/lib/leads/badge";
+import { statusBadgeClass, temperaturaBadgeClass } from "@/lib/leads/badge";
 import { formatBR, formatBRHuman } from "@/lib/timezone";
 import { TarefasSemanaWidget } from "./tarefas-semana-widget";
 
@@ -73,13 +75,18 @@ export default async function DashboardPage() {
   // Total da pagina (`total` acima) usa contagem distinta de leads.
   const byVertical = new Map<string, number>();
   const byStatus = new Map<string, number>();
+  const byTemperatura = new Map<LeadTemperatura, number>();
   for (const l of leads) {
     const slugs = readLeadVerticais(l);
     for (const s of slugs) {
       byVertical.set(s, (byVertical.get(s) ?? 0) + 1);
     }
     byStatus.set(l.status, (byStatus.get(l.status) ?? 0) + 1);
+    if (l.temperatura) {
+      byTemperatura.set(l.temperatura, (byTemperatura.get(l.temperatura) ?? 0) + 1);
+    }
   }
+  const temperaturaOrder: LeadTemperatura[] = ["frio", "morno", "quente"];
 
   const verticaisLite = verticais.map((v) => ({
     slug: v.slug,
@@ -87,7 +94,7 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <div className="container py-8 relative">
+    <div className="container py-8 relative overflow-x-clip">
       <div className="halo-glow" aria-hidden />
       <div className="relative z-10 space-y-8">
       <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -239,6 +246,40 @@ export default async function DashboardPage() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Por temperatura — badges NEON com glow + pulse */}
+      <section className="space-y-3">
+        <h2 className="halo-eyebrow">Por temperatura</h2>
+        <div className="halo-glass rounded-halo p-4 text-sm">
+          {byTemperatura.size === 0 ? (
+            <p className="text-muted-foreground">
+              Nenhum lead com temperatura definida ainda.
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-x-6 gap-y-3">
+              {temperaturaOrder.map((t) => {
+                const count = byTemperatura.get(t) ?? 0;
+                if (count === 0) return null;
+                return (
+                  <Link
+                    key={t}
+                    href={`/crm?temperatura=${t}`}
+                    className="hover:opacity-80 inline-flex items-center gap-2"
+                  >
+                    <Badge
+                      variant="outline"
+                      className={temperaturaBadgeClass(t)}
+                    >
+                      {LEAD_TEMPERATURA_LABELS[t]}
+                    </Badge>
+                    <span className="font-medium">{count}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Por status */}
