@@ -46,9 +46,11 @@ export function HaloLockup({
   // Com "Prospector": viewBox estendido, "Prospector" colado logo após o "O"
   // do HALO, em weight 600 pra contrastar com o 300 do wordmark — lockup
   // único, sem hierarquia secundária.
+  // OBS: "HALO" termina por volta de x=130 (text x=64, font 20, letterSpacing
+  // 4, 4 chars). "Prospector" começa em x=136 = ~6px de respiro mínimo.
   return (
     <svg
-      viewBox="0 0 290 38"
+      viewBox="0 0 256 38"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
@@ -70,7 +72,7 @@ export function HaloLockup({
         HALO
       </text>
       <text
-        x="162"
+        x="136"
         y="27"
         fontFamily="'Helvetica Neue',Helvetica,Arial,sans-serif"
         fontWeight="600"
