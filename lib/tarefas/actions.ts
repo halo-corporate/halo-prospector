@@ -26,6 +26,8 @@ const semanaSchema = z
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Semana inválida")
   .optional();
 
+const urgenciaSchema = z.enum(["urgente", "nao_urgente"]);
+
 export type TarefaActionResult =
   | { ok: true }
   | { ok: false; message: string };
@@ -69,6 +71,8 @@ export async function createTarefaAction(
 
 /**
  * Alterna a flag `concluida`. Também grava `concluida_em` (timestamptz).
+ * Concluir zera `stand_by` (mutualmente exclusivos — trigger no banco também
+ * garante, mas a gente já manda o estado consistente).
  */
 export async function toggleTarefaAction(
   id: string,
@@ -83,10 +87,65 @@ export async function toggleTarefaAction(
     .update({
       concluida,
       concluida_em: concluida ? new Date().toISOString() : null,
+      ...(concluida ? { stand_by: false } : {}),
     })
     .eq("id", id);
   if (error) {
     console.error("[toggleTarefaAction]", error);
+    return { ok: false, message: error.message };
+  }
+  revalidatePath("/checklist");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Alterna a flag `stand_by`. Marcar como stand_by zera `concluida`
+ * (mutualmente exclusivos).
+ */
+export async function toggleStandByTarefaAction(
+  id: string,
+  standBy: boolean,
+): Promise<TarefaActionResult> {
+  if (typeof id !== "string" || id.length < 10) {
+    return { ok: false, message: "ID inválido" };
+  }
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("tarefas_semanais")
+    .update({
+      stand_by: standBy,
+      ...(standBy ? { concluida: false, concluida_em: null } : {}),
+    })
+    .eq("id", id);
+  if (error) {
+    console.error("[toggleStandByTarefaAction]", error);
+    return { ok: false, message: error.message };
+  }
+  revalidatePath("/checklist");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
+ * Atualiza a etiqueta de urgência da tarefa.
+ */
+export async function updateTarefaUrgenciaAction(
+  id: string,
+  urgencia: "urgente" | "nao_urgente",
+): Promise<TarefaActionResult> {
+  if (typeof id !== "string" || id.length < 10) {
+    return { ok: false, message: "ID inválido" };
+  }
+  const u = urgenciaSchema.safeParse(urgencia);
+  if (!u.success) return { ok: false, message: u.error.issues[0]!.message };
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("tarefas_semanais")
+    .update({ urgencia: u.data })
+    .eq("id", id);
+  if (error) {
+    console.error("[updateTarefaUrgenciaAction]", error);
     return { ok: false, message: error.message };
   }
   revalidatePath("/checklist");

@@ -41,6 +41,8 @@ export type LeadStatus =
 
 export type LeadTemperatura = "frio" | "morno" | "quente";
 
+export type TarefaUrgencia = "urgente" | "nao_urgente";
+
 export type DecisorPrioridade = "d1" | "d2" | "d3";
 
 export type InteracaoCanal =
@@ -875,6 +877,8 @@ export interface Database {
           observacoes: string | null;
           concluida: boolean;
           concluida_em: string | null;
+          stand_by: boolean;
+          urgencia: TarefaUrgencia;
           ordem: number;
           created_at: string;
           updated_at: string;
@@ -887,6 +891,8 @@ export interface Database {
           observacoes?: string | null;
           concluida?: boolean;
           concluida_em?: string | null;
+          stand_by?: boolean;
+          urgencia?: TarefaUrgencia;
           ordem?: number;
           created_at?: string;
           updated_at?: string;
@@ -899,6 +905,8 @@ export interface Database {
           observacoes?: string | null;
           concluida?: boolean;
           concluida_em?: string | null;
+          stand_by?: boolean;
+          urgencia?: TarefaUrgencia;
           ordem?: number;
           created_at?: string;
           updated_at?: string;

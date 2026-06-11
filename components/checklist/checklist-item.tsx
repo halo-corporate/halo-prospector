@@ -7,6 +7,8 @@ import {
   ChevronRight,
   Edit2,
   FileText,
+  Flame,
+  PauseCircle,
   StickyNote,
   Trash2,
   X,
@@ -18,9 +20,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   deleteTarefaAction,
+  toggleStandByTarefaAction,
   toggleTarefaAction,
   updateTarefaObservacoesAction,
   updateTarefaTextoAction,
+  updateTarefaUrgenciaAction,
 } from "@/lib/tarefas/actions";
 import type { TarefaSemanal } from "@/lib/database.types";
 
@@ -52,6 +56,21 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
   function handleToggle() {
     startTransition(async () => {
       const res = await toggleTarefaAction(tarefa.id, !tarefa.concluida);
+      if (!res.ok) toast.error(res.message);
+    });
+  }
+
+  function handleToggleStandBy() {
+    startTransition(async () => {
+      const res = await toggleStandByTarefaAction(tarefa.id, !tarefa.stand_by);
+      if (!res.ok) toast.error(res.message);
+    });
+  }
+
+  function handleToggleUrgencia() {
+    const next = tarefa.urgencia === "urgente" ? "nao_urgente" : "urgente";
+    startTransition(async () => {
+      const res = await updateTarefaUrgenciaAction(tarefa.id, next);
       if (!res.ok) toast.error(res.message);
     });
   }
@@ -129,6 +148,7 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
       className={cn(
         "group rounded-md border border-transparent px-2 py-1.5 -mx-2 transition-colors",
         !editing && !obsEditing && "hover:border-border hover:bg-accent/30",
+        tarefa.stand_by && !tarefa.concluida && "opacity-70",
       )}
     >
       <div className="flex items-start gap-2">
@@ -151,6 +171,27 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
             <Check className="h-3 w-3" strokeWidth={3} />
           ) : null}
         </button>
+
+        {!compact ? (
+          <button
+            type="button"
+            onClick={handleToggleStandBy}
+            disabled={pending || editing || obsEditing}
+            aria-label={
+              tarefa.stand_by ? "Sair do stand by" : "Marcar como stand by"
+            }
+            title={tarefa.stand_by ? "Stand by — clique pra ativar" : "Stand by"}
+            className={cn(
+              "mt-0.5 h-4 w-4 shrink-0 flex items-center justify-center transition-colors",
+              tarefa.stand_by
+                ? "text-amber-500"
+                : "text-muted-foreground/40 hover:text-foreground",
+              pending && "opacity-50",
+            )}
+          >
+            <PauseCircle className="h-3.5 w-3.5" />
+          </button>
+        ) : null}
 
         {editing ? (
           <div className="flex-1 flex items-center gap-1">
@@ -194,11 +235,59 @@ export function ChecklistItem({ tarefa, compact = false }: Props) {
         ) : (
           <>
             <div className="flex-1 min-w-0 space-y-0.5">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {compact ? (
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-medium uppercase tracking-wide leading-none shrink-0",
+                      tarefa.urgencia === "urgente"
+                        ? "bg-destructive/15 text-destructive"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {tarefa.urgencia === "urgente" ? (
+                      <>
+                        <Flame className="h-2.5 w-2.5" />
+                        Urgente
+                      </>
+                    ) : (
+                      "Não urgente"
+                    )}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleToggleUrgencia}
+                    disabled={pending}
+                    aria-label={
+                      tarefa.urgencia === "urgente"
+                        ? "Mudar pra Não urgente"
+                        : "Mudar pra Urgente"
+                    }
+                    title="Clique pra alternar urgência"
+                    className={cn(
+                      "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide leading-none shrink-0 transition-colors",
+                      tarefa.urgencia === "urgente"
+                        ? "bg-destructive/15 text-destructive hover:bg-destructive/25"
+                        : "bg-muted text-muted-foreground hover:bg-muted/70",
+                      pending && "opacity-50",
+                    )}
+                  >
+                    {tarefa.urgencia === "urgente" ? (
+                      <>
+                        <Flame className="h-2.5 w-2.5" />
+                        Urgente
+                      </>
+                    ) : (
+                      "Não urgente"
+                    )}
+                  </button>
+                )}
                 <p
                   className={cn(
-                    "text-sm leading-snug flex-1",
+                    "text-sm leading-snug flex-1 min-w-0",
                     tarefa.concluida && "line-through text-muted-foreground",
+                    tarefa.stand_by && !tarefa.concluida && "italic text-muted-foreground",
                   )}
                 >
                   {tarefa.texto}
