@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { listLeads, type LeadOrderBy } from "@/lib/leads/queries";
 import { listVerticais } from "@/lib/verticais/queries";
 import { fetchPrimaryDecisorMap } from "@/lib/decisores/queries";
@@ -7,6 +9,7 @@ import { fetchLastInteracaoMap } from "@/lib/interacoes/queries";
 import type { LeadStatus, LeadTemperatura } from "@/lib/database.types";
 import { LeadsFilters } from "./filters";
 import { LeadsTable } from "./leads-table";
+import { LeadsBoard } from "./board";
 
 interface SearchParams {
   vertical?: string;
@@ -17,7 +20,10 @@ interface SearchParams {
   q?: string;
   orderBy?: string;
   orderDir?: string;
+  view?: string;
 }
+
+type View = "table" | "board";
 
 const VALID_STATUS: LeadStatus[] = [
   "novo",
@@ -80,6 +86,7 @@ export default async function LeadsListPage({
   };
 
   const leads = await listLeads(filters);
+  const view: View = searchParams.view === "board" ? "board" : "table";
 
   // Enriquece em batch: D1 (decisor primário) e última interação por lead.
   const leadIds = leads.map((l) => l.id);
@@ -87,6 +94,23 @@ export default async function LeadsListPage({
     fetchPrimaryDecisorMap(leadIds),
     fetchLastInteracaoMap(leadIds),
   ]);
+
+  // Preserva os filtros atuais ao trocar de view (não perde estado).
+  function viewHref(target: View): string {
+    const params = new URLSearchParams();
+    if (filters.verticais && filters.verticais.length > 0) {
+      params.set("vertical", filters.verticais.join(","));
+    }
+    if (filters.status) params.set("status", filters.status);
+    if (filters.temperatura) params.set("temperatura", filters.temperatura);
+    if (filters.estado) params.set("estado", filters.estado);
+    if (filters.cidade) params.set("cidade", filters.cidade);
+    if (filters.q) params.set("q", filters.q);
+    if (target === "board") params.set("view", "board");
+    // tabela é default; omite view=table pra URL limpa
+    const qs = params.toString();
+    return qs ? `/crm?${qs}` : "/crm";
+  }
 
   return (
     <div className="container py-6 space-y-4">
@@ -98,9 +122,46 @@ export default async function LeadsListPage({
             {leads.length} {leads.length === 1 ? "lead" : "leads"}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/crm/novo">+ Novo lead</Link>
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Toggle Tabela / Board — preserva filtros */}
+          <div
+            className="inline-flex rounded-md border border-white/10 bg-white/[0.04] p-0.5"
+            role="tablist"
+            aria-label="Visualização"
+          >
+            <Link
+              href={viewHref("table")}
+              role="tab"
+              aria-selected={view === "table"}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-colors",
+                view === "table"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <List className="h-3.5 w-3.5" />
+              Tabela
+            </Link>
+            <Link
+              href={viewHref("board")}
+              role="tab"
+              aria-selected={view === "board"}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs transition-colors",
+                view === "board"
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <LayoutGrid className="h-3.5 w-3.5" />
+              Board
+            </Link>
+          </div>
+          <Button asChild>
+            <Link href="/crm/novo">+ Novo lead</Link>
+          </Button>
+        </div>
       </div>
 
       <LeadsFilters
@@ -114,14 +175,22 @@ export default async function LeadsListPage({
         }}
       />
 
-      <LeadsTable
-        leads={leads}
-        verticais={verticais.map((v) => ({ slug: v.slug, label: v.label }))}
-        d1Map={Object.fromEntries(d1Map)}
-        lastInteracaoMap={Object.fromEntries(lastInteracaoMap)}
-        orderBy={filters.orderBy}
-        orderDir={filters.orderDir}
-      />
+      {view === "board" ? (
+        <LeadsBoard
+          leads={leads}
+          d1Map={Object.fromEntries(d1Map)}
+          lastInteracaoMap={Object.fromEntries(lastInteracaoMap)}
+        />
+      ) : (
+        <LeadsTable
+          leads={leads}
+          verticais={verticais.map((v) => ({ slug: v.slug, label: v.label }))}
+          d1Map={Object.fromEntries(d1Map)}
+          lastInteracaoMap={Object.fromEntries(lastInteracaoMap)}
+          orderBy={filters.orderBy}
+          orderDir={filters.orderDir}
+        />
+      )}
     </div>
   );
 }

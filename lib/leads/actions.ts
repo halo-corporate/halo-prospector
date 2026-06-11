@@ -131,6 +131,45 @@ export async function updateLeadAction(
 }
 
 /**
+ * UPDATE STATUS — alteração rápida de status a partir do board CRM.
+ * Não roda zod do form completo; valida apenas o status contra o enum.
+ */
+const VALID_STATUS_SET = new Set([
+  "novo",
+  "pesquisando",
+  "tentativa_contato",
+  "em_qualificacao",
+  "aquecido",
+  "passado_closer",
+  "ganho",
+  "perdido",
+  "descartado",
+]);
+
+export async function updateLeadStatusAction(
+  id: string,
+  nextStatus: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (!id) return { ok: false, message: "ID ausente" };
+  if (!VALID_STATUS_SET.has(nextStatus)) {
+    return { ok: false, message: "Status inválido" };
+  }
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("leads")
+    .update({ status: nextStatus })
+    .eq("id", id);
+  if (error) {
+    console.error("[updateLeadStatusAction]", error);
+    return { ok: false, message: error.message };
+  }
+  revalidatePath("/crm");
+  revalidatePath(`/crm/${id}`);
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
  * DELETE — Deleta um lead (cascade limpa decisores e interações).
  * Redireciona pra /leads.
  */
