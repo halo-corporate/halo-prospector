@@ -894,6 +894,7 @@ export interface Database {
           prioridade: TarefaPrioridade;
           prazo: string | null; // timestamptz ISO
           categoria_id: string | null;
+          parent_id: string | null;
           ordem: number;
           created_at: string;
           updated_at: string;
@@ -910,6 +911,7 @@ export interface Database {
           prioridade?: TarefaPrioridade;
           prazo?: string | null;
           categoria_id?: string | null;
+          parent_id?: string | null;
           ordem?: number;
           created_at?: string;
           updated_at?: string;
@@ -926,6 +928,7 @@ export interface Database {
           prioridade?: TarefaPrioridade;
           prazo?: string | null;
           categoria_id?: string | null;
+          parent_id?: string | null;
           ordem?: number;
           created_at?: string;
           updated_at?: string;

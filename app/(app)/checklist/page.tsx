@@ -61,11 +61,27 @@ export default async function ChecklistPage({
       ? searchParams.semana
       : current;
 
-  const [tarefas, tarefasConcluidas, categorias] = await Promise.all([
+  const [todas, tarefasConcluidas, categorias] = await Promise.all([
     listTarefasDaSemana(week),
     listTarefasConcluidas(),
     listCategorias(),
   ]);
+
+  // Separa top-level de subtarefas. Subtarefas (parent_id) ficam aninhadas sob
+  // a pai e são indexadas por parent_id (ordenadas por `ordem`).
+  const tarefas = todas.filter((t) => !t.parent_id);
+  const subtarefasByParent = new Map<string, TarefaSemanal[]>();
+  for (const t of todas) {
+    if (!t.parent_id) continue;
+    const arr = subtarefasByParent.get(t.parent_id) ?? [];
+    arr.push(t);
+    subtarefasByParent.set(t.parent_id, arr);
+  }
+  for (const arr of subtarefasByParent.values()) {
+    arr.sort((a, b) => a.ordem - b.ordem);
+  }
+
+  // Progresso conta só as tarefas top-level.
   const concluidas = tarefas.filter((t) => t.concluida).length;
   const pct = tarefas.length === 0 ? 0 : Math.round((concluidas / tarefas.length) * 100);
 
@@ -155,7 +171,12 @@ export default async function ChecklistPage({
           // Sem categorias atribuídas: lista plana (sem cabeçalho de grupo).
           <div className="space-y-0.5">
             {tarefas.map((t) => (
-              <ChecklistItem key={t.id} tarefa={t} categorias={categorias} />
+              <ChecklistItem
+                key={t.id}
+                tarefa={t}
+                categorias={categorias}
+                subtarefas={subtarefasByParent.get(t.id) ?? []}
+              />
             ))}
           </div>
         ) : (
@@ -185,6 +206,7 @@ export default async function ChecklistPage({
                       key={t.id}
                       tarefa={t}
                       categorias={categorias}
+                      subtarefas={subtarefasByParent.get(t.id) ?? []}
                     />
                   ))}
                 </div>

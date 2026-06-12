@@ -11,7 +11,9 @@ import { currentWeekStartBR, formatWeekLabelBR } from "@/lib/timezone";
  */
 export async function TarefasSemanaWidget() {
   const week = currentWeekStartBR();
-  const tarefas = await listTarefasDaSemana(week);
+  const todas = await listTarefasDaSemana(week);
+  // Só tarefas top-level no widget (subtarefas aparecem só na página completa).
+  const tarefas = todas.filter((t) => !t.parent_id);
   const concluidas = tarefas.filter((t) => t.concluida).length;
   const visiveis = tarefas.slice(0, 6);
 

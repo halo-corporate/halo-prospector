@@ -6,10 +6,13 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  CornerDownRight,
   Edit2,
   FileText,
   Flame,
+  ListTree,
   PauseCircle,
+  Plus,
   StickyNote,
   Trash2,
   X,
@@ -20,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  createSubtarefaAction,
   deleteTarefaAction,
   setTarefaCategoriaAction,
   toggleStandByTarefaAction,
@@ -48,12 +52,15 @@ interface Props {
   compact?: boolean;
   /** Categorias disponíveis pro seletor por tarefa (modo completo). */
   categorias?: CategoriaTarefa[];
+  /** Subtarefas (filhas) dessa tarefa, já ordenadas. Só renderizadas no modo completo. */
+  subtarefas?: TarefaSemanal[];
 }
 
 export function ChecklistItem({
   tarefa,
   compact = false,
   categorias = [],
+  subtarefas = [],
 }: Props) {
   const [pending, startTransition] = useTransition();
   const [editing, setEditing] = useState(false);
@@ -67,6 +74,12 @@ export function ChecklistItem({
 
   // Prazo (deadline): editor inline com <input type="datetime-local">.
   const [prazoEditing, setPrazoEditing] = useState(false);
+
+  // Subtarefas: input inline pra adicionar uma filha.
+  const [subAdding, setSubAdding] = useState(false);
+  const [subDraft, setSubDraft] = useState("");
+
+  const subConcluidas = subtarefas.filter((s) => s.concluida).length;
 
   // Sincroniza drafts quando a tarefa vier nova/atualizada (router.refresh).
   useEffect(() => {
@@ -130,6 +143,19 @@ export function ChecklistItem({
     startTransition(async () => {
       const res = await setTarefaCategoriaAction(tarefa.id, categoriaId);
       if (!res.ok) toast.error(res.message);
+    });
+  }
+
+  function handleAddSubtarefa() {
+    const t = subDraft.trim();
+    if (!t) return;
+    startTransition(async () => {
+      const res = await createSubtarefaAction(tarefa.id, t);
+      if (!res.ok) {
+        toast.error(res.message);
+        return;
+      }
+      setSubDraft("");
     });
   }
 
@@ -344,6 +370,17 @@ export function ChecklistItem({
                   </span>
                 ) : null}
 
+                {/* Contador de subtarefas */}
+                {!compact && subtarefas.length > 0 ? (
+                  <span
+                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium leading-none shrink-0 bg-muted text-muted-foreground"
+                    title={`${subConcluidas} de ${subtarefas.length} subtarefas concluídas`}
+                  >
+                    <ListTree className="h-2.5 w-2.5" />
+                    {subConcluidas}/{subtarefas.length}
+                  </span>
+                ) : null}
+
                 <p
                   className={cn(
                     "text-sm leading-snug flex-1 min-w-0",
@@ -435,6 +472,22 @@ export function ChecklistItem({
                       ))}
                     </select>
                   ) : null}
+
+                  {/* + Subtarefa */}
+                  <button
+                    type="button"
+                    onClick={() => setSubAdding((v) => !v)}
+                    disabled={pending}
+                    className={cn(
+                      "inline-flex items-center gap-1 text-[10px] leading-none text-muted-foreground/70 hover:text-muted-foreground transition-colors",
+                      subtarefas.length > 0
+                        ? ""
+                        : "opacity-0 group-hover:opacity-100",
+                    )}
+                  >
+                    <Plus className="h-2.5 w-2.5" />
+                    Subtarefa
+                  </button>
                 </div>
               ) : null}
 
@@ -525,6 +578,59 @@ export function ChecklistItem({
         )}
       </div>
 
+      {/* Subtarefas (aninhadas) — só no modo completo */}
+      {!compact && !editing && (subtarefas.length > 0 || subAdding) ? (
+        <div className="mt-1 ml-6 space-y-0.5 border-l border-border/50 pl-2">
+          {subtarefas.map((sub) => (
+            <SubtarefaRow key={sub.id} sub={sub} />
+          ))}
+          {subAdding ? (
+            <div className="flex items-center gap-1 pt-0.5">
+              <CornerDownRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+              <Input
+                value={subDraft}
+                onChange={(e) => setSubDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddSubtarefa();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    setSubAdding(false);
+                    setSubDraft("");
+                  }
+                }}
+                autoFocus
+                maxLength={200}
+                placeholder="Nova subtarefa…"
+                disabled={pending}
+                className="h-7 flex-1 text-xs"
+              />
+              <Button
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={handleAddSubtarefa}
+                disabled={pending || !subDraft.trim()}
+              >
+                Add
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs"
+                onClick={() => {
+                  setSubAdding(false);
+                  setSubDraft("");
+                }}
+                disabled={pending}
+              >
+                Cancelar
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* Card de observações — só no modo completo */}
       {!compact && obsOpen && !editing ? (
         <div className="mt-2 ml-6 rounded-md border border-border/60 bg-card/40 p-2.5 space-y-1.5">
@@ -610,6 +716,65 @@ export function ChecklistItem({
           )}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/** Linha de uma subtarefa: toggle + texto + excluir (aparece no hover). */
+function SubtarefaRow({ sub }: { sub: TarefaSemanal }) {
+  const [pending, startTransition] = useTransition();
+
+  function handleToggle() {
+    startTransition(async () => {
+      const res = await toggleTarefaAction(sub.id, !sub.concluida);
+      if (!res.ok) toast.error(res.message);
+    });
+  }
+
+  function handleDelete() {
+    startTransition(async () => {
+      const res = await deleteTarefaAction(sub.id);
+      if (!res.ok) toast.error(res.message);
+    });
+  }
+
+  return (
+    <div className="group/sub flex items-center gap-2 py-0.5">
+      <button
+        type="button"
+        onClick={handleToggle}
+        disabled={pending}
+        aria-label={
+          sub.concluida ? "Marcar como pendente" : "Marcar como concluída"
+        }
+        className={cn(
+          "h-3.5 w-3.5 shrink-0 rounded border flex items-center justify-center transition-colors",
+          sub.concluida
+            ? "bg-primary border-primary text-primary-foreground"
+            : "border-muted-foreground/40 hover:border-foreground",
+          pending && "opacity-50",
+        )}
+      >
+        {sub.concluida ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : null}
+      </button>
+      <p
+        className={cn(
+          "flex-1 min-w-0 text-xs leading-snug",
+          sub.concluida && "line-through text-muted-foreground",
+        )}
+      >
+        {sub.texto}
+      </p>
+      <Button
+        size="icon"
+        variant="ghost"
+        className="h-5 w-5 shrink-0 opacity-0 group-hover/sub:opacity-100 transition-opacity hover:text-destructive"
+        onClick={handleDelete}
+        disabled={pending}
+        aria-label="Excluir subtarefa"
+      >
+        <Trash2 className="h-2.5 w-2.5" />
+      </Button>
     </div>
   );
 }

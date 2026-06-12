@@ -76,6 +76,60 @@ export async function createTarefaAction(
 }
 
 /**
+ * Cria uma subtarefa sob uma tarefa-pai. A subtarefa herda a `semana` da pai
+ * e fica no fim da lista de irmãs (ordem = max das filhas + 1). Aninhamento de
+ * 1 nível: se a pai já for uma subtarefa, recusa.
+ */
+export async function createSubtarefaAction(
+  parentId: string,
+  texto: string,
+): Promise<TarefaActionResult> {
+  if (typeof parentId !== "string" || parentId.length < 10) {
+    return { ok: false, message: "ID da tarefa-pai inválido" };
+  }
+  const t = textoSchema.safeParse(texto);
+  if (!t.success) return { ok: false, message: t.error.issues[0]!.message };
+
+  const supabase = createClient();
+  const { data: parent, error: errParent } = await supabase
+    .from("tarefas_semanais")
+    .select("semana, parent_id")
+    .eq("id", parentId)
+    .maybeSingle();
+  if (errParent) {
+    console.error("[createSubtarefaAction parent]", errParent);
+    return { ok: false, message: errParent.message };
+  }
+  if (!parent) return { ok: false, message: "Tarefa-pai não encontrada" };
+  if (parent.parent_id) {
+    return { ok: false, message: "Subtarefa não pode ter subtarefa" };
+  }
+
+  const { data: max } = await supabase
+    .from("tarefas_semanais")
+    .select("ordem")
+    .eq("parent_id", parentId)
+    .order("ordem", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextOrdem = (max?.ordem ?? -1) + 1;
+
+  const { error } = await supabase.from("tarefas_semanais").insert({
+    semana: parent.semana,
+    texto: t.data,
+    ordem: nextOrdem,
+    parent_id: parentId,
+  });
+  if (error) {
+    console.error("[createSubtarefaAction]", error);
+    return { ok: false, message: error.message };
+  }
+  revalidatePath("/checklist");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/**
  * Alterna a flag `concluida`. Também grava `concluida_em` (timestamptz).
  * Concluir zera `stand_by` (mutualmente exclusivos — trigger no banco também
  * garante, mas a gente já manda o estado consistente).
@@ -305,6 +359,7 @@ export async function copyPendingFromPreviousWeekAction(): Promise<
     .select("texto, ordem")
     .eq("semana", prev)
     .eq("concluida", false)
+    .is("parent_id", null)
     .order("ordem", { ascending: true });
   if (errFetch) {
     console.error("[copyPending]", errFetch);
