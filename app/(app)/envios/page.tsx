@@ -11,6 +11,9 @@ import {
 import { EnviosFilters } from "@/components/envios/envios-filters";
 import { EnviosTable } from "@/components/envios/envios-table";
 import { EnvioFormDialog } from "@/components/envios/envio-form-dialog";
+import { MelhorEnvioCard } from "@/components/envios/melhor-envio-card";
+import { isMelhorEnvioConfigured } from "@/lib/melhor-envio/config";
+import { getMelhorEnvioConexaoStatus } from "@/lib/melhor-envio/queries";
 
 export const metadata = { title: "Envios — HALO Prospector" };
 export const dynamic = "force-dynamic";
@@ -23,6 +26,7 @@ interface SearchParams {
   origem?: string;
   data_inicio?: string;
   data_fim?: string;
+  me?: string;
 }
 
 function isOneOf<T extends string>(
@@ -50,11 +54,13 @@ export default async function EnviosPage({
     dataFim: searchParams.data_fim || undefined,
   };
 
-  const [envios, embalagens, influencers] = await Promise.all([
+  const [envios, embalagens, influencers, meStatus] = await Promise.all([
     listEnvios(filters),
     listEmbalagens(),
     listInfluencersForSelect(),
+    getMelhorEnvioConexaoStatus(),
   ]);
+  const meConfigured = isMelhorEnvioConfigured();
 
   const hasFiltersActive = Boolean(
     filters.status ||
@@ -87,6 +93,15 @@ export default async function EnviosPage({
           influencers={influencers}
         />
       </div>
+
+      <MelhorEnvioCard
+        configured={meConfigured}
+        connected={meStatus !== null}
+        ambiente={meStatus?.ambiente}
+        expiresAt={meStatus?.expiresAt}
+        expired={meStatus?.expired}
+        notice={searchParams.me}
+      />
 
       <EnviosFilters
         defaults={{

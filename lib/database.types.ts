@@ -934,6 +934,42 @@ export interface Database {
           updated_at?: string;
         };
       };
+      melhor_envio_conexao: {
+        Relationships: [];
+        Row: {
+          user_id: string;
+          access_token: string;
+          refresh_token: string;
+          token_type: string;
+          scope: string | null;
+          ambiente: "sandbox" | "production";
+          expires_at: string;
+          connected_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id?: string;
+          access_token: string;
+          refresh_token: string;
+          token_type?: string;
+          scope?: string | null;
+          ambiente?: "sandbox" | "production";
+          expires_at: string;
+          connected_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          access_token?: string;
+          refresh_token?: string;
+          token_type?: string;
+          scope?: string | null;
+          ambiente?: "sandbox" | "production";
+          expires_at?: string;
+          connected_at?: string;
+          updated_at?: string;
+        };
+      };
       categorias_tarefa: {
         Relationships: [];
         Row: {
@@ -1360,6 +1396,13 @@ export type EmbalagemUpdate =
 export type Envio = Database["public"]["Tables"]["envios"]["Row"];
 export type EnvioInsert = Database["public"]["Tables"]["envios"]["Insert"];
 export type EnvioUpdate = Database["public"]["Tables"]["envios"]["Update"];
+
+export type MelhorEnvioConexao =
+  Database["public"]["Tables"]["melhor_envio_conexao"]["Row"];
+export type MelhorEnvioConexaoInsert =
+  Database["public"]["Tables"]["melhor_envio_conexao"]["Insert"];
+export type MelhorEnvioConexaoUpdate =
+  Database["public"]["Tables"]["melhor_envio_conexao"]["Update"];
 
 export type Influencer = Database["public"]["Tables"]["influencers"]["Row"];
 export type InfluencerInsert =
