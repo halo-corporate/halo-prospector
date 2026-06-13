@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getValidAccessToken } from "./token";
 import { calcularFrete, type CotacaoOpcao } from "./shipping";
+import { gerarEtiqueta, type EnderecoEtiqueta } from "./etiqueta";
+import { getMelhorEnvioRemetente, isRemetenteCompleto } from "./remetente";
 
 export type MelhorEnvioActionResult =
   | { ok: true }
@@ -151,4 +153,193 @@ export async function disconnectMelhorEnvioAction(): Promise<MelhorEnvioActionRe
   }
   revalidatePath("/envios");
   return { ok: true };
+}
+
+export type GerarEtiquetaActionResult =
+  | { ok: true; etiquetaPath: string; orderId: string }
+  | { ok: false; message: string };
+
+/**
+ * Gera a etiqueta do envio no Melhor Envio. DEBITA o saldo da conta no checkout
+ * — por isso o caller só chama depois de confirmação explícita do usuário.
+ *
+ * Fluxo:
+ *  1) Lê o envio e valida que tem destino (CEP+número), peso, dimensões e
+ *     serviço escolhido. Recusa se já existe `melhor_envio_order_id` (não
+ *     cobra duas vezes).
+ *  2) Lê o remetente e exige dados completos (nome, doc, CEP, número).
+ *  3) Re-cota o frete pra recuperar o `servicoId` ao vivo (no 4b só guardamos o
+ *     NOME do serviço, não o id) casando pelo nome do serviço salvo.
+ *  4) Chama gerarEtiqueta (cart→checkout→generate→print).
+ *  5) Baixa o PDF e sobe no bucket `etiquetas`, grava order_id/rastreio no envio.
+ */
+export async function gerarEtiquetaAction(
+  envioId: string,
+  valorDeclarado: number,
+): Promise<GerarEtiquetaActionResult> {
+  if (!envioId || envioId.length < 10) {
+    return { ok: false, message: "ID do envio inválido." };
+  }
+  const insurance = Number(valorDeclarado);
+  if (!Number.isFinite(insurance) || insurance <= 0) {
+    return { ok: false, message: "Informe um valor declarado válido pro seguro." };
+  }
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Não autenticado." };
+
+  const { data: envio, error: envioErr } = await supabase
+    .from("envios")
+    .select("*")
+    .eq("id", envioId)
+    .maybeSingle();
+  if (envioErr) {
+    console.error("[gerarEtiquetaAction envio]", envioErr);
+    return { ok: false, message: envioErr.message };
+  }
+  if (!envio) return { ok: false, message: "Envio não encontrado." };
+
+  if (envio.melhor_envio_order_id) {
+    return {
+      ok: false,
+      message: "Este envio já tem etiqueta gerada no Melhor Envio.",
+    };
+  }
+  if (!envio.servico) {
+    return { ok: false, message: "Escolha o serviço (cote o frete) antes de gerar a etiqueta." };
+  }
+
+  const destino = envio.endereco_destino;
+  const destinoCep = onlyDigits(destino?.cep ?? "");
+  if (destinoCep.length !== 8 || !(destino?.numero ?? "").trim()) {
+    return { ok: false, message: "Endereço de destino incompleto (CEP e número)." };
+  }
+
+  const peso = Number(envio.peso_g);
+  const altura = Number(envio.dimensoes_cm?.altura);
+  const largura = Number(envio.dimensoes_cm?.largura);
+  const comprimento = Number(envio.dimensoes_cm?.comprimento);
+  if (![peso, altura, largura, comprimento].every((n) => Number.isFinite(n) && n > 0)) {
+    return { ok: false, message: "Preencha peso e dimensões do envio antes de gerar a etiqueta." };
+  }
+
+  const remetente = await getMelhorEnvioRemetente();
+  if (!isRemetenteCompleto(remetente)) {
+    return {
+      ok: false,
+      message: "Preencha os dados do remetente (nome, documento, CEP e número) antes de gerar a etiqueta.",
+    };
+  }
+  const remCep = onlyDigits(remetente.cep);
+
+  const token = await getValidAccessToken();
+  if (!token.ok) return { ok: false, message: token.message };
+
+  // Re-cota pra recuperar o servicoId ao vivo (4b só guardou o nome do serviço).
+  const cotacao = await calcularFrete(token.cfg, token.accessToken, {
+    fromCep: remCep,
+    toCep: destinoCep,
+    pesoG: peso,
+    alturaCm: altura,
+    larguraCm: largura,
+    comprimentoCm: comprimento,
+  });
+  if (!cotacao.ok) return { ok: false, message: cotacao.message };
+  const opcao =
+    cotacao.opcoes.find((o) => o.servico === envio.servico) ?? null;
+  if (!opcao) {
+    return {
+      ok: false,
+      message: `O serviço "${envio.servico}" não está mais disponível pra esse trajeto. Cote o frete de novo e escolha outro.`,
+    };
+  }
+
+  const from: EnderecoEtiqueta = {
+    name: remetente.nome,
+    phone: remetente.telefone ?? undefined,
+    email: remetente.email ?? undefined,
+    document: onlyDigits(remetente.documento),
+    address: remetente.rua ?? "",
+    complement: remetente.complemento ?? undefined,
+    number: remetente.numero ?? "",
+    district: remetente.bairro ?? undefined,
+    city: remetente.cidade ?? undefined,
+    state_abbr: remetente.uf ?? undefined,
+    postal_code: remCep,
+  };
+  const to: EnderecoEtiqueta = {
+    name: envio.destinatario_nome,
+    address: destino?.rua ?? "",
+    complement: destino?.complemento ?? undefined,
+    number: (destino?.numero ?? "").trim(),
+    district: destino?.bairro ?? undefined,
+    city: destino?.cidade ?? undefined,
+    state_abbr: destino?.uf ?? undefined,
+    postal_code: destinoCep,
+  };
+
+  const etiqueta = await gerarEtiqueta(token.cfg, token.accessToken, {
+    serviceId: opcao.servicoId,
+    from,
+    to,
+    volume: {
+      height: altura,
+      width: largura,
+      length: comprimento,
+      weight: peso / 1000, // API espera kg
+    },
+    insuranceValue: insurance,
+    productName: "Produto HALO",
+  });
+  if (!etiqueta.ok) return { ok: false, message: etiqueta.message };
+
+  // Baixa o PDF e sobe no bucket `etiquetas` (mesmo padrão do upload manual).
+  const rand = Math.random().toString(36).slice(2, 10);
+  const path = `${user.id}/${envioId}-${rand}.pdf`;
+  let etiquetaPath: string | null = null;
+  try {
+    const pdfRes = await fetch(etiqueta.data.pdfUrl);
+    if (pdfRes.ok) {
+      const bytes = new Uint8Array(await pdfRes.arrayBuffer());
+      const { error: upErr } = await supabase.storage
+        .from("etiquetas")
+        .upload(path, bytes, { contentType: "application/pdf", upsert: false });
+      if (upErr) {
+        console.error("[gerarEtiquetaAction upload]", upErr);
+      } else {
+        etiquetaPath = path;
+      }
+    } else {
+      console.error("[gerarEtiquetaAction pdf fetch]", pdfRes.status);
+    }
+  } catch (e) {
+    console.error("[gerarEtiquetaAction pdf]", e);
+  }
+
+  const { error: updErr } = await supabase
+    .from("envios")
+    .update({
+      melhor_envio_order_id: etiqueta.data.orderId,
+      etiqueta_url: etiquetaPath,
+      codigo_rastreio: etiqueta.data.codigoRastreio,
+      tracking_url: etiqueta.data.trackingUrl,
+      valor_frete: opcao.valor,
+    })
+    .eq("id", envioId);
+  if (updErr) {
+    // A etiqueta JÁ foi paga/gerada — não falha o fluxo só por causa do registro
+    // local. Loga e segue: o order_id está no Melhor Envio.
+    console.error("[gerarEtiquetaAction update]", updErr);
+    return {
+      ok: false,
+      message: `Etiqueta gerada (pedido ${etiqueta.data.orderId}), mas falhou ao salvar no envio: ${updErr.message}`,
+    };
+  }
+
+  revalidatePath(`/envios/${envioId}`);
+  revalidatePath("/envios");
+  return { ok: true, etiquetaPath: etiquetaPath ?? "", orderId: etiqueta.data.orderId };
 }

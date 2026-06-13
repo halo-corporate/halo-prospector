@@ -9,6 +9,12 @@ import { getPropostaById } from "@/lib/propostas/queries";
 import { EnvioStatusBadge } from "@/components/envios/envio-status-badge";
 import { EnvioFormDialog } from "@/components/envios/envio-form-dialog";
 import { EtiquetaUpload } from "@/components/envios/etiqueta-upload";
+import { GerarEtiqueta } from "@/components/envios/gerar-etiqueta";
+import { getMelhorEnvioConexaoStatus } from "@/lib/melhor-envio/queries";
+import {
+  getMelhorEnvioRemetente,
+  isRemetenteCompleto,
+} from "@/lib/melhor-envio/remetente";
 import { formatBRL, formatDateBR } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -18,11 +24,14 @@ interface Params {
 }
 
 export default async function EnvioDetailPage({ params }: { params: Params }) {
-  const [envio, embalagens, influencers] = await Promise.all([
-    getEnvioById(params.id),
-    listEmbalagens(),
-    listInfluencersForSelect(),
-  ]);
+  const [envio, embalagens, influencers, meStatus, remetente] =
+    await Promise.all([
+      getEnvioById(params.id),
+      listEmbalagens(),
+      listInfluencersForSelect(),
+      getMelhorEnvioConexaoStatus(),
+      getMelhorEnvioRemetente(),
+    ]);
   if (!envio) notFound();
 
   const proposta = envio.proposta_id
@@ -32,6 +41,28 @@ export default async function EnvioDetailPage({ params }: { params: Params }) {
   const embalagemNome = envio.embalagem_id
     ? embalagens.find((e) => e.id === envio.embalagem_id)?.nome ?? null
     : null;
+
+  const meConectado = meStatus !== null;
+  const remetenteCompleto = isRemetenteCompleto(remetente);
+  const destinoOk =
+    (envio.endereco_destino?.cep ?? "").replace(/\D/g, "").length === 8 &&
+    Boolean((envio.endereco_destino?.numero ?? "").trim());
+  const pesoDimsOk =
+    Number(envio.peso_g) > 0 &&
+    Number(envio.dimensoes_cm?.altura) > 0 &&
+    Number(envio.dimensoes_cm?.largura) > 0 &&
+    Number(envio.dimensoes_cm?.comprimento) > 0;
+  const etiquetaDisabledReason = !meConectado
+    ? "Conecte o Melhor Envio em /envios."
+    : !remetenteCompleto
+      ? "Preencha os dados do remetente em /envios."
+      : !envio.servico
+        ? "Cote o frete e escolha um serviço primeiro."
+        : !destinoOk
+          ? "Endereço de destino incompleto (CEP e número)."
+          : !pesoDimsOk
+            ? "Preencha peso e dimensões do envio."
+            : null;
 
   const end = envio.endereco_destino;
   const linhaEndereco = end
@@ -164,10 +195,28 @@ export default async function EnvioDetailPage({ params }: { params: Params }) {
         </div>
 
         {/* Etiqueta */}
-        <EtiquetaUpload
-          envioId={envio.id}
-          etiquetaPath={envio.etiqueta_url}
-        />
+        <div className="space-y-3">
+          <EtiquetaUpload
+            envioId={envio.id}
+            etiquetaPath={envio.etiqueta_url}
+          />
+          <div className="halo-glass rounded-halo p-4 space-y-2">
+            <p className="font-display font-bold uppercase tracking-[0.04em] text-sm">
+              Gerar pelo Melhor Envio
+            </p>
+            <GerarEtiqueta
+              envioId={envio.id}
+              disabledReason={etiquetaDisabledReason}
+              jaGerada={Boolean(envio.melhor_envio_order_id)}
+              valorSugerido={envio.valor_frete}
+            />
+            {etiquetaDisabledReason ? (
+              <p className="text-[11px] text-muted-foreground">
+                {etiquetaDisabledReason}
+              </p>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       {envio.observacoes ? (
