@@ -66,7 +66,13 @@ export async function calcularFrete(
     return { ok: false, message: `Cotação recusada pelo Melhor Envio: ${res.message}` };
   }
   if (!Array.isArray(res.data)) {
-    return { ok: false, message: "Resposta inesperada do Melhor Envio." };
+    // Diagnóstico temporário: expõe o corpo bruto pra entender o formato real.
+    const snippet = JSON.stringify(res.data ?? null).slice(0, 400);
+    console.error("[calcularFrete] resposta não-array:", snippet);
+    return {
+      ok: false,
+      message: `Resposta inesperada do Melhor Envio (${typeof res.data}): ${snippet}`,
+    };
   }
 
   const opcoes: CotacaoOpcao[] = res.data
