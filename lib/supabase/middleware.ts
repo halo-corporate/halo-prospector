@@ -41,9 +41,12 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isLoginPage = pathname === "/login";
+  // Cron roda sem sessão de usuário (Vercel Cron, sem cookies). A própria rota
+  // se protege com CRON_SECRET, então não deve cair no redirect de auth.
+  const isCron = pathname.startsWith("/api/cron");
 
   // Não autenticado tentando acessar rota privada → /login
-  if (!user && !isLoginPage) {
+  if (!user && !isLoginPage && !isCron) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
