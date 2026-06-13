@@ -970,6 +970,57 @@ export interface Database {
           updated_at?: string;
         };
       };
+      melhor_envio_remetente: {
+        Relationships: [];
+        Row: {
+          user_id: string;
+          nome: string;
+          documento: string;
+          telefone: string | null;
+          email: string | null;
+          cep: string;
+          rua: string | null;
+          numero: string | null;
+          complemento: string | null;
+          bairro: string | null;
+          cidade: string | null;
+          uf: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id?: string;
+          nome: string;
+          documento: string;
+          telefone?: string | null;
+          email?: string | null;
+          cep: string;
+          rua?: string | null;
+          numero?: string | null;
+          complemento?: string | null;
+          bairro?: string | null;
+          cidade?: string | null;
+          uf?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          nome?: string;
+          documento?: string;
+          telefone?: string | null;
+          email?: string | null;
+          cep?: string;
+          rua?: string | null;
+          numero?: string | null;
+          complemento?: string | null;
+          bairro?: string | null;
+          cidade?: string | null;
+          uf?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       categorias_tarefa: {
         Relationships: [];
         Row: {
@@ -1403,6 +1454,13 @@ export type MelhorEnvioConexaoInsert =
   Database["public"]["Tables"]["melhor_envio_conexao"]["Insert"];
 export type MelhorEnvioConexaoUpdate =
   Database["public"]["Tables"]["melhor_envio_conexao"]["Update"];
+
+export type MelhorEnvioRemetente =
+  Database["public"]["Tables"]["melhor_envio_remetente"]["Row"];
+export type MelhorEnvioRemetenteInsert =
+  Database["public"]["Tables"]["melhor_envio_remetente"]["Insert"];
+export type MelhorEnvioRemetenteUpdate =
+  Database["public"]["Tables"]["melhor_envio_remetente"]["Update"];
 
 export type Influencer = Database["public"]["Tables"]["influencers"]["Row"];
 export type InfluencerInsert =

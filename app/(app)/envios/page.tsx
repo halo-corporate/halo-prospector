@@ -12,11 +12,16 @@ import { EnviosFilters } from "@/components/envios/envios-filters";
 import { EnviosTable } from "@/components/envios/envios-table";
 import { EnvioFormDialog } from "@/components/envios/envio-form-dialog";
 import { MelhorEnvioCard } from "@/components/envios/melhor-envio-card";
+import { RemetenteCard } from "@/components/envios/remetente-card";
 import {
   isMelhorEnvioConfigured,
   getMelhorEnvioFromCep,
 } from "@/lib/melhor-envio/config";
 import { getMelhorEnvioConexaoStatus } from "@/lib/melhor-envio/queries";
+import {
+  getMelhorEnvioRemetente,
+  isRemetenteCompleto,
+} from "@/lib/melhor-envio/remetente";
 
 export const metadata = { title: "Envios — HALO Prospector" };
 export const dynamic = "force-dynamic";
@@ -57,15 +62,18 @@ export default async function EnviosPage({
     dataFim: searchParams.data_fim || undefined,
   };
 
-  const [envios, embalagens, influencers, meStatus] = await Promise.all([
-    listEnvios(filters),
-    listEmbalagens(),
-    listInfluencersForSelect(),
-    getMelhorEnvioConexaoStatus(),
-  ]);
+  const [envios, embalagens, influencers, meStatus, remetente] =
+    await Promise.all([
+      listEnvios(filters),
+      listEmbalagens(),
+      listInfluencersForSelect(),
+      getMelhorEnvioConexaoStatus(),
+      getMelhorEnvioRemetente(),
+    ]);
   const meConfigured = isMelhorEnvioConfigured();
   const meConectado = meStatus !== null;
   const fromCepDefault = getMelhorEnvioFromCep() ?? "";
+  const remetenteCompleto = isRemetenteCompleto(remetente);
 
   const hasFiltersActive = Boolean(
     filters.status ||
@@ -109,6 +117,10 @@ export default async function EnviosPage({
         expired={meStatus?.expired}
         notice={searchParams.me}
       />
+
+      {meConectado ? (
+        <RemetenteCard remetente={remetente} completo={remetenteCompleto} />
+      ) : null}
 
       <EnviosFilters
         defaults={{
