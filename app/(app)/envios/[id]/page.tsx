@@ -208,7 +208,7 @@ export default async function EnvioDetailPage({ params }: { params: Params }) {
               envioId={envio.id}
               disabledReason={etiquetaDisabledReason}
               jaGerada={Boolean(envio.melhor_envio_order_id)}
-              valorSugerido={envio.valor_frete}
+              valorSugerido={envio.valor_seguro ?? envio.valor_frete}
             />
             {etiquetaDisabledReason ? (
               <p className="text-[11px] text-muted-foreground">

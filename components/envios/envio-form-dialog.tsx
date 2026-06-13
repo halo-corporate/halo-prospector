@@ -108,6 +108,12 @@ export function EnvioFormDialog({
       ? String(envio.dimensoes_cm.comprimento)
       : "",
   );
+  const [valorSeguro, setValorSeguro] = useState(
+    envio?.valor_seguro != null
+      ? String(envio.valor_seguro).replace(".", ",")
+      : "",
+  );
+  const [cepLoading, setCepLoading] = useState(false);
 
   // Transporte
   const [transportadora, setTransportadora] = useState(
@@ -167,6 +173,11 @@ export function EnvioFormDialog({
         ? String(envio.dimensoes_cm.comprimento)
         : "",
     );
+    setValorSeguro(
+      envio?.valor_seguro != null
+        ? String(envio.valor_seguro).replace(".", ",")
+        : "",
+    );
     setTransportadora(envio?.transportadora ?? "");
     setServico(envio?.servico ?? "");
     setCodigoRastreio(envio?.codigo_rastreio ?? "");
@@ -181,6 +192,38 @@ export function EnvioFormDialog({
     setDataEntregaEfetiva(envio?.data_entrega_efetiva ?? "");
     setObservacoes(envio?.observacoes ?? "");
   }, [open, envio]);
+
+  // Auto-preenche o endereço pelo CEP (ViaCEP). Dispara quando o CEP tem 8
+  // dígitos; preenche rua/bairro/cidade/uf (mantém o que o usuário já digitou
+  // se a API não trouxer aquele campo). Número/complemento ficam por conta dele.
+  async function autofillByCep(rawCep: string) {
+    const digits = rawCep.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        erro?: boolean;
+        logradouro?: string;
+        bairro?: string;
+        localidade?: string;
+        uf?: string;
+      };
+      if (data.erro) {
+        toast.error("CEP não encontrado.");
+        return;
+      }
+      if (data.logradouro) setRua(data.logradouro);
+      if (data.bairro) setBairro(data.bairro);
+      if (data.localidade) setCidade(data.localidade);
+      if (data.uf) setUf(data.uf.toUpperCase());
+    } catch {
+      // Sem internet / ViaCEP fora do ar: silencioso, o usuário preenche à mão.
+    } finally {
+      setCepLoading(false);
+    }
+  }
 
   function handleSubmit() {
     const fd = new FormData();
@@ -210,6 +253,7 @@ export function EnvioFormDialog({
     fd.set("codigo_rastreio", codigoRastreio);
     fd.set("tracking_url", trackingUrl);
     fd.set("valor_frete", valorFrete);
+    fd.set("valor_seguro", valorSeguro);
     fd.set("data_postagem", dataPostagem);
     fd.set("data_entrega_prevista", dataEntregaPrevista);
     fd.set("data_entrega_efetiva", dataEntregaEfetiva);
@@ -297,11 +341,18 @@ export function EnvioFormDialog({
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
               <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="env-cep">CEP</Label>
+                <Label htmlFor="env-cep">
+                  CEP{cepLoading ? " · buscando…" : ""}
+                </Label>
                 <Input
                   id="env-cep"
                   value={cep}
-                  onChange={(e) => setCep(e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setCep(v);
+                    if (v.replace(/\D/g, "").length === 8) autofillByCep(v);
+                  }}
+                  onBlur={(e) => autofillByCep(e.target.value)}
                   placeholder="00000-000"
                   maxLength={20}
                 />
@@ -449,6 +500,21 @@ export function EnvioFormDialog({
                   value={dimComprimento}
                   onChange={(e) => setDimComprimento(e.target.value)}
                 />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="env-seguro">Valor do seguro (R$)</Label>
+                <Input
+                  id="env-seguro"
+                  inputMode="decimal"
+                  value={valorSeguro}
+                  onChange={(e) => setValorSeguro(e.target.value)}
+                  placeholder="250,00"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Valor declarado do conteúdo, usado no seguro da etiqueta.
+                </p>
               </div>
             </div>
           </div>

@@ -1131,6 +1131,7 @@ export interface Database {
           codigo_rastreio: string | null;
           tracking_url: string | null;
           valor_frete: number | null;
+          valor_seguro: number | null;
           melhor_envio_order_id: string | null;
           etiqueta_url: string | null;
           data_postagem: string | null;
@@ -1157,6 +1158,7 @@ export interface Database {
           codigo_rastreio?: string | null;
           tracking_url?: string | null;
           valor_frete?: number | null;
+          valor_seguro?: number | null;
           melhor_envio_order_id?: string | null;
           etiqueta_url?: string | null;
           data_postagem?: string | null;
@@ -1183,6 +1185,7 @@ export interface Database {
           codigo_rastreio?: string | null;
           tracking_url?: string | null;
           valor_frete?: number | null;
+          valor_seguro?: number | null;
           melhor_envio_order_id?: string | null;
           etiqueta_url?: string | null;
           data_postagem?: string | null;
