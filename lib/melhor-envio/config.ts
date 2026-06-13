@@ -85,6 +85,18 @@ export function isMelhorEnvioConfigured(): boolean {
   return getMelhorEnvioConfig() !== null;
 }
 
+/**
+ * CEP de origem padrão dos envios (de onde a HALO despacha). Usado como
+ * default na cotação de frete; o usuário pode sobrescrever na hora. Só
+ * dígitos. Retorna null se a env var não estiver setada.
+ */
+export function getMelhorEnvioFromCep(): string | null {
+  const raw = process.env.MELHOR_ENVIO_FROM_CEP;
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  return digits.length === 8 ? digits : null;
+}
+
 /** User-Agent exigido pela API do Melhor Envio: "App (email-de-contato)". */
 export function melhorEnvioUserAgent(cfg: MelhorEnvioConfig): string {
   return `HALO Prospector (${cfg.contactEmail})`;

@@ -1,12 +1,63 @@
 /**
- * Cliente HTTP do Melhor Envio — só o que a fatia de CONEXÃO precisa:
- * troca de `code` por tokens e refresh do access_token. Cotação, etiqueta e
- * rastreio entram em fatias futuras reusando `meFetch`.
+ * Cliente HTTP do Melhor Envio: troca/refresh de tokens (OAuth) e `meFetch`,
+ * o helper genérico autenticado por Bearer que cotação, etiqueta e rastreio
+ * reusam.
  */
 import {
   type MelhorEnvioConfig,
   melhorEnvioUserAgent,
 } from "./config";
+
+export type MeFetchResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; status: number; message: string };
+
+/**
+ * Chamada autenticada à API do Melhor Envio (Bearer). Não lida com refresh —
+ * o caller deve passar um access_token válido (ver lib/melhor-envio/token.ts).
+ */
+export async function meFetch<T>(
+  cfg: MelhorEnvioConfig,
+  accessToken: string,
+  path: string,
+  init?: { method?: string; body?: unknown },
+): Promise<MeFetchResult<T>> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    Authorization: `Bearer ${accessToken}`,
+    "User-Agent": melhorEnvioUserAgent(cfg),
+  };
+  if (init?.body !== undefined) headers["Content-Type"] = "application/json";
+
+  let res: Response;
+  try {
+    res = await fetch(`${cfg.baseUrl}${path}`, {
+      method: init?.method ?? "GET",
+      headers,
+      body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+      cache: "no-store",
+    });
+  } catch (e) {
+    return { ok: false, status: 0, message: `Falha de rede com o Melhor Envio: ${String(e)}` };
+  }
+
+  let json: unknown;
+  try {
+    json = await res.json();
+  } catch {
+    json = null;
+  }
+
+  if (!res.ok) {
+    const msg =
+      (json as { error?: string; message?: string } | null)?.message ??
+      (json as { error?: string } | null)?.error ??
+      `HTTP ${res.status}`;
+    return { ok: false, status: res.status, message: msg };
+  }
+
+  return { ok: true, data: json as T };
+}
 
 export interface MelhorEnvioTokenResponse {
   access_token: string;

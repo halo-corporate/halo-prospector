@@ -33,6 +33,7 @@ import {
 } from "@/lib/database.types";
 import { createEnvioAction, updateEnvioAction } from "@/lib/envios/actions";
 import { EmbalagemSelect } from "@/components/embalagens/embalagem-select";
+import { CotacaoFrete } from "@/components/envios/cotacao-frete";
 
 const INFLUENCER_NONE = "_none_";
 
@@ -46,6 +47,10 @@ interface Props {
     destinatarioNome?: string;
     propostaId?: string;
   };
+  /** Habilita a cotação automática de frete (Melhor Envio conectado). */
+  melhorEnvioConectado?: boolean;
+  /** CEP de origem padrão (env), pré-preenchido na cotação. */
+  fromCepDefault?: string;
   trigger?: React.ReactNode;
 }
 
@@ -55,6 +60,8 @@ export function EnvioFormDialog({
   embalagens,
   influencers = [],
   prefill,
+  melhorEnvioConectado = false,
+  fromCepDefault = "",
   trigger,
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -451,6 +458,20 @@ export function EnvioFormDialog({
             <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
               Transporte
             </p>
+            <CotacaoFrete
+              conectado={melhorEnvioConectado}
+              fromCepDefault={fromCepDefault}
+              destinoCep={cep}
+              pesoG={pesoG}
+              altura={dimAltura}
+              largura={dimLargura}
+              comprimento={dimComprimento}
+              onSelect={({ transportadora, servico, valor }) => {
+                setTransportadora(transportadora);
+                setServico(servico);
+                setValorFrete(valor.toFixed(2).replace(".", ","));
+              }}
+            />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="env-transp">Transportadora</Label>

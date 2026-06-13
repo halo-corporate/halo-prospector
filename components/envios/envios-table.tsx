@@ -34,9 +34,17 @@ interface Props {
   envios: Envio[];
   embalagens: Pick<Embalagem, "id" | "nome">[];
   influencers?: Pick<Influencer, "id" | "nome">[];
+  melhorEnvioConectado?: boolean;
+  fromCepDefault?: string;
 }
 
-export function EnviosTable({ envios, embalagens, influencers = [] }: Props) {
+export function EnviosTable({
+  envios,
+  embalagens,
+  influencers = [],
+  melhorEnvioConectado = false,
+  fromCepDefault = "",
+}: Props) {
   const [pending, startTransition] = useTransition();
   const embalagensById = new Map(embalagens.map((e) => [e.id, e.nome]));
 
@@ -130,6 +138,8 @@ export function EnviosTable({ envios, embalagens, influencers = [] }: Props) {
                       envio={e}
                       embalagens={embalagens}
                       influencers={influencers}
+                      melhorEnvioConectado={melhorEnvioConectado}
+                      fromCepDefault={fromCepDefault}
                     />
                     <AlertDialog>
                       <AlertDialogTrigger asChild>

@@ -12,7 +12,10 @@ import { EnviosFilters } from "@/components/envios/envios-filters";
 import { EnviosTable } from "@/components/envios/envios-table";
 import { EnvioFormDialog } from "@/components/envios/envio-form-dialog";
 import { MelhorEnvioCard } from "@/components/envios/melhor-envio-card";
-import { isMelhorEnvioConfigured } from "@/lib/melhor-envio/config";
+import {
+  isMelhorEnvioConfigured,
+  getMelhorEnvioFromCep,
+} from "@/lib/melhor-envio/config";
 import { getMelhorEnvioConexaoStatus } from "@/lib/melhor-envio/queries";
 
 export const metadata = { title: "Envios — HALO Prospector" };
@@ -61,6 +64,8 @@ export default async function EnviosPage({
     getMelhorEnvioConexaoStatus(),
   ]);
   const meConfigured = isMelhorEnvioConfigured();
+  const meConectado = meStatus !== null;
+  const fromCepDefault = getMelhorEnvioFromCep() ?? "";
 
   const hasFiltersActive = Boolean(
     filters.status ||
@@ -91,6 +96,8 @@ export default async function EnviosPage({
           mode="create"
           embalagens={embalagens}
           influencers={influencers}
+          melhorEnvioConectado={meConectado}
+          fromCepDefault={fromCepDefault}
         />
       </div>
 
@@ -155,6 +162,8 @@ export default async function EnviosPage({
               mode="create"
               embalagens={embalagens}
               influencers={influencers}
+              melhorEnvioConectado={meConectado}
+              fromCepDefault={fromCepDefault}
               trigger={
                 <Button size="sm">
                   <Truck className="h-3.5 w-3.5" />
@@ -169,6 +178,8 @@ export default async function EnviosPage({
           envios={envios}
           embalagens={embalagens}
           influencers={influencers}
+          melhorEnvioConectado={meConectado}
+          fromCepDefault={fromCepDefault}
         />
       )}
     </div>
