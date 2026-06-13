@@ -55,7 +55,7 @@ export async function calcularFrete(
     options: { receipt: false, own_hand: false },
   };
 
-  const res = await meFetch<CalculateItem[]>(
+  const res = await meFetch<CalculateItem[] | Record<string, CalculateItem>>(
     cfg,
     accessToken,
     "/api/v2/me/shipment/calculate",
@@ -65,17 +65,19 @@ export async function calcularFrete(
   if (!res.ok) {
     return { ok: false, message: `Cotação recusada pelo Melhor Envio: ${res.message}` };
   }
-  if (!Array.isArray(res.data)) {
-    // Diagnóstico temporário: expõe o corpo bruto pra entender o formato real.
-    const snippet = JSON.stringify(res.data ?? null).slice(0, 400);
-    console.error("[calcularFrete] resposta não-array:", snippet);
-    return {
-      ok: false,
-      message: `Resposta inesperada do Melhor Envio (${typeof res.data}): ${snippet}`,
-    };
+
+  // A API pode devolver um array ou um objeto mapeado por id de serviço.
+  const itens: CalculateItem[] = Array.isArray(res.data)
+    ? res.data
+    : res.data && typeof res.data === "object"
+      ? Object.values(res.data)
+      : [];
+
+  if (itens.length === 0) {
+    return { ok: false, message: "Resposta inesperada do Melhor Envio." };
   }
 
-  const opcoes: CotacaoOpcao[] = res.data
+  const opcoes: CotacaoOpcao[] = itens
     .filter((it) => !it.error && (it.custom_price || it.price))
     .map((it) => {
       const precoStr = it.custom_price ?? it.price ?? "0";
