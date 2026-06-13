@@ -38,6 +38,30 @@ export type CotacaoResult =
   | { ok: true; opcoes: CotacaoOpcao[] }
   | { ok: false; message: string };
 
+/** Um candidato a item é um objeto com `id` (numérico) — o shape de uma opção. */
+function looksLikeItem(v: unknown): v is CalculateItem {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    typeof (v as { id?: unknown }).id === "number"
+  );
+}
+
+/**
+ * Normaliza a resposta do shipment/calculate. A API pode devolver:
+ *  - um array de opções `[{...}, {...}]`
+ *  - um objeto-único de opção `{id, name, price, ...}` (1 serviço)
+ *  - um objeto mapeado por id `{"1": {...}, "2": {...}}`
+ */
+function normalizeCalculateResponse(data: unknown): CalculateItem[] {
+  if (Array.isArray(data)) return data.filter(looksLikeItem);
+  if (looksLikeItem(data)) return [data];
+  if (data && typeof data === "object") {
+    return Object.values(data as Record<string, unknown>).filter(looksLikeItem);
+  }
+  return [];
+}
+
 export async function calcularFrete(
   cfg: MelhorEnvioConfig,
   accessToken: string,
@@ -55,7 +79,7 @@ export async function calcularFrete(
     options: { receipt: false, own_hand: false },
   };
 
-  const res = await meFetch<CalculateItem[] | Record<string, CalculateItem>>(
+  const res = await meFetch<unknown>(
     cfg,
     accessToken,
     "/api/v2/me/shipment/calculate",
@@ -66,13 +90,7 @@ export async function calcularFrete(
     return { ok: false, message: `Cotação recusada pelo Melhor Envio: ${res.message}` };
   }
 
-  // A API pode devolver um array ou um objeto mapeado por id de serviço.
-  const itens: CalculateItem[] = Array.isArray(res.data)
-    ? res.data
-    : res.data && typeof res.data === "object"
-      ? Object.values(res.data)
-      : [];
-
+  const itens = normalizeCalculateResponse(res.data);
   if (itens.length === 0) {
     return { ok: false, message: "Resposta inesperada do Melhor Envio." };
   }
