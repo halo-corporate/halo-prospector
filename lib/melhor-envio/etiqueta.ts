@@ -12,7 +12,8 @@ export interface EnderecoEtiqueta {
   name: string;
   phone?: string;
   email?: string;
-  document?: string; // CPF/CNPJ só dígitos
+  document?: string; // CPF (11 dígitos) — o Melhor Envio valida como CPF
+  company_document?: string; // CNPJ (14 dígitos)
   address: string;
   complement?: string;
   number: string;
@@ -63,6 +64,7 @@ const withCountry = (e: EnderecoEtiqueta) => ({
   phone: e.phone,
   email: e.email,
   document: e.document,
+  company_document: e.company_document,
   address: e.address,
   complement: e.complement,
   number: e.number,

@@ -257,11 +257,15 @@ export async function gerarEtiquetaAction(
     };
   }
 
+  // O Melhor Envio valida `document` como CPF (11 díg.) e usa `company_document`
+  // pro CNPJ (14 díg.). Roteia conforme o tamanho.
+  const remDoc = onlyDigits(remetente.documento);
   const from: EnderecoEtiqueta = {
     name: remetente.nome,
     phone: remetente.telefone ?? undefined,
     email: remetente.email ?? undefined,
-    document: onlyDigits(remetente.documento),
+    document: remDoc.length === 11 ? remDoc : undefined,
+    company_document: remDoc.length === 14 ? remDoc : undefined,
     address: remetente.rua ?? "",
     complement: remetente.complemento ?? undefined,
     number: remetente.numero ?? "",
@@ -275,7 +279,8 @@ export async function gerarEtiquetaAction(
     name: envio.destinatario_nome,
     phone: envio.destinatario_telefone ?? undefined,
     email: envio.destinatario_email ?? undefined,
-    document: destinatarioDoc.length > 0 ? destinatarioDoc : undefined,
+    document: destinatarioDoc.length === 11 ? destinatarioDoc : undefined,
+    company_document: destinatarioDoc.length === 14 ? destinatarioDoc : undefined,
     address: destino?.rua ?? "",
     complement: destino?.complemento ?? undefined,
     number: (destino?.numero ?? "").trim(),
