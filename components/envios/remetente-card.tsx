@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, AlertTriangle, Pencil, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -42,20 +42,27 @@ export function RemetenteCard({ remetente, completo }: Props) {
   const [cidade, setCidade] = useState("");
   const [uf, setUf] = useState("");
 
+  // Mantém o remetente mais recente sem disparar o reset do formulário: o reset
+  // só deve acontecer ao ABRIR o diálogo, nunca a cada re-render (senão apaga o
+  // que o usuário está digitando quando a página revalida em background).
+  const remetenteRef = useRef(remetente);
+  remetenteRef.current = remetente;
+
   useEffect(() => {
     if (!open) return;
-    setNome(remetente?.nome ?? "");
-    setDocumento(remetente?.documento ?? "");
-    setTelefone(remetente?.telefone ?? "");
-    setEmail(remetente?.email ?? "");
-    setCep(remetente?.cep ?? "");
-    setRua(remetente?.rua ?? "");
-    setNumero(remetente?.numero ?? "");
-    setComplemento(remetente?.complemento ?? "");
-    setBairro(remetente?.bairro ?? "");
-    setCidade(remetente?.cidade ?? "");
-    setUf(remetente?.uf ?? "");
-  }, [open, remetente]);
+    const r = remetenteRef.current;
+    setNome(r?.nome ?? "");
+    setDocumento(r?.documento ?? "");
+    setTelefone(r?.telefone ?? "");
+    setEmail(r?.email ?? "");
+    setCep(r?.cep ?? "");
+    setRua(r?.rua ?? "");
+    setNumero(r?.numero ?? "");
+    setComplemento(r?.complemento ?? "");
+    setBairro(r?.bairro ?? "");
+    setCidade(r?.cidade ?? "");
+    setUf(r?.uf ?? "");
+  }, [open]);
 
   function handleSave() {
     startTransition(async () => {

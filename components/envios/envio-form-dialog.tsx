@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Pencil, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -141,9 +141,19 @@ export function EnvioFormDialog({
 
   const [observacoes, setObservacoes] = useState(envio?.observacoes ?? "");
 
+  // Mantém envio/prefill mais recentes sem refazer o reset a cada re-render: o
+  // reset só deve rodar ao ABRIR o diálogo, senão a revalidação em background
+  // apaga o que o usuário está digitando.
+  const envioRef = useRef(envio);
+  envioRef.current = envio;
+  const prefillRef = useRef(prefill);
+  prefillRef.current = prefill;
+
   // reset ao abrir
   useEffect(() => {
     if (!open) return;
+    const envio = envioRef.current;
+    const prefill = prefillRef.current;
     setDestinatarioNome(
       envio?.destinatario_nome ?? prefill?.destinatarioNome ?? "",
     );
@@ -191,7 +201,7 @@ export function EnvioFormDialog({
     setDataEntregaPrevista(envio?.data_entrega_prevista ?? "");
     setDataEntregaEfetiva(envio?.data_entrega_efetiva ?? "");
     setObservacoes(envio?.observacoes ?? "");
-  }, [open, envio]);
+  }, [open]);
 
   // Auto-preenche o endereço pelo CEP (ViaCEP). Dispara quando o CEP tem 8
   // dígitos; preenche rua/bairro/cidade/uf (mantém o que o usuário já digitou
