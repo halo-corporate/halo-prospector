@@ -70,6 +70,15 @@ export function EnvioFormDialog({
   const [destinatarioNome, setDestinatarioNome] = useState(
     envio?.destinatario_nome ?? prefill?.destinatarioNome ?? "",
   );
+  const [destinatarioDocumento, setDestinatarioDocumento] = useState(
+    envio?.destinatario_documento ?? "",
+  );
+  const [destinatarioEmail, setDestinatarioEmail] = useState(
+    envio?.destinatario_email ?? "",
+  );
+  const [destinatarioTelefone, setDestinatarioTelefone] = useState(
+    envio?.destinatario_telefone ?? "",
+  );
   const [status, setStatus] = useState<EnvioStatus>(
     envio?.status ?? "a_despachar",
   );
@@ -157,6 +166,9 @@ export function EnvioFormDialog({
     setDestinatarioNome(
       envio?.destinatario_nome ?? prefill?.destinatarioNome ?? "",
     );
+    setDestinatarioDocumento(envio?.destinatario_documento ?? "");
+    setDestinatarioEmail(envio?.destinatario_email ?? "");
+    setDestinatarioTelefone(envio?.destinatario_telefone ?? "");
     setStatus(envio?.status ?? "a_despachar");
     setEmbalagemId(envio?.embalagem_id ?? null);
     setInfluencerId(envio?.influencer_id ?? null);
@@ -238,6 +250,9 @@ export function EnvioFormDialog({
   function handleSubmit() {
     const fd = new FormData();
     fd.set("destinatario_nome", destinatarioNome);
+    fd.set("destinatario_documento", destinatarioDocumento);
+    fd.set("destinatario_email", destinatarioEmail);
+    fd.set("destinatario_telefone", destinatarioTelefone);
     fd.set("status", status);
     if (embalagemId) fd.set("embalagem_id", embalagemId);
     if (influencerId) fd.set("influencer_id", influencerId);
@@ -341,6 +356,41 @@ export function EnvioFormDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          {/* Contato do destinatário (vai pra etiqueta do Melhor Envio) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="env-dest-doc">CPF / CNPJ</Label>
+              <Input
+                id="env-dest-doc"
+                value={destinatarioDocumento}
+                onChange={(e) => setDestinatarioDocumento(e.target.value)}
+                placeholder="Só números"
+                maxLength={20}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="env-dest-email">E-mail</Label>
+              <Input
+                id="env-dest-email"
+                type="email"
+                value={destinatarioEmail}
+                onChange={(e) => setDestinatarioEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+                maxLength={200}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="env-dest-tel">Telefone</Label>
+              <Input
+                id="env-dest-tel"
+                value={destinatarioTelefone}
+                onChange={(e) => setDestinatarioTelefone(e.target.value)}
+                placeholder="(11) 90000-0000"
+                maxLength={20}
+              />
             </div>
           </div>
 
