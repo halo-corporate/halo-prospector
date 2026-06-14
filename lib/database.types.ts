@@ -1121,6 +1121,9 @@ export interface Database {
           influencer_id: string | null;
           lead_id: string | null;
           destinatario_nome: string;
+          destinatario_documento: string | null;
+          destinatario_email: string | null;
+          destinatario_telefone: string | null;
           endereco_destino: EnderecoDestino | null;
           embalagem_id: string | null;
           peso_g: number | null;
@@ -1148,6 +1151,9 @@ export interface Database {
           influencer_id?: string | null;
           lead_id?: string | null;
           destinatario_nome: string;
+          destinatario_documento?: string | null;
+          destinatario_email?: string | null;
+          destinatario_telefone?: string | null;
           endereco_destino?: EnderecoDestino | null;
           embalagem_id?: string | null;
           peso_g?: number | null;
@@ -1175,6 +1181,9 @@ export interface Database {
           influencer_id?: string | null;
           lead_id?: string | null;
           destinatario_nome?: string;
+          destinatario_documento?: string | null;
+          destinatario_email?: string | null;
+          destinatario_telefone?: string | null;
           endereco_destino?: EnderecoDestino | null;
           embalagem_id?: string | null;
           peso_g?: number | null;

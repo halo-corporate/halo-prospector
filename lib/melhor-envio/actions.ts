@@ -270,8 +270,12 @@ export async function gerarEtiquetaAction(
     state_abbr: remetente.uf ?? undefined,
     postal_code: remCep,
   };
+  const destinatarioDoc = onlyDigits(envio.destinatario_documento ?? "");
   const to: EnderecoEtiqueta = {
     name: envio.destinatario_nome,
+    phone: envio.destinatario_telefone ?? undefined,
+    email: envio.destinatario_email ?? undefined,
+    document: destinatarioDoc.length > 0 ? destinatarioDoc : undefined,
     address: destino?.rua ?? "",
     complement: destino?.complemento ?? undefined,
     number: (destino?.numero ?? "").trim(),

@@ -84,6 +84,9 @@ const envioSchema = z.object({
     .trim()
     .min(1, "Destinatário obrigatório")
     .max(200, "Máx 200 caracteres"),
+  destinatario_documento: optionalText(20),
+  destinatario_email: optionalText(200),
+  destinatario_telefone: optionalText(20),
   status: z.enum([...ENVIO_STATUSES] as [EnvioStatus, ...EnvioStatus[]]),
   embalagem_id: z.preprocess(
     emptyToNull,
@@ -150,6 +153,9 @@ function parseDimensoesFromForm(fd: FormData) {
 function parseFormData(fd: FormData) {
   return {
     destinatario_nome: (fd.get("destinatario_nome") ?? "") as string,
+    destinatario_documento: fd.get("destinatario_documento"),
+    destinatario_email: fd.get("destinatario_email"),
+    destinatario_telefone: fd.get("destinatario_telefone"),
     status: ((fd.get("status") ?? "a_despachar") as string) as EnvioStatus,
     embalagem_id: fd.get("embalagem_id"),
     proposta_id: fd.get("proposta_id"),
@@ -174,6 +180,9 @@ function parseFormData(fd: FormData) {
 function buildPayload(parsed: z.infer<typeof envioSchema>) {
   return {
     destinatario_nome: parsed.destinatario_nome,
+    destinatario_documento: parsed.destinatario_documento ?? null,
+    destinatario_email: parsed.destinatario_email ?? null,
+    destinatario_telefone: parsed.destinatario_telefone ?? null,
     status: parsed.status,
     embalagem_id: parsed.embalagem_id ?? null,
     proposta_id: parsed.proposta_id ?? null,
