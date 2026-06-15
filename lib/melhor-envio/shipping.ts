@@ -23,6 +23,13 @@ export interface CotacaoOpcao {
   prazoDias: number | null;
 }
 
+/** Serviço que a API retornou mas SEM preço (com `error` ou sem valor). */
+export interface CotacaoIndisponivel {
+  transportadora: string;
+  servico: string;
+  motivo: string; // texto literal do `error` da API, ou explicação do porquê
+}
+
 /** Item bruto retornado pela API (campos que usamos). */
 interface CalculateItem {
   id: number;
@@ -35,7 +42,7 @@ interface CalculateItem {
 }
 
 export type CotacaoResult =
-  | { ok: true; opcoes: CotacaoOpcao[] }
+  | { ok: true; opcoes: CotacaoOpcao[]; indisponiveis: CotacaoIndisponivel[] }
   | { ok: false; message: string };
 
 /** Um candidato a item é um objeto com `id` (numérico) — o shape de uma opção. */
@@ -95,22 +102,39 @@ export async function calcularFrete(
     return { ok: false, message: "Resposta inesperada do Melhor Envio." };
   }
 
-  const opcoes: CotacaoOpcao[] = itens
-    .filter((it) => !it.error && (it.custom_price || it.price))
-    .map((it) => {
-      const precoStr = it.custom_price ?? it.price ?? "0";
-      return {
-        servicoId: it.id,
-        transportadora: it.company?.name ?? "—",
-        servico: it.name,
-        valor: Number(precoStr),
-        prazoDias: typeof it.delivery_time === "number" ? it.delivery_time : null,
-      };
-    })
-    .filter((o) => Number.isFinite(o.valor))
-    .sort((a, b) => a.valor - b.valor);
+  // Separa o que tem preço (selecionável) do que veio sem preço — guardando o
+  // motivo literal pra mostrar pro usuário por que aquela transportadora não
+  // aparece como opção.
+  const opcoes: CotacaoOpcao[] = [];
+  const indisponiveis: CotacaoIndisponivel[] = [];
+  for (const it of itens) {
+    const transportadora = it.company?.name ?? "—";
+    const servico = it.name;
+    const precoStr = it.custom_price ?? it.price;
+    if (it.error || !precoStr) {
+      indisponiveis.push({
+        transportadora,
+        servico,
+        motivo: it.error ?? "sem preço para este trajeto/pacote",
+      });
+      continue;
+    }
+    const valor = Number(precoStr);
+    if (!Number.isFinite(valor)) {
+      indisponiveis.push({ transportadora, servico, motivo: `preço inválido: "${precoStr}"` });
+      continue;
+    }
+    opcoes.push({
+      servicoId: it.id,
+      transportadora,
+      servico,
+      valor,
+      prazoDias: typeof it.delivery_time === "number" ? it.delivery_time : null,
+    });
+  }
+  opcoes.sort((a, b) => a.valor - b.valor);
 
-  if (opcoes.length === 0) {
+  if (opcoes.length === 0 && indisponiveis.length === 0) {
     return {
       ok: false,
       message:
@@ -118,5 +142,5 @@ export async function calcularFrete(
     };
   }
 
-  return { ok: true, opcoes };
+  return { ok: true, opcoes, indisponiveis };
 }

@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getValidAccessToken } from "./token";
-import { calcularFrete, type CotacaoOpcao } from "./shipping";
+import {
+  calcularFrete,
+  type CotacaoOpcao,
+  type CotacaoIndisponivel,
+} from "./shipping";
 import { gerarEtiqueta, type EnderecoEtiqueta } from "./etiqueta";
 import { getMelhorEnvioRemetente, isRemetenteCompleto } from "./remetente";
 
@@ -12,7 +16,7 @@ export type MelhorEnvioActionResult =
   | { ok: false; message: string };
 
 export type CotacaoFreteResult =
-  | { ok: true; opcoes: CotacaoOpcao[] }
+  | { ok: true; opcoes: CotacaoOpcao[]; indisponiveis: CotacaoIndisponivel[] }
   | { ok: false; message: string };
 
 export interface CotacaoFreteInput {

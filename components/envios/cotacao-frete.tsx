@@ -10,7 +10,10 @@ import {
   calcularFreteAction,
   type CotacaoFreteInput,
 } from "@/lib/melhor-envio/actions";
-import type { CotacaoOpcao } from "@/lib/melhor-envio/shipping";
+import type {
+  CotacaoOpcao,
+  CotacaoIndisponivel,
+} from "@/lib/melhor-envio/shipping";
 
 interface Props {
   conectado: boolean;
@@ -40,6 +43,7 @@ export function CotacaoFrete({
 }: Props) {
   const [origemCep, setOrigemCep] = useState(fromCepDefault);
   const [opcoes, setOpcoes] = useState<CotacaoOpcao[] | null>(null);
+  const [indisponiveis, setIndisponiveis] = useState<CotacaoIndisponivel[]>([]);
   const [selecionado, setSelecionado] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -64,10 +68,12 @@ export function CotacaoFrete({
       const res = await calcularFreteAction(input);
       if (!res.ok) {
         setOpcoes(null);
+        setIndisponiveis([]);
         toast.error(res.message);
         return;
       }
       setOpcoes(res.opcoes);
+      setIndisponiveis(res.indisponiveis);
       setSelecionado(null);
     });
   }
@@ -136,6 +142,31 @@ export function CotacaoFrete({
             );
           })}
         </div>
+      ) : opcoes && opcoes.length === 0 ? (
+        <p className="text-xs text-muted-foreground">
+          Nenhuma transportadora retornou preço pra esse trajeto/pacote.
+        </p>
+      ) : null}
+
+      {indisponiveis.length > 0 ? (
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer select-none">
+            {indisponiveis.length}{" "}
+            {indisponiveis.length === 1
+              ? "transportadora indisponível"
+              : "transportadoras indisponíveis"}{" "}
+            (ver motivo)
+          </summary>
+          <ul className="mt-2 space-y-1 pl-1">
+            {indisponiveis.map((i, idx) => (
+              <li key={`${i.transportadora}-${i.servico}-${idx}`}>
+                <span className="font-medium">{i.transportadora}</span> {i.servico}
+                {" — "}
+                <span className="text-amber-400/80">{i.motivo}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
       ) : null}
     </div>
   );
