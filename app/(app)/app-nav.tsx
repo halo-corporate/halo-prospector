@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
@@ -26,6 +27,12 @@ function isActive(href: string, pathname: string): boolean {
 export function AppNav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // createPortal precisa do document.body — só existe no cliente.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fecha ao navegar (troca de rota) e ao apertar Escape.
   useEffect(() => {
@@ -72,33 +79,40 @@ export function AppNav() {
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
-      {/* Mobile — painel + backdrop */}
-      {open ? (
-        <>
-          <div
-            className="md:hidden fixed inset-0 top-14 z-30 bg-black/40"
-            onClick={() => setOpen(false)}
-            aria-hidden
-          />
-          <nav className="md:hidden fixed inset-x-0 top-14 z-40 flex flex-col border-b border-border bg-background p-2 text-sm shadow-lg">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
+      {/* Mobile — painel + backdrop.
+          Portados pro document.body: o <header> tem backdrop-filter, que cria
+          um containing block pra descendentes position:fixed e faria o backdrop
+          (inset-0 top-14 / bottom-0) colapsar pra altura ~0. Fora do header,
+          o fixed volta a se ancorar na viewport. */}
+      {open && mounted
+        ? createPortal(
+            <>
+              <div
+                className="md:hidden fixed inset-0 top-14 z-40 bg-black/40"
                 onClick={() => setOpen(false)}
-                className={cn(
-                  "px-3 py-2.5 rounded-md transition-colors",
-                  isActive(item.href, pathname)
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </>
-      ) : null}
+                aria-hidden
+              />
+              <nav className="md:hidden fixed inset-x-0 top-14 z-50 flex flex-col border-b border-border bg-background p-2 text-sm shadow-lg">
+                {NAV_ITEMS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={cn(
+                      "px-3 py-2.5 rounded-md transition-colors",
+                      isActive(item.href, pathname)
+                        ? "bg-accent text-accent-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/50",
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            </>,
+            document.body,
+          )
+        : null}
     </>
   );
 }
