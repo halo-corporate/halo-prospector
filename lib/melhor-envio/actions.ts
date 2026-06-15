@@ -306,27 +306,51 @@ export async function gerarEtiquetaAction(
   if (!etiqueta.ok) return { ok: false, message: etiqueta.message };
 
   // Baixa o PDF e sobe no bucket `etiquetas` (mesmo padrão do upload manual).
+  // A URL do print às vezes exige auth: sem o Bearer ela devolve 200 com uma
+  // página HTML de login, que se gravada como .pdf "não abre". Por isso mando o
+  // token e VALIDO o magic number %PDF antes de salvar.
   const rand = Math.random().toString(36).slice(2, 10);
   const path = `${user.id}/${envioId}-${rand}.pdf`;
   let etiquetaPath: string | null = null;
+  let pdfError: string | null = null;
   try {
-    const pdfRes = await fetch(etiqueta.data.pdfUrl);
-    if (pdfRes.ok) {
-      const bytes = new Uint8Array(await pdfRes.arrayBuffer());
-      const { error: upErr } = await supabase.storage
-        .from("etiquetas")
-        .upload(path, bytes, { contentType: "application/pdf", upsert: false });
-      if (upErr) {
-        console.error("[gerarEtiquetaAction upload]", upErr);
-      } else {
-        etiquetaPath = path;
-      }
-    } else {
+    const pdfRes = await fetch(etiqueta.data.pdfUrl, {
+      headers: { Authorization: `Bearer ${token.accessToken}` },
+    });
+    if (!pdfRes.ok) {
+      pdfError = `download do PDF falhou (HTTP ${pdfRes.status})`;
       console.error("[gerarEtiquetaAction pdf fetch]", pdfRes.status);
+    } else {
+      const bytes = new Uint8Array(await pdfRes.arrayBuffer());
+      const isPdf =
+        bytes.length > 4 &&
+        bytes[0] === 0x25 && // %
+        bytes[1] === 0x50 && // P
+        bytes[2] === 0x44 && // D
+        bytes[3] === 0x46; // F
+      if (!isPdf) {
+        pdfError = `o conteúdo baixado não é um PDF válido (não começa com %PDF; ${bytes.length} bytes)`;
+        console.error("[gerarEtiquetaAction pdf magic]", pdfError);
+      } else {
+        const { error: upErr } = await supabase.storage
+          .from("etiquetas")
+          .upload(path, bytes, { contentType: "application/pdf", upsert: false });
+        if (upErr) {
+          pdfError = `falha ao salvar o PDF no storage: ${upErr.message}`;
+          console.error("[gerarEtiquetaAction upload]", upErr);
+        } else {
+          etiquetaPath = path;
+        }
+      }
     }
   } catch (e) {
+    pdfError = e instanceof Error ? e.message : String(e);
     console.error("[gerarEtiquetaAction pdf]", e);
   }
+
+  // Valor REAL cobrado no checkout (do pedido) — cai pra estimativa da cotação
+  // só se a API não devolveu o preço do pedido.
+  const valorFrete = etiqueta.data.valorFrete ?? opcao.valor;
 
   const { error: updErr } = await supabase
     .from("envios")
@@ -335,7 +359,7 @@ export async function gerarEtiquetaAction(
       etiqueta_url: etiquetaPath,
       codigo_rastreio: etiqueta.data.codigoRastreio,
       tracking_url: etiqueta.data.trackingUrl,
-      valor_frete: opcao.valor,
+      valor_frete: valorFrete,
     })
     .eq("id", envioId);
   if (updErr) {
@@ -350,5 +374,15 @@ export async function gerarEtiquetaAction(
 
   revalidatePath(`/envios/${envioId}`);
   revalidatePath("/envios");
-  return { ok: true, etiquetaPath: etiquetaPath ?? "", orderId: etiqueta.data.orderId };
+
+  // A etiqueta foi PAGA e o pedido salvo, mas o PDF não veio pro sistema.
+  // Surface o erro literal + a URL direta do Melhor Envio como saída.
+  if (!etiquetaPath) {
+    return {
+      ok: false,
+      message: `Etiqueta paga e gerada (pedido ${etiqueta.data.orderId}), mas não consegui baixar o PDF pro sistema: ${pdfError ?? "motivo desconhecido"}. Abra direto no Melhor Envio: ${etiqueta.data.pdfUrl}`,
+    };
+  }
+
+  return { ok: true, etiquetaPath, orderId: etiqueta.data.orderId };
 }

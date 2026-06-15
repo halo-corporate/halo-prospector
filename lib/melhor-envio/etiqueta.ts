@@ -37,6 +37,8 @@ export interface EtiquetaResult {
   pdfUrl: string;
   codigoRastreio: string | null;
   trackingUrl: string | null;
+  /** Valor REAL cobrado no checkout (do pedido), não a estimativa da cotação. */
+  valorFrete: number | null;
 }
 
 export type GerarEtiquetaResult =
@@ -57,6 +59,7 @@ interface PrintResponse {
 interface OrderInfo {
   tracking?: string | null;
   self_tracking?: string | null;
+  price?: string | number | null;
 }
 
 const withCountry = (e: EnderecoEtiqueta) => ({
@@ -156,17 +159,23 @@ export async function gerarEtiqueta(
     };
   }
 
-  // Best-effort: busca rastreio do pedido (não falha o fluxo se não vier).
+  // Best-effort: busca rastreio + valor REAL cobrado do pedido (não falha o
+  // fluxo se não vier).
   let codigoRastreio: string | null = cart.data.tracking ?? null;
   let trackingUrl: string | null = null;
+  let valorFrete: number | null = null;
   const order = await meFetch<OrderInfo>(cfg, accessToken, `/api/v2/me/orders/${orderId}`);
   if (order.ok) {
     codigoRastreio = order.data?.tracking ?? codigoRastreio;
     if (order.data?.self_tracking) trackingUrl = order.data.self_tracking;
+    if (order.data?.price != null) {
+      const p = Number(order.data.price);
+      if (Number.isFinite(p)) valorFrete = p;
+    }
   }
 
   return {
     ok: true,
-    data: { orderId, pdfUrl: print.data.url, codigoRastreio, trackingUrl },
+    data: { orderId, pdfUrl: print.data.url, codigoRastreio, trackingUrl, valorFrete },
   };
 }
