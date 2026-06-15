@@ -354,9 +354,14 @@ export async function copyPendingFromPreviousWeekAction(): Promise<
   prevDate.setDate(prevDate.getDate() - 7);
   const prev = prevDate.toISOString().slice(0, 10);
 
+  // Campos copiados pra preservar a tarefa "do mesmo jeito" — inclui a descrição
+  // (observacoes), categoria, prioridade, prazo e stand_by. `concluida` fica no
+  // default (false): puxar pendência = recriar como a fazer.
+  const CAMPOS = "id, texto, observacoes, categoria_id, prioridade, prazo, stand_by, ordem";
+
   const { data: pendentes, error: errFetch } = await supabase
     .from("tarefas_semanais")
-    .select("texto, ordem")
+    .select(CAMPOS)
     .eq("semana", prev)
     .eq("concluida", false)
     .is("parent_id", null)
@@ -369,6 +374,20 @@ export async function copyPendingFromPreviousWeekAction(): Promise<
     return { ok: true, copied: 0 };
   }
 
+  // Subtarefas pendentes dessas tarefas-pai — vêm junto, religadas ao novo pai.
+  const parentIds = pendentes.map((p) => p.id);
+  const { data: subpendentes, error: errSub } = await supabase
+    .from("tarefas_semanais")
+    .select(`${CAMPOS}, parent_id`)
+    .eq("semana", prev)
+    .eq("concluida", false)
+    .in("parent_id", parentIds)
+    .order("ordem", { ascending: true });
+  if (errSub) {
+    console.error("[copyPending sub]", errSub);
+    return { ok: false, message: errSub.message };
+  }
+
   const { data: max } = await supabase
     .from("tarefas_semanais")
     .select("ordem")
@@ -378,19 +397,64 @@ export async function copyPendingFromPreviousWeekAction(): Promise<
     .maybeSingle();
   let nextOrdem = (max?.ordem ?? -1) + 1;
 
-  const rows = pendentes.map((p) => ({
+  // Insere as tarefas-pai e recupera os novos ids (na mesma ordem do input) pra
+  // religar as subtarefas.
+  const parentRows = pendentes.map((p) => ({
     semana: cur,
     texto: p.texto,
+    observacoes: p.observacoes,
+    categoria_id: p.categoria_id,
+    prioridade: p.prioridade,
+    prazo: p.prazo,
+    stand_by: p.stand_by,
     ordem: nextOrdem++,
   }));
-  const { error: errInsert } = await supabase
+  const { data: inseridas, error: errInsert } = await supabase
     .from("tarefas_semanais")
-    .insert(rows);
-  if (errInsert) {
+    .insert(parentRows)
+    .select("id");
+  if (errInsert || !inseridas) {
     console.error("[copyPending insert]", errInsert);
-    return { ok: false, message: errInsert.message };
+    return { ok: false, message: errInsert?.message ?? "Falha ao copiar tarefas." };
   }
+
+  // Mapeia o id antigo da pai -> id novo (insert devolve na ordem do input).
+  const idMap = new Map<string, string>();
+  pendentes.forEach((p, i) => {
+    const novo = inseridas[i];
+    if (novo) idMap.set(p.id, novo.id);
+  });
+
+  if (subpendentes && subpendentes.length > 0) {
+    const subRows = subpendentes
+      .map((s) => {
+        const novoParent = s.parent_id ? idMap.get(s.parent_id) : undefined;
+        if (!novoParent) return null;
+        return {
+          semana: cur,
+          texto: s.texto,
+          observacoes: s.observacoes,
+          categoria_id: s.categoria_id,
+          prioridade: s.prioridade,
+          prazo: s.prazo,
+          stand_by: s.stand_by,
+          ordem: s.ordem,
+          parent_id: novoParent,
+        };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+    if (subRows.length > 0) {
+      const { error: errSubInsert } = await supabase
+        .from("tarefas_semanais")
+        .insert(subRows);
+      if (errSubInsert) {
+        console.error("[copyPending sub insert]", errSubInsert);
+        return { ok: false, message: errSubInsert.message };
+      }
+    }
+  }
+
   revalidatePath("/checklist");
   revalidatePath("/");
-  return { ok: true, copied: rows.length };
+  return { ok: true, copied: inseridas.length };
 }
