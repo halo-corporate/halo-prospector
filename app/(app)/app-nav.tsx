@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/checklist", label: "Checklist" },
   { href: "/mensagens", label: "Mensagens" },
   { href: "/links", label: "Links" },
+  { href: "/configuracoes", label: "Configurações" },
 ];
 
 function isActive(href: string, pathname: string): boolean {
