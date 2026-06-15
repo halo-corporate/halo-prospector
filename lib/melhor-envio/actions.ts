@@ -318,7 +318,25 @@ export async function gerarEtiquetaAction(
     insuranceValue: insurance,
     productName: "Produto HALO",
   });
-  if (!etiqueta.ok) return { ok: false, message: etiqueta.message };
+  if (!etiqueta.ok) {
+    // Se o checkout JÁ debitou mas o Melhor Envio falhou depois, grava o
+    // order_id mesmo assim pra `jaGerada` bloquear nova compra — senão um novo
+    // clique cobraria DE NOVO (foi o que causou a cobrança dupla na validação).
+    if (etiqueta.cobrado && etiqueta.orderId) {
+      const { error: partialErr } = await supabase
+        .from("envios")
+        .update({ melhor_envio_order_id: etiqueta.orderId })
+        .eq("id", envioId);
+      if (partialErr) console.error("[gerarEtiquetaAction partial]", partialErr);
+      revalidatePath(`/envios/${envioId}`);
+      revalidatePath("/envios");
+      return {
+        ok: false,
+        message: `Etiqueta PAGA (pedido ${etiqueta.orderId}), mas o Melhor Envio falhou ao finalizar: ${etiqueta.message}. NÃO gere de novo (cobraria outra vez) — baixe a etiqueta no painel do Melhor Envio e anexe pelo botão "Enviar PDF".`,
+      };
+    }
+    return { ok: false, message: etiqueta.message };
+  }
 
   // Baixa o PDF e sobe no bucket `etiquetas` (mesmo padrão do upload manual).
   // A URL do print às vezes exige auth: sem o Bearer ela devolve 200 com uma

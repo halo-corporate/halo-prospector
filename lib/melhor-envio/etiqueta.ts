@@ -43,7 +43,9 @@ export interface EtiquetaResult {
 
 export type GerarEtiquetaResult =
   | { ok: true; data: EtiquetaResult }
-  | { ok: false; message: string };
+  // `cobrado` = o checkout JÁ debitou o saldo antes de falhar; nesse caso vem o
+  // `orderId` pra o caller persistir e NUNCA cobrar de novo.
+  | { ok: false; message: string; orderId?: string; cobrado?: boolean };
 
 interface CartItem {
   id: string;
@@ -142,6 +144,8 @@ export async function gerarEtiqueta(
     return {
       ok: false,
       message: `Pedido pago, mas falhou ao gerar a etiqueta (id ${orderId}): ${generate.message}`,
+      orderId,
+      cobrado: true,
     };
   }
 
@@ -158,6 +162,8 @@ export async function gerarEtiqueta(
     return {
       ok: false,
       message: `Etiqueta gerada, mas falhou ao obter o PDF (id ${orderId}): ${print.ok ? "sem URL" : print.message}`,
+      orderId,
+      cobrado: true,
     };
   }
 
