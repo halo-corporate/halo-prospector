@@ -11,12 +11,13 @@ export function LogoutButton() {
   return (
     <Button
       variant="ghost"
-      size="sm"
+      size="icon"
       disabled={pending}
+      aria-label="Sair"
+      title="Sair"
       onClick={() => startTransition(() => logoutAction())}
     >
       <LogOut className="h-4 w-4" />
-      <span>{pending ? "Saindo…" : "Sair"}</span>
     </Button>
   );
 }

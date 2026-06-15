@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { LogoutButton } from "@/components/auth/logout-button";
+import { Button } from "@/components/ui/button";
 import { HaloLockup } from "@/components/halo-lockup";
 import { AppNav } from "./app-nav";
 import { RealtimeRefresher } from "./realtime-refresher";
@@ -42,6 +44,17 @@ export default async function AppLayout({
             <span className="text-xs text-muted-foreground hidden sm:inline">
               {user?.email}
             </span>
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              aria-label="Configurações"
+              title="Configurações"
+            >
+              <Link href="/configuracoes">
+                <Settings className="h-4 w-4" />
+              </Link>
+            </Button>
             <LogoutButton />
           </div>
         </div>
