@@ -222,6 +222,17 @@ export async function gerarEtiquetaAction(
     return { ok: false, message: "Endereço de destino incompleto (CEP e número)." };
   }
 
+  // O Melhor Envio exige CPF (11) ou CNPJ (14 díg.) do destinatário no cart.
+  // Barra aqui pra não fazer a re-cotação à toa nem chegar ao passo que cobra.
+  const destinatarioDocDigits = onlyDigits(envio.destinatario_documento ?? "");
+  if (destinatarioDocDigits.length !== 11 && destinatarioDocDigits.length !== 14) {
+    return {
+      ok: false,
+      message:
+        "CPF (11) ou CNPJ (14 dígitos) do destinatário é obrigatório pra gerar a etiqueta. Edite o envio e preencha.",
+    };
+  }
+
   const peso = Number(envio.peso_g);
   const altura = Number(envio.dimensoes_cm?.altura);
   const largura = Number(envio.dimensoes_cm?.largura);

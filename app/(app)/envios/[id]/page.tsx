@@ -52,6 +52,11 @@ export default async function EnvioDetailPage({ params }: { params: Params }) {
     Number(envio.dimensoes_cm?.altura) > 0 &&
     Number(envio.dimensoes_cm?.largura) > 0 &&
     Number(envio.dimensoes_cm?.comprimento) > 0;
+  // O Melhor Envio exige CPF (11) ou CNPJ (14 díg.) do destinatário pra montar o
+  // pedido. Sem isso o cart falha — então barra ANTES do passo que cobra.
+  const destinatarioDocDigits = (envio.destinatario_documento ?? "").replace(/\D/g, "");
+  const destinatarioDocOk =
+    destinatarioDocDigits.length === 11 || destinatarioDocDigits.length === 14;
   const etiquetaDisabledReason = !meConectado
     ? "Conecte o Melhor Envio em /envios."
     : !remetenteCompleto
@@ -62,7 +67,9 @@ export default async function EnvioDetailPage({ params }: { params: Params }) {
           ? "Endereço de destino incompleto (CEP e número)."
           : !pesoDimsOk
             ? "Preencha peso e dimensões do envio."
-            : null;
+            : !destinatarioDocOk
+              ? "Preencha o CPF (11) ou CNPJ (14 dígitos) do destinatário (edite o envio)."
+              : null;
 
   const end = envio.endereco_destino;
   const linhaEndereco = end
