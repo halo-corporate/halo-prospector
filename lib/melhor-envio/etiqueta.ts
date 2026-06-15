@@ -145,12 +145,14 @@ export async function gerarEtiqueta(
     };
   }
 
-  // 4) print — devolve a URL do PDF.
+  // 4) print — devolve a URL do PDF. `mode: "public"` gera um link PÚBLICO
+  // (baixável sem login). Com "private" a URL exige a sessão do Melhor Envio no
+  // navegador, então o download server-side pegava o HTML de login em vez do PDF.
   const print = await meFetch<PrintResponse>(
     cfg,
     accessToken,
     "/api/v2/me/shipment/print",
-    { method: "POST", body: { mode: "private", orders: [orderId] } },
+    { method: "POST", body: { mode: "public", orders: [orderId] } },
   );
   if (!print.ok || !print.data?.url) {
     return {
