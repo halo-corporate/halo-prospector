@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Tag, AlertTriangle } from "lucide-react";
+import { Tag, AlertTriangle, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { gerarEtiquetaAction } from "@/lib/melhor-envio/actions";
+import {
+  gerarEtiquetaAction,
+  rebaixarEtiquetaAction,
+} from "@/lib/melhor-envio/actions";
 
 interface Props {
   envioId: string;
@@ -24,6 +27,8 @@ interface Props {
   disabledReason: string | null;
   /** Já existe pedido no Melhor Envio — não gerar de novo. */
   jaGerada: boolean;
+  /** Já tem o PDF da etiqueta no sistema (bucket). */
+  temPdf: boolean;
   /** Sugestão de valor declarado (R$) pro seguro. */
   valorSugerido?: number | null;
 }
@@ -32,6 +37,7 @@ export function GerarEtiqueta({
   envioId,
   disabledReason,
   jaGerada,
+  temPdf,
   valorSugerido,
 }: Props) {
   const router = useRouter();
@@ -41,12 +47,39 @@ export function GerarEtiqueta({
     valorSugerido && valorSugerido > 0 ? String(valorSugerido) : "",
   );
 
+  function handleRebaixar() {
+    startTransition(async () => {
+      const res = await rebaixarEtiquetaAction(envioId);
+      if (!res.ok) {
+        toast.error(res.message);
+        return;
+      }
+      toast.success("Etiqueta baixada do Melhor Envio!");
+      router.refresh();
+    });
+  }
+
   if (jaGerada) {
+    // Pedido já existe no Melhor Envio (e já foi pago). Se o PDF ainda não veio
+    // pro sistema, dá pra re-puxar SEM cobrar de novo (só print, sem checkout).
     return (
-      <p className="text-[11px] text-muted-foreground">
-        Etiqueta já gerada no Melhor Envio. Para gerar de novo, cancele o
-        pedido no painel do Melhor Envio.
-      </p>
+      <div className="space-y-2">
+        <p className="text-[11px] text-muted-foreground">
+          Etiqueta já gerada no Melhor Envio. Para gerar de novo, cancele o
+          pedido no painel do Melhor Envio.
+        </p>
+        {!temPdf ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRebaixar}
+            disabled={pending}
+          >
+            <Download className="h-3.5 w-3.5" />
+            {pending ? "Baixando…" : "Baixar etiqueta do Melhor Envio"}
+          </Button>
+        ) : null}
+      </div>
     );
   }
 

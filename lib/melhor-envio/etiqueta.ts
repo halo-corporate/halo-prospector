@@ -187,3 +187,56 @@ export async function gerarEtiqueta(
     data: { orderId, pdfUrl: print.data.url, codigoRastreio, trackingUrl, valorFrete },
   };
 }
+
+export interface ReimprimirResult {
+  pdfUrl: string;
+  codigoRastreio: string | null;
+  trackingUrl: string | null;
+  valorFrete: number | null;
+}
+
+export type ReimprimirEtiquetaResult =
+  | { ok: true; data: ReimprimirResult }
+  | { ok: false; message: string };
+
+/**
+ * Reobtém o PDF (link público) de um pedido JÁ pago/gerado, sem cart nem
+ * checkout — portanto NÃO cobra. Serve pra puxar a etiqueta pro sistema quando
+ * a geração cobrou mas o PDF não chegou (ex.: pedidos antigos em mode private).
+ */
+export async function reimprimirEtiqueta(
+  cfg: MelhorEnvioConfig,
+  accessToken: string,
+  orderId: string,
+): Promise<ReimprimirEtiquetaResult> {
+  const print = await meFetch<PrintResponse>(
+    cfg,
+    accessToken,
+    "/api/v2/me/shipment/print",
+    { method: "POST", body: { mode: "public", orders: [orderId] } },
+  );
+  if (!print.ok || !print.data?.url) {
+    return {
+      ok: false,
+      message: `Falha ao obter o PDF (id ${orderId}): ${print.ok ? "sem URL" : print.message}`,
+    };
+  }
+
+  let codigoRastreio: string | null = null;
+  let trackingUrl: string | null = null;
+  let valorFrete: number | null = null;
+  const order = await meFetch<OrderInfo>(cfg, accessToken, `/api/v2/me/orders/${orderId}`);
+  if (order.ok) {
+    codigoRastreio = order.data?.tracking ?? null;
+    if (order.data?.self_tracking) trackingUrl = order.data.self_tracking;
+    if (order.data?.price != null) {
+      const p = Number(order.data.price);
+      if (Number.isFinite(p)) valorFrete = p;
+    }
+  }
+
+  return {
+    ok: true,
+    data: { pdfUrl: print.data.url, codigoRastreio, trackingUrl, valorFrete },
+  };
+}

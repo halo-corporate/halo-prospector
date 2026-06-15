@@ -8,7 +8,11 @@ import {
   type CotacaoOpcao,
   type CotacaoIndisponivel,
 } from "./shipping";
-import { gerarEtiqueta, type EnderecoEtiqueta } from "./etiqueta";
+import {
+  gerarEtiqueta,
+  reimprimirEtiqueta,
+  type EnderecoEtiqueta,
+} from "./etiqueta";
 import { getMelhorEnvioRemetente, isRemetenteCompleto } from "./remetente";
 
 export type MelhorEnvioActionResult =
@@ -157,6 +161,59 @@ export async function disconnectMelhorEnvioAction(): Promise<MelhorEnvioActionRe
   }
   revalidatePath("/envios");
   return { ok: true };
+}
+
+type SupabaseServer = ReturnType<typeof createClient>;
+
+/**
+ * Baixa o PDF da etiqueta (URL pública do Melhor Envio) e sobe no bucket
+ * `etiquetas`, no mesmo padrão do upload manual: {user_id}/{envio_id}-{rand}.pdf.
+ * Manda o Bearer junto (links private exigem sessão; mesmo no public não atrapalha)
+ * e valida os magic bytes `%PDF` — se vier HTML (página de login) ou erro, NÃO
+ * sobe lixo e devolve o motivo. Best-effort: nunca lança, sempre devolve
+ * { path, error } pro caller decidir.
+ */
+async function baixarEtiquetaPdf(
+  supabase: SupabaseServer,
+  userId: string,
+  envioId: string,
+  pdfUrl: string,
+  accessToken: string,
+): Promise<{ path: string | null; error: string | null }> {
+  let bytes: Uint8Array;
+  try {
+    const resp = await fetch(pdfUrl, {
+      headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/pdf" },
+    });
+    if (!resp.ok) {
+      return { path: null, error: `download HTTP ${resp.status}` };
+    }
+    bytes = new Uint8Array(await resp.arrayBuffer());
+  } catch (e) {
+    return { path: null, error: e instanceof Error ? e.message : "erro de rede no download" };
+  }
+
+  // Magic bytes %PDF — se não bater, provavelmente veio HTML (login) ou erro.
+  if (
+    bytes.length < 4 ||
+    bytes[0] !== 0x25 ||
+    bytes[1] !== 0x50 ||
+    bytes[2] !== 0x44 ||
+    bytes[3] !== 0x46
+  ) {
+    return { path: null, error: "o arquivo baixado não é um PDF válido (veio HTML/erro?)" };
+  }
+
+  const rand = Math.random().toString(36).slice(2, 10);
+  const path = `${userId}/${envioId}-${rand}.pdf`;
+  const { error: upErr } = await supabase.storage
+    .from("etiquetas")
+    .upload(path, bytes, { contentType: "application/pdf", upsert: false });
+  if (upErr) {
+    console.error("[baixarEtiquetaPdf upload]", upErr);
+    return { path: null, error: upErr.message };
+  }
+  return { path, error: null };
 }
 
 export type GerarEtiquetaActionResult =
@@ -339,47 +396,13 @@ export async function gerarEtiquetaAction(
   }
 
   // Baixa o PDF e sobe no bucket `etiquetas` (mesmo padrão do upload manual).
-  // A URL do print às vezes exige auth: sem o Bearer ela devolve 200 com uma
-  // página HTML de login, que se gravada como .pdf "não abre". Por isso mando o
-  // token e VALIDO o magic number %PDF antes de salvar.
-  const rand = Math.random().toString(36).slice(2, 10);
-  const path = `${user.id}/${envioId}-${rand}.pdf`;
-  let etiquetaPath: string | null = null;
-  let pdfError: string | null = null;
-  try {
-    const pdfRes = await fetch(etiqueta.data.pdfUrl, {
-      headers: { Authorization: `Bearer ${token.accessToken}` },
-    });
-    if (!pdfRes.ok) {
-      pdfError = `download do PDF falhou (HTTP ${pdfRes.status})`;
-      console.error("[gerarEtiquetaAction pdf fetch]", pdfRes.status);
-    } else {
-      const bytes = new Uint8Array(await pdfRes.arrayBuffer());
-      const isPdf =
-        bytes.length > 4 &&
-        bytes[0] === 0x25 && // %
-        bytes[1] === 0x50 && // P
-        bytes[2] === 0x44 && // D
-        bytes[3] === 0x46; // F
-      if (!isPdf) {
-        pdfError = `o conteúdo baixado não é um PDF válido (não começa com %PDF; ${bytes.length} bytes)`;
-        console.error("[gerarEtiquetaAction pdf magic]", pdfError);
-      } else {
-        const { error: upErr } = await supabase.storage
-          .from("etiquetas")
-          .upload(path, bytes, { contentType: "application/pdf", upsert: false });
-        if (upErr) {
-          pdfError = `falha ao salvar o PDF no storage: ${upErr.message}`;
-          console.error("[gerarEtiquetaAction upload]", upErr);
-        } else {
-          etiquetaPath = path;
-        }
-      }
-    }
-  } catch (e) {
-    pdfError = e instanceof Error ? e.message : String(e);
-    console.error("[gerarEtiquetaAction pdf]", e);
-  }
+  const { path: etiquetaPath, error: pdfError } = await baixarEtiquetaPdf(
+    supabase,
+    user.id,
+    envioId,
+    etiqueta.data.pdfUrl,
+    token.accessToken,
+  );
 
   // Valor REAL cobrado no checkout (do pedido) — cai pra estimativa da cotação
   // só se a API não devolveu o preço do pedido.
@@ -418,4 +441,100 @@ export async function gerarEtiquetaAction(
   }
 
   return { ok: true, etiquetaPath, orderId: etiqueta.data.orderId };
+}
+
+export type RebaixarEtiquetaActionResult =
+  | { ok: true; etiquetaPath: string }
+  | { ok: false; message: string };
+
+/**
+ * Re-puxa o PDF de uma etiqueta JÁ paga/gerada pro sistema, SEM cobrar de novo.
+ * Usa o `melhor_envio_order_id` do envio e só chama `shipment/print` (mode public)
+ * — nada de cart/checkout. Serve pra quando a geração cobrou mas o PDF não chegou
+ * (ex.: pedido emitido em mode private antes do fix). Recusa se o envio já tem
+ * `etiqueta_url` (nada a fazer) ou se não tem order_id (nunca foi gerada).
+ */
+export async function rebaixarEtiquetaAction(
+  envioId: string,
+): Promise<RebaixarEtiquetaActionResult> {
+  if (!envioId || envioId.length < 10) {
+    return { ok: false, message: "ID do envio inválido." };
+  }
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, message: "Não autenticado." };
+
+  const { data: envio, error: envioErr } = await supabase
+    .from("envios")
+    .select("id, melhor_envio_order_id, etiqueta_url, codigo_rastreio, tracking_url, valor_frete")
+    .eq("id", envioId)
+    .maybeSingle();
+  if (envioErr) {
+    console.error("[rebaixarEtiquetaAction envio]", envioErr);
+    return { ok: false, message: envioErr.message };
+  }
+  if (!envio) return { ok: false, message: "Envio não encontrado." };
+  if (envio.etiqueta_url) {
+    return { ok: false, message: "Este envio já tem a etiqueta no sistema." };
+  }
+  if (!envio.melhor_envio_order_id) {
+    return {
+      ok: false,
+      message: "Este envio não tem pedido no Melhor Envio. Gere a etiqueta primeiro.",
+    };
+  }
+
+  const token = await getValidAccessToken();
+  if (!token.ok) return { ok: false, message: token.message };
+
+  const reimp = await reimprimirEtiqueta(
+    token.cfg,
+    token.accessToken,
+    envio.melhor_envio_order_id,
+  );
+  if (!reimp.ok) return { ok: false, message: reimp.message };
+
+  const { path: etiquetaPath, error: pdfError } = await baixarEtiquetaPdf(
+    supabase,
+    user.id,
+    envioId,
+    reimp.data.pdfUrl,
+    token.accessToken,
+  );
+  if (!etiquetaPath) {
+    return {
+      ok: false,
+      message: `Não consegui baixar o PDF pro sistema: ${pdfError ?? "motivo desconhecido"}. Abra direto no Melhor Envio: ${reimp.data.pdfUrl}`,
+    };
+  }
+
+  // Preenche também rastreio/tracking/valor se ainda estiverem vazios (best-effort).
+  const update: Record<string, unknown> = { etiqueta_url: etiquetaPath };
+  if (!envio.codigo_rastreio && reimp.data.codigoRastreio) {
+    update.codigo_rastreio = reimp.data.codigoRastreio;
+  }
+  if (!envio.tracking_url && reimp.data.trackingUrl) {
+    update.tracking_url = reimp.data.trackingUrl;
+  }
+  if (envio.valor_frete == null && reimp.data.valorFrete != null) {
+    update.valor_frete = reimp.data.valorFrete;
+  }
+
+  const { error: updErr } = await supabase
+    .from("envios")
+    .update(update)
+    .eq("id", envioId);
+  if (updErr) {
+    // O PDF já está no bucket — não perde isso por causa do registro.
+    await supabase.storage.from("etiquetas").remove([etiquetaPath]);
+    console.error("[rebaixarEtiquetaAction update]", updErr);
+    return { ok: false, message: updErr.message };
+  }
+
+  revalidatePath(`/envios/${envioId}`);
+  revalidatePath("/envios");
+  return { ok: true, etiquetaPath };
 }
