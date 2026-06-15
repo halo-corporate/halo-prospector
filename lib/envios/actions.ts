@@ -360,6 +360,13 @@ export async function getEtiquetaSignedUrlAction(
   if (error || !envio?.etiqueta_url) {
     return { ok: false, message: "Etiqueta não encontrada" };
   }
+  // etiqueta_url pode ser um link EXTERNO (página pública do Melhor Envio, que
+  // serve a etiqueta em HTML — não há PDF binário pra baixar) ou um path no
+  // bucket (upload manual / quando a API devolve PDF de fato). Link externo abre
+  // direto; path do bucket vira signed URL.
+  if (/^https?:\/\//i.test(envio.etiqueta_url)) {
+    return { ok: true, url: envio.etiqueta_url };
+  }
   const { data, error: signErr } = await supabase.storage
     .from("etiquetas")
     .createSignedUrl(envio.etiqueta_url, 600);
@@ -380,7 +387,9 @@ export async function deleteEtiquetaAction(
     .select("etiqueta_url")
     .eq("id", envioId)
     .maybeSingle();
-  if (envio?.etiqueta_url) {
+  // Só remove do bucket se for um path do bucket — link externo (Melhor Envio)
+  // não tem arquivo nosso pra apagar.
+  if (envio?.etiqueta_url && !/^https?:\/\//i.test(envio.etiqueta_url)) {
     await supabase.storage.from("etiquetas").remove([envio.etiqueta_url]);
   }
   const { error } = await supabase

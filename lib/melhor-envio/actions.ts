@@ -395,14 +395,19 @@ export async function gerarEtiquetaAction(
     return { ok: false, message: etiqueta.message };
   }
 
-  // Baixa o PDF e sobe no bucket `etiquetas` (mesmo padrão do upload manual).
-  const { path: etiquetaPath, error: pdfError } = await baixarEtiquetaPdf(
+  // Tenta baixar o PDF binário pro bucket. O Melhor Envio, porém, serve a
+  // etiqueta como PÁGINA HTML pública (/imprimir/HASH) — não há PDF binário ali —
+  // então o download normalmente não rende um PDF. Nesse caso guardamos o LINK
+  // público direto em `etiqueta_url` (o "Abrir / imprimir" abre a etiqueta sem
+  // login; o usuário imprime/salva como PDF pelo navegador).
+  const { path: etiquetaPath } = await baixarEtiquetaPdf(
     supabase,
     user.id,
     envioId,
     etiqueta.data.pdfUrl,
     token.accessToken,
   );
+  const etiquetaRef = etiquetaPath ?? etiqueta.data.pdfUrl;
 
   // Valor REAL cobrado no checkout (do pedido) — cai pra estimativa da cotação
   // só se a API não devolveu o preço do pedido.
@@ -412,7 +417,7 @@ export async function gerarEtiquetaAction(
     .from("envios")
     .update({
       melhor_envio_order_id: etiqueta.data.orderId,
-      etiqueta_url: etiquetaPath,
+      etiqueta_url: etiquetaRef,
       codigo_rastreio: etiqueta.data.codigoRastreio,
       tracking_url: etiqueta.data.trackingUrl,
       valor_frete: valorFrete,
@@ -431,16 +436,7 @@ export async function gerarEtiquetaAction(
   revalidatePath(`/envios/${envioId}`);
   revalidatePath("/envios");
 
-  // A etiqueta foi PAGA e o pedido salvo, mas o PDF não veio pro sistema.
-  // Surface o erro literal + a URL direta do Melhor Envio como saída.
-  if (!etiquetaPath) {
-    return {
-      ok: false,
-      message: `Etiqueta paga e gerada (pedido ${etiqueta.data.orderId}), mas não consegui baixar o PDF pro sistema: ${pdfError ?? "motivo desconhecido"}. Abra direto no Melhor Envio: ${etiqueta.data.pdfUrl}`,
-    };
-  }
-
-  return { ok: true, etiquetaPath, orderId: etiqueta.data.orderId };
+  return { ok: true, etiquetaPath: etiquetaRef, orderId: etiqueta.data.orderId };
 }
 
 export type RebaixarEtiquetaActionResult =
@@ -497,22 +493,19 @@ export async function rebaixarEtiquetaAction(
   );
   if (!reimp.ok) return { ok: false, message: reimp.message };
 
-  const { path: etiquetaPath, error: pdfError } = await baixarEtiquetaPdf(
+  // Tenta o PDF binário; se não vier (o Melhor Envio serve HTML em /imprimir),
+  // guarda o LINK público direto — o "Abrir / imprimir" abre a etiqueta sem login.
+  const { path: etiquetaPath } = await baixarEtiquetaPdf(
     supabase,
     user.id,
     envioId,
     reimp.data.pdfUrl,
     token.accessToken,
   );
-  if (!etiquetaPath) {
-    return {
-      ok: false,
-      message: `Não consegui baixar o PDF pro sistema: ${pdfError ?? "motivo desconhecido"}. Abra direto no Melhor Envio: ${reimp.data.pdfUrl}`,
-    };
-  }
+  const etiquetaRef = etiquetaPath ?? reimp.data.pdfUrl;
 
   // Preenche também rastreio/tracking/valor se ainda estiverem vazios (best-effort).
-  const update: Record<string, unknown> = { etiqueta_url: etiquetaPath };
+  const update: Record<string, unknown> = { etiqueta_url: etiquetaRef };
   if (!envio.codigo_rastreio && reimp.data.codigoRastreio) {
     update.codigo_rastreio = reimp.data.codigoRastreio;
   }
@@ -528,13 +521,16 @@ export async function rebaixarEtiquetaAction(
     .update(update)
     .eq("id", envioId);
   if (updErr) {
-    // O PDF já está no bucket — não perde isso por causa do registro.
-    await supabase.storage.from("etiquetas").remove([etiquetaPath]);
+    // Se subiu PDF binário pro bucket, limpa pra não deixar lixo (link externo
+    // não tem o que apagar).
+    if (etiquetaPath) {
+      await supabase.storage.from("etiquetas").remove([etiquetaPath]);
+    }
     console.error("[rebaixarEtiquetaAction update]", updErr);
     return { ok: false, message: updErr.message };
   }
 
   revalidatePath(`/envios/${envioId}`);
   revalidatePath("/envios");
-  return { ok: true, etiquetaPath };
+  return { ok: true, etiquetaPath: etiquetaRef };
 }
