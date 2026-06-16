@@ -1,7 +1,10 @@
 "use server";
 
+// ⚠️ ALTERADO PARA SSO COM ALIEN — não reverter sem entender o impacto.
+// Sob SSO o HALO não tem sessão Supabase própria (auth.getUser() retorna null).
+// A identidade do dono vem da constante fixa HALO_USER_ID, não de user.id.
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, HALO_USER_ID } from "@/lib/supabase/server";
 import { getValidAccessToken } from "./token";
 import {
   calcularFrete,
@@ -76,14 +79,10 @@ export async function saveRemetenteAction(
   if (uf && !/^[A-Z]{2}$/.test(uf)) return { ok: false, message: "UF deve ter 2 letras." };
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: "Não autenticado." };
 
   const { error } = await supabase.from("melhor_envio_remetente").upsert(
     {
-      user_id: user.id,
+      user_id: HALO_USER_ID,
       nome,
       documento,
       telefone: trimOrNull(input.telefone),
@@ -146,15 +145,11 @@ export async function calcularFreteAction(
  */
 export async function disconnectMelhorEnvioAction(): Promise<MelhorEnvioActionResult> {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: "Não autenticado." };
 
   const { error } = await supabase
     .from("melhor_envio_conexao")
     .delete()
-    .eq("user_id", user.id);
+    .eq("user_id", HALO_USER_ID);
   if (error) {
     console.error("[disconnectMelhorEnvioAction]", error);
     return { ok: false, message: error.message };
@@ -247,10 +242,6 @@ export async function gerarEtiquetaAction(
   }
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: "Não autenticado." };
 
   const { data: envio, error: envioErr } = await supabase
     .from("envios")
@@ -402,7 +393,7 @@ export async function gerarEtiquetaAction(
   // login; o usuário imprime/salva como PDF pelo navegador).
   const { path: etiquetaPath } = await baixarEtiquetaPdf(
     supabase,
-    user.id,
+    HALO_USER_ID,
     envioId,
     etiqueta.data.pdfUrl,
     token.accessToken,
@@ -458,10 +449,6 @@ export async function rebaixarEtiquetaAction(
   }
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { ok: false, message: "Não autenticado." };
 
   const { data: envio, error: envioErr } = await supabase
     .from("envios")
@@ -497,7 +484,7 @@ export async function rebaixarEtiquetaAction(
   // guarda o LINK público direto — o "Abrir / imprimir" abre a etiqueta sem login.
   const { path: etiquetaPath } = await baixarEtiquetaPdf(
     supabase,
-    user.id,
+    HALO_USER_ID,
     envioId,
     reimp.data.pdfUrl,
     token.accessToken,

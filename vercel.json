@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/cron/rastreio",
+      "path": "/halo/api/cron/rastreio",
       "schedule": "0 9 * * *"
     }
   ]
