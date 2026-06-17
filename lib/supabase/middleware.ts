@@ -1,66 +1,80 @@
+// ⚠️ ALTERADO PARA SSO COM ALIEN — não reverter sem entender o impacto.
+// Este middleware deixou de validar a sessão do HALO e passou a validar a
+// sessão do ALIEN (a PORTA do login único). Reverter pro auth do HALO quebra
+// o SSO e tranca o Gabriel pra fora.
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
 /**
- * Refresh da sessão do Supabase + enforce de auth no middleware.
+ * ALIEN Fase 2 / Opção C — SSO de login único.
  *
- * Rotas públicas: `/login` apenas. Tudo o mais exige usuário autenticado.
- * Se o user estiver logado e acessar `/login`, redireciona pra `/`.
+ * O HALO deixou de ter login próprio. A PORTA é a sessão do ALIEN. Este
+ * middleware valida o cookie de sessão do ALIEN (`sb-<ref-alien>-auth-token`,
+ * encaminhado pelo rewrite do mesmo domínio apex) chamando `getUser()` contra
+ * o Supabase do ALIEN — o que também REFRESCA o token (modo de falha #4: o
+ * Gabriel não pode ser jogado pra fora depois de 1h dentro do /halo). Sem
+ * sessão ALIEN válida → redireciona pro `/login` do ALIEN, NUNCA pro login do
+ * HALO (que não existe mais).
+ *
+ * Os dados do HALO são lidos server-side via service-role (lib/supabase/server.ts),
+ * atrás deste portão — app single-user, só o Gabriel cruza (regra de ouro).
  */
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  // Com basePath '/halo', o pathname pode ou não trazer o prefixo dependendo
+  // da versão do Next — normaliza removendo-o pra a lógica abaixo.
+  const rawPath = request.nextUrl.pathname;
+  const path = rawPath.startsWith("/halo")
+    ? rawPath.slice("/halo".length) || "/"
+    : rawPath;
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: CookieToSet[]) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value),
-          );
-          supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options),
-          );
-        },
+  // Cron (Vercel) roda sem cookies, batendo na própria URL do HALO. Protege-se
+  // com CRON_SECRET dentro da rota — não pode cair no gate de auth.
+  if (path.startsWith("/api/cron")) {
+    return NextResponse.next({ request });
+  }
+
+  const alienUrl = process.env.ALIEN_SUPABASE_URL;
+  const alienAnon = process.env.ALIEN_SUPABASE_ANON_KEY;
+  const alienBase =
+    process.env.ALIEN_BASE_URL ?? "https://alien-eosin-nu.vercel.app";
+
+  const loginRedirect = () =>
+    NextResponse.redirect(new URL("/login", alienBase));
+
+  // Falha segura: sem as envs do ALIEN, NÃO libera — manda pro login do ALIEN.
+  if (!alienUrl || !alienAnon) {
+    return loginRedirect();
+  }
+
+  let response = NextResponse.next({ request });
+
+  const supabase = createServerClient(alienUrl, alienAnon, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet: CookieToSet[]) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        );
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          response.cookies.set(name, value, options),
+        );
       },
     },
-  );
+  });
 
-  // IMPORTANTE: getUser() (não getSession) — revalida o token no servidor do
-  // Supabase. Necessário para decisões de segurança no middleware.
+  // getUser() revalida o token no servidor do Supabase do ALIEN + refresca.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  const isLoginPage = pathname === "/login";
-  // Cron roda sem sessão de usuário (Vercel Cron, sem cookies). A própria rota
-  // se protege com CRON_SECRET, então não deve cair no redirect de auth.
-  const isCron = pathname.startsWith("/api/cron");
-
-  // Não autenticado tentando acessar rota privada → /login
-  if (!user && !isLoginPage && !isCron) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+  if (!user) {
+    return loginRedirect();
   }
 
-  // Autenticado tentando acessar /login → home (ou ?next se houver)
-  if (user && isLoginPage) {
-    const url = request.nextUrl.clone();
-    const next = request.nextUrl.searchParams.get("next");
-    url.pathname = next && next.startsWith("/") ? next : "/";
-    url.searchParams.delete("next");
-    return NextResponse.redirect(url);
-  }
-
-  return supabaseResponse;
+  return response;
 }

@@ -1,8 +1,11 @@
 "use server";
 
+// ⚠️ ALTERADO PARA SSO COM ALIEN — não reverter sem entender o impacto.
+// Sob SSO o HALO não tem sessão Supabase própria (auth.getUser() retorna null).
+// O path do upload de etiqueta usa a constante fixa HALO_USER_ID, não user.id.
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, HALO_USER_ID } from "@/lib/supabase/server";
 import { ENVIO_STATUSES, type EnvioStatus } from "@/lib/database.types";
 
 const emptyToNull = (v: unknown) =>
@@ -315,13 +318,8 @@ export async function uploadEtiquetaAction(
   }
 
   const supabase = createClient();
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr || !userData?.user) {
-    return { ok: false, message: "Não autenticado" };
-  }
-  const userId = userData.user.id;
   const rand = Math.random().toString(36).slice(2, 10);
-  const path = `${userId}/${envioId}-${rand}.pdf`;
+  const path = `${HALO_USER_ID}/${envioId}-${rand}.pdf`;
 
   const { error: upErr } = await supabase.storage
     .from("etiquetas")

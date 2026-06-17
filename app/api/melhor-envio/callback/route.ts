@@ -1,6 +1,12 @@
+// ⚠️ ALTERADO PARA SSO COM ALIEN — não reverter sem entender o impacto.
+// Sob SSO o HALO não tem sessão Supabase própria (auth.getUser() retorna null).
+// O dono da conexão OAuth vem da constante fixa HALO_USER_ID, não de user.id.
+// Nota: com basePath '/halo' o redirect URI deste callback virou
+// /halo/api/melhor-envio/callback — atualizar no painel do Melhor Envio num
+// reconnect futuro.
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, HALO_USER_ID } from "@/lib/supabase/server";
 import { exchangeCodeForTokens } from "@/lib/melhor-envio/api";
 import { getMelhorEnvioConfig } from "@/lib/melhor-envio/config";
 
@@ -37,10 +43,6 @@ export async function GET(request: Request) {
   }
 
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return back(request, "nao_autenticado");
 
   const expiresAt = new Date(
     Date.now() + tokens.data.expires_in * 1000,
@@ -48,7 +50,7 @@ export async function GET(request: Request) {
 
   const { error } = await supabase.from("melhor_envio_conexao").upsert(
     {
-      user_id: user.id,
+      user_id: HALO_USER_ID,
       access_token: tokens.data.access_token,
       refresh_token: tokens.data.refresh_token,
       token_type: tokens.data.token_type,
