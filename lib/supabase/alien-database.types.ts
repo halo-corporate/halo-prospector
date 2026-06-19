@@ -39,6 +39,20 @@ export interface AlienTasksRow {
   completed_at: string | null;
 }
 
+// ⚠️ SUPOSIÇÃO NÃO-VERIFICADA: a tabela `categories` do ALIEN não tem rastro no
+// código/migrations (foi criada direto no SQL Editor). Os nomes de coluna abaixo
+// (nome/cor/ordem/system) são um palpite espelhando o `categorias_tarefa` do
+// HALO. O script de prova dumpa o schema real — se divergir, corrigir AQUI.
+export interface AlienCategoriesRow {
+  id: string;
+  nome: string;
+  cor: string;
+  ordem: number | null;
+  system: AlienSystem;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface AlienDatabase {
   public: {
     Tables: {
@@ -46,6 +60,12 @@ export interface AlienDatabase {
         Row: AlienTasksRow;
         Insert: Partial<AlienTasksRow> & { title: string };
         Update: Partial<AlienTasksRow>;
+        Relationships: [];
+      };
+      categories: {
+        Row: AlienCategoriesRow;
+        Insert: Partial<AlienCategoriesRow> & { nome: string };
+        Update: Partial<AlienCategoriesRow>;
         Relationships: [];
       };
     };
