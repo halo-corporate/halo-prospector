@@ -40,8 +40,22 @@ export async function updateSession(request: NextRequest) {
   const alienBase =
     process.env.ALIEN_BASE_URL ?? "https://alien-eosin-nu.vercel.app";
 
-  const loginRedirect = () =>
-    NextResponse.redirect(new URL("/login", alienBase));
+  // Redireciona pro /login do ALIEN anexando ?redirect=<destino> pra ele
+  // devolver o Gabriel pra rota que ele tentou abrir (o login do ALIEN respeita
+  // esse param desde o fix/login-redirect).
+  const loginRedirect = () => {
+    const loginUrl = new URL("/login", alienBase);
+    // Evita loop: não anexa retorno pra rotas de login/auth.
+    const isAuthRoute = path === "/login" || path.startsWith("/auth");
+    if (!isAuthRoute) {
+      // `path` já vem normalizado SEM o /halo (ver acima), então prefixar /halo
+      // garante exatamente um prefixo — do domínio do ALIEN, o HALO vive em
+      // /halo/*. `searchParams.set` cuida do encode (= encodeURIComponent).
+      const destino = "/halo" + path + request.nextUrl.search;
+      loginUrl.searchParams.set("redirect", destino);
+    }
+    return NextResponse.redirect(loginUrl);
+  };
 
   // Falha segura: sem as envs do ALIEN, NÃO libera — manda pro login do ALIEN.
   if (!alienUrl || !alienAnon) {
