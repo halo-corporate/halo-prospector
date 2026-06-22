@@ -4,6 +4,7 @@ import { ChecklistItem } from "@/components/checklist/checklist-item";
 import { GerenciarCategoriasDialog } from "@/components/checklist/gerenciar-categorias-dialog";
 import { CopyPendingButton } from "./copy-pending-button";
 import { TarefasConcluidasDialog } from "./tarefas-concluidas-dialog";
+import { ChecklistPoller } from "./checklist-poller";
 import {
   listCategorias,
   listTarefasConcluidas,
@@ -95,6 +96,9 @@ export default async function ChecklistPage({
 
   return (
     <div className="container py-6 space-y-6 max-w-3xl">
+      {/* Sincroniza entre dispositivos via tick de 10s (coexiste com o
+          RealtimeRefresher global, que cuida do refresh-on-focus). */}
+      <ChecklistPoller intervalMs={10000} />
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3">
           <div className="h-9 w-9 rounded-full bg-accent flex items-center justify-center mt-0.5">
