@@ -1,9 +1,35 @@
 "use server";
 
+// PASSO 5-B.2 · Metade 2 (ESCRITA) — as escritas do checklist agora vão pra
+// `tasks` do ALIEN (system='HALO'), via o client service-role da ponte
+// (alien-server.ts). Fecha o limbo: leitura (Metade 1) e escrita passam a falar
+// com a mesma tabela. A `tarefas_semanais` do HALO fica como backup congelado —
+// NADA aqui escreve mais nela.
+//
+// Mapa de escrita (UI/TarefaSemanal → tasks do ALIEN):
+//   texto       → title
+//   observacoes → details
+//   concluida   → status ('feita' / 'pendente')
+//   prioridade  → priority ('media' → 'média', com acento — INVERSO da leitura)
+//   prazo       → due_date
+//   categoria_id→ category_id
+//   parent_id / ordem / stand_by / semana → diretos
+//   todo insert leva system='HALO'.
+//
+// ⚠️ completed_at: o ALIEN tem trigger (tasks_sync_completed_at) que carimba
+// completed_at quando status vira 'feita'. Então NÃO setamos completed_at na
+// conclusão. Ao DESMARCAR, limpamos completed_at = null explicitamente (o trigger
+// não garante a limpeza no caminho de volta).
+//
+// ⚠️ A `tasks` do ALIEN é single-user (só o Gabriel), sem RLS por usuário e o
+// alien-server.ts é service-role server-only — não há user_id/RLS aqui. Toda
+// query filtra system='HALO' pra não tocar tarefas de outros módulos do ALIEN.
+
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createAlienClient } from "@/lib/supabase/alien-server";
 import { currentWeekStartBR } from "@/lib/timezone";
+import type { AlienPriority, AlienStatus } from "@/lib/supabase/alien-database.types";
 
 const textoSchema = z
   .string()
@@ -34,13 +60,20 @@ const prazoSchema = z
   .datetime({ offset: true })
   .nullable();
 
+// HALO prioridade (sem acento) → ALIEN priority. Inverso de prioridadeFromAlien
+// em queries.ts. 'media' é o único que diverge ('média', com acento no ALIEN).
+function prioridadeToAlien(p: "alta" | "media" | "baixa"): AlienPriority {
+  return p === "media" ? "média" : p;
+}
+
 export type TarefaActionResult =
   | { ok: true }
   | { ok: false; message: string };
 
 /**
- * Cria uma tarefa nova na semana especificada (default: semana atual BR).
- * A ordem é o próximo inteiro depois da maior `ordem` existente naquela semana.
+ * Cria uma tarefa nova na semana especificada (default: semana atual BR), na
+ * `tasks` do ALIEN com system='HALO'. A ordem é o próximo inteiro depois da
+ * maior `ordem` existente naquela semana (entre tarefas HALO).
  */
 export async function createTarefaAction(
   texto: string,
@@ -52,20 +85,25 @@ export async function createTarefaAction(
   if (!s.success) return { ok: false, message: s.error.issues[0]!.message };
 
   const semana = s.data ?? currentWeekStartBR();
-  const supabase = createClient();
+  const supabase = createAlienClient();
 
   const { data: max } = await supabase
-    .from("tarefas_semanais")
+    .from("tasks")
     .select("ordem")
+    .eq("system", "HALO")
     .eq("semana", semana)
     .order("ordem", { ascending: false })
     .limit(1)
     .maybeSingle();
   const nextOrdem = (max?.ordem ?? -1) + 1;
 
-  const { error } = await supabase
-    .from("tarefas_semanais")
-    .insert({ semana, texto: t.data, ordem: nextOrdem });
+  const { error } = await supabase.from("tasks").insert({
+    system: "HALO",
+    semana,
+    title: t.data,
+    ordem: nextOrdem,
+    status: "pendente" satisfies AlienStatus,
+  });
   if (error) {
     console.error("[createTarefaAction]", error);
     return { ok: false, message: error.message };
@@ -76,9 +114,10 @@ export async function createTarefaAction(
 }
 
 /**
- * Cria uma subtarefa sob uma tarefa-pai. A subtarefa herda a `semana` da pai
- * e fica no fim da lista de irmãs (ordem = max das filhas + 1). Aninhamento de
- * 1 nível: se a pai já for uma subtarefa, recusa.
+ * Cria uma subtarefa sob uma tarefa-pai (tasks do ALIEN, system='HALO').
+ * Decisão C: herda a `semana` da pai; se a pai não tiver semana, usa a semana
+ * atual. Fica no fim da lista de irmãs (ordem = max das filhas + 1). Aninhamento
+ * de 1 nível: se a pai já for subtarefa, recusa.
  */
 export async function createSubtarefaAction(
   parentId: string,
@@ -90,11 +129,12 @@ export async function createSubtarefaAction(
   const t = textoSchema.safeParse(texto);
   if (!t.success) return { ok: false, message: t.error.issues[0]!.message };
 
-  const supabase = createClient();
+  const supabase = createAlienClient();
   const { data: parent, error: errParent } = await supabase
-    .from("tarefas_semanais")
+    .from("tasks")
     .select("semana, parent_id")
     .eq("id", parentId)
+    .eq("system", "HALO")
     .maybeSingle();
   if (errParent) {
     console.error("[createSubtarefaAction parent]", errParent);
@@ -105,20 +145,26 @@ export async function createSubtarefaAction(
     return { ok: false, message: "Subtarefa não pode ter subtarefa" };
   }
 
+  // Decisão C: herda semana da mãe; sem semana na mãe → semana atual.
+  const semana = parent.semana ?? currentWeekStartBR();
+
   const { data: max } = await supabase
-    .from("tarefas_semanais")
+    .from("tasks")
     .select("ordem")
+    .eq("system", "HALO")
     .eq("parent_id", parentId)
     .order("ordem", { ascending: false })
     .limit(1)
     .maybeSingle();
   const nextOrdem = (max?.ordem ?? -1) + 1;
 
-  const { error } = await supabase.from("tarefas_semanais").insert({
-    semana: parent.semana,
-    texto: t.data,
+  const { error } = await supabase.from("tasks").insert({
+    system: "HALO",
+    semana,
+    title: t.data,
     ordem: nextOrdem,
     parent_id: parentId,
+    status: "pendente" satisfies AlienStatus,
   });
   if (error) {
     console.error("[createSubtarefaAction]", error);
@@ -130,9 +176,9 @@ export async function createSubtarefaAction(
 }
 
 /**
- * Alterna a flag `concluida`. Também grava `concluida_em` (timestamptz).
- * Concluir zera `stand_by` (mutualmente exclusivos — trigger no banco também
- * garante, mas a gente já manda o estado consistente).
+ * Alterna a conclusão (status 'feita' / 'pendente'). Concluir zera `stand_by`
+ * (mutualmente exclusivos) e deixa o trigger do ALIEN carimbar `completed_at`.
+ * Desmarcar limpa `completed_at` explicitamente.
  */
 export async function toggleTarefaAction(
   id: string,
@@ -141,15 +187,15 @@ export async function toggleTarefaAction(
   if (typeof id !== "string" || id.length < 10) {
     return { ok: false, message: "ID inválido" };
   }
-  const supabase = createClient();
+  const supabase = createAlienClient();
+  const patch = concluida
+    ? { status: "feita" as AlienStatus, stand_by: false }
+    : { status: "pendente" as AlienStatus, completed_at: null };
   const { error } = await supabase
-    .from("tarefas_semanais")
-    .update({
-      concluida,
-      concluida_em: concluida ? new Date().toISOString() : null,
-      ...(concluida ? { stand_by: false } : {}),
-    })
-    .eq("id", id);
+    .from("tasks")
+    .update(patch)
+    .eq("id", id)
+    .eq("system", "HALO");
   if (error) {
     console.error("[toggleTarefaAction]", error);
     return { ok: false, message: error.message };
@@ -160,8 +206,8 @@ export async function toggleTarefaAction(
 }
 
 /**
- * Alterna a flag `stand_by`. Marcar como stand_by zera `concluida`
- * (mutualmente exclusivos).
+ * Alterna a flag `stand_by`. Marcar como stand_by zera a conclusão (status volta
+ * a 'pendente' e limpa completed_at) — mutualmente exclusivos.
  */
 export async function toggleStandByTarefaAction(
   id: string,
@@ -170,14 +216,15 @@ export async function toggleStandByTarefaAction(
   if (typeof id !== "string" || id.length < 10) {
     return { ok: false, message: "ID inválido" };
   }
-  const supabase = createClient();
+  const supabase = createAlienClient();
+  const patch = standBy
+    ? { stand_by: true, status: "pendente" as AlienStatus, completed_at: null }
+    : { stand_by: false };
   const { error } = await supabase
-    .from("tarefas_semanais")
-    .update({
-      stand_by: standBy,
-      ...(standBy ? { concluida: false, concluida_em: null } : {}),
-    })
-    .eq("id", id);
+    .from("tasks")
+    .update(patch)
+    .eq("id", id)
+    .eq("system", "HALO");
   if (error) {
     console.error("[toggleStandByTarefaAction]", error);
     return { ok: false, message: error.message };
@@ -199,11 +246,12 @@ export async function updateTarefaPrioridadeAction(
   }
   const p = prioridadeSchema.safeParse(prioridade);
   if (!p.success) return { ok: false, message: p.error.issues[0]!.message };
-  const supabase = createClient();
+  const supabase = createAlienClient();
   const { error } = await supabase
-    .from("tarefas_semanais")
-    .update({ prioridade: p.data })
-    .eq("id", id);
+    .from("tasks")
+    .update({ priority: prioridadeToAlien(p.data) })
+    .eq("id", id)
+    .eq("system", "HALO");
   if (error) {
     console.error("[updateTarefaPrioridadeAction]", error);
     return { ok: false, message: error.message };
@@ -226,11 +274,12 @@ export async function updateTarefaPrazoAction(
   }
   const p = prazoSchema.safeParse(prazoIso);
   if (!p.success) return { ok: false, message: "Prazo inválido" };
-  const supabase = createClient();
+  const supabase = createAlienClient();
   const { error } = await supabase
-    .from("tarefas_semanais")
-    .update({ prazo: p.data })
-    .eq("id", id);
+    .from("tasks")
+    .update({ due_date: p.data })
+    .eq("id", id)
+    .eq("system", "HALO");
   if (error) {
     console.error("[updateTarefaPrazoAction]", error);
     return { ok: false, message: error.message };
@@ -255,11 +304,12 @@ export async function setTarefaCategoriaAction(
     const c = z.string().uuid().safeParse(categoriaId);
     if (!c.success) return { ok: false, message: "Categoria inválida" };
   }
-  const supabase = createClient();
+  const supabase = createAlienClient();
   const { error } = await supabase
-    .from("tarefas_semanais")
-    .update({ categoria_id: categoriaId })
-    .eq("id", id);
+    .from("tasks")
+    .update({ category_id: categoriaId })
+    .eq("id", id)
+    .eq("system", "HALO");
   if (error) {
     console.error("[setTarefaCategoriaAction]", error);
     return { ok: false, message: error.message };
@@ -278,11 +328,12 @@ export async function updateTarefaTextoAction(
 ): Promise<TarefaActionResult> {
   const t = textoSchema.safeParse(texto);
   if (!t.success) return { ok: false, message: t.error.issues[0]!.message };
-  const supabase = createClient();
+  const supabase = createAlienClient();
   const { error } = await supabase
-    .from("tarefas_semanais")
-    .update({ texto: t.data })
-    .eq("id", id);
+    .from("tasks")
+    .update({ title: t.data })
+    .eq("id", id)
+    .eq("system", "HALO");
   if (error) {
     console.error("[updateTarefaTextoAction]", error);
     return { ok: false, message: error.message };
@@ -307,11 +358,12 @@ export async function updateTarefaObservacoesAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createAlienClient();
   const { error } = await supabase
-    .from("tarefas_semanais")
-    .update({ observacoes: parsed.data })
-    .eq("id", id);
+    .from("tasks")
+    .update({ details: parsed.data })
+    .eq("id", id)
+    .eq("system", "HALO");
   if (error) {
     console.error("[updateTarefaObservacoesAction]", error);
     return { ok: false, message: error.message };
@@ -322,16 +374,33 @@ export async function updateTarefaObservacoesAction(
 }
 
 /**
- * Deleta uma tarefa.
+ * Deleta uma tarefa. Se for tarefa-pai, apaga também as subtarefas (deleta as
+ * filhas antes, pra não deixar órfãs caso a FK parent_id do ALIEN não tenha
+ * ON DELETE CASCADE).
  */
 export async function deleteTarefaAction(
   id: string,
 ): Promise<TarefaActionResult> {
-  const supabase = createClient();
-  const { error } = await supabase
-    .from("tarefas_semanais")
+  if (typeof id !== "string" || id.length < 10) {
+    return { ok: false, message: "ID inválido" };
+  }
+  const supabase = createAlienClient();
+
+  const { error: errSubs } = await supabase
+    .from("tasks")
     .delete()
-    .eq("id", id);
+    .eq("system", "HALO")
+    .eq("parent_id", id);
+  if (errSubs) {
+    console.error("[deleteTarefaAction subs]", errSubs);
+    return { ok: false, message: errSubs.message };
+  }
+
+  const { error } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("id", id)
+    .eq("system", "HALO");
   if (error) {
     console.error("[deleteTarefaAction]", error);
     return { ok: false, message: error.message };
@@ -342,28 +411,31 @@ export async function deleteTarefaAction(
 }
 
 /**
- * Copia tarefas NÃO concluídas da semana anterior para a semana atual.
- * Útil pra "puxar pendências" no início da semana.
+ * Copia tarefas NÃO concluídas da semana anterior para a semana atual (tasks do
+ * ALIEN, system='HALO'). Útil pra "puxar pendências" no início da semana.
+ * `status='pendente'` cobre tanto as a-fazer quanto as em stand_by (no ALIEN
+ * stand_by é coluna à parte; o que não copiamos são as 'feita').
  */
 export async function copyPendingFromPreviousWeekAction(): Promise<
   TarefaActionResult & { copied?: number }
 > {
-  const supabase = createClient();
+  const supabase = createAlienClient();
   const cur = currentWeekStartBR();
   const prevDate = new Date(cur);
   prevDate.setDate(prevDate.getDate() - 7);
   const prev = prevDate.toISOString().slice(0, 10);
 
   // Campos copiados pra preservar a tarefa "do mesmo jeito" — inclui a descrição
-  // (observacoes), categoria, prioridade, prazo e stand_by. `concluida` fica no
-  // default (false): puxar pendência = recriar como a fazer.
-  const CAMPOS = "id, texto, observacoes, categoria_id, prioridade, prazo, stand_by, ordem";
+  // (details), categoria, prioridade, prazo e stand_by. O status fica 'pendente'
+  // (puxar pendência = recriar como a fazer).
+  const CAMPOS = "id, title, details, category_id, priority, due_date, stand_by, ordem";
 
   const { data: pendentes, error: errFetch } = await supabase
-    .from("tarefas_semanais")
+    .from("tasks")
     .select(CAMPOS)
+    .eq("system", "HALO")
     .eq("semana", prev)
-    .eq("concluida", false)
+    .eq("status", "pendente")
     .is("parent_id", null)
     .order("ordem", { ascending: true });
   if (errFetch) {
@@ -377,10 +449,11 @@ export async function copyPendingFromPreviousWeekAction(): Promise<
   // Subtarefas pendentes dessas tarefas-pai — vêm junto, religadas ao novo pai.
   const parentIds = pendentes.map((p) => p.id);
   const { data: subpendentes, error: errSub } = await supabase
-    .from("tarefas_semanais")
+    .from("tasks")
     .select(`${CAMPOS}, parent_id`)
+    .eq("system", "HALO")
     .eq("semana", prev)
-    .eq("concluida", false)
+    .eq("status", "pendente")
     .in("parent_id", parentIds)
     .order("ordem", { ascending: true });
   if (errSub) {
@@ -389,8 +462,9 @@ export async function copyPendingFromPreviousWeekAction(): Promise<
   }
 
   const { data: max } = await supabase
-    .from("tarefas_semanais")
+    .from("tasks")
     .select("ordem")
+    .eq("system", "HALO")
     .eq("semana", cur)
     .order("ordem", { ascending: false })
     .limit(1)
@@ -400,17 +474,19 @@ export async function copyPendingFromPreviousWeekAction(): Promise<
   // Insere as tarefas-pai e recupera os novos ids (na mesma ordem do input) pra
   // religar as subtarefas.
   const parentRows = pendentes.map((p) => ({
+    system: "HALO" as const,
     semana: cur,
-    texto: p.texto,
-    observacoes: p.observacoes,
-    categoria_id: p.categoria_id,
-    prioridade: p.prioridade,
-    prazo: p.prazo,
+    title: p.title,
+    details: p.details,
+    category_id: p.category_id,
+    priority: p.priority,
+    due_date: p.due_date,
     stand_by: p.stand_by,
     ordem: nextOrdem++,
+    status: "pendente" as AlienStatus,
   }));
   const { data: inseridas, error: errInsert } = await supabase
-    .from("tarefas_semanais")
+    .from("tasks")
     .insert(parentRows)
     .select("id");
   if (errInsert || !inseridas) {
@@ -431,21 +507,23 @@ export async function copyPendingFromPreviousWeekAction(): Promise<
         const novoParent = s.parent_id ? idMap.get(s.parent_id) : undefined;
         if (!novoParent) return null;
         return {
+          system: "HALO" as const,
           semana: cur,
-          texto: s.texto,
-          observacoes: s.observacoes,
-          categoria_id: s.categoria_id,
-          prioridade: s.prioridade,
-          prazo: s.prazo,
+          title: s.title,
+          details: s.details,
+          category_id: s.category_id,
+          priority: s.priority,
+          due_date: s.due_date,
           stand_by: s.stand_by,
           ordem: s.ordem,
           parent_id: novoParent,
+          status: "pendente" as AlienStatus,
         };
       })
       .filter((r): r is NonNullable<typeof r> => r !== null);
     if (subRows.length > 0) {
       const { error: errSubInsert } = await supabase
-        .from("tarefas_semanais")
+        .from("tasks")
         .insert(subRows);
       if (errSubInsert) {
         console.error("[copyPending sub insert]", errSubInsert);

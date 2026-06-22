@@ -58,11 +58,13 @@ export function RealtimeRefresher() {
         { event: "*", schema: "public", table: "verticais" },
         scheduleRefresh,
       )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "tarefas_semanais" },
-        scheduleRefresh,
-      )
+      // NOTA (Fase 5-B.2): o checklist NÃO escuta mais `tarefas_semanais` —
+      // essa tabela virou backup congelado. As tarefas agora vivem na `tasks`
+      // do ALIEN (outro projeto Supabase, outro endpoint Realtime). Este client
+      // é o do HALO, então não dá pra assinar a `tasks` do ALIEN por aqui (veja
+      // a nota de Realtime no fim do arquivo). A sincronia do checklist passa a
+      // depender do revalidatePath de cada action (mesma aba) + do refresh no
+      // foco/visibilidade abaixo (entre abas/dispositivos).
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "propostas" },
