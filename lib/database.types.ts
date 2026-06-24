@@ -86,6 +86,14 @@ export type PropostaStatus =
   | "recusado"
   | "convertido";
 
+export type PropostaVertical =
+  | "corporativo"
+  | "academia"
+  | "clinica"
+  | "wellness"
+  | "turismo"
+  | "revenda";
+
 // ---------------------------------------------------------------------------
 // Listas pra renderizar selects / labels em PT-BR
 // ---------------------------------------------------------------------------
@@ -260,6 +268,23 @@ export const PROPOSTA_STATUS_LABELS: Record<PropostaStatus, string> = {
   negociacao: "Negociação",
   recusado: "Recusado",
   convertido: "Convertido",
+};
+
+export const PROPOSTA_VERTICAIS: PropostaVertical[] = [
+  "corporativo",
+  "academia",
+  "clinica",
+  "wellness",
+  "turismo",
+  "revenda",
+];
+export const PROPOSTA_VERTICAL_LABELS: Record<PropostaVertical, string> = {
+  corporativo: "Corporativo",
+  academia: "Academia",
+  clinica: "Clínica",
+  wellness: "Wellness",
+  turismo: "Turismo",
+  revenda: "Revenda",
 };
 
 // ---------------------------------------------------------------------------
@@ -629,12 +654,18 @@ export interface Database {
           quantidade: number;
           valor_unitario: number;
           valor_total: number; // generated
+          desconto_percentual: number;
+          valor_liquido: number; // generated
+          vertical: PropostaVertical | null;
+          condicao_especial: boolean;
           status: PropostaStatus;
           data_envio: string;
           data_resposta: string | null;
           motivo_recusa: string | null;
           venda_id: string | null;
           observacoes: string | null;
+          obs_interna: string | null;
+          obs_pdf: string | null;
           ordem: number;
           created_at: string;
           updated_at: string;
@@ -648,12 +679,17 @@ export interface Database {
           descricao?: string | null;
           quantidade?: number;
           valor_unitario: number;
+          desconto_percentual?: number;
+          vertical?: PropostaVertical | null;
+          condicao_especial?: boolean;
           status?: PropostaStatus;
           data_envio?: string;
           data_resposta?: string | null;
           motivo_recusa?: string | null;
           venda_id?: string | null;
           observacoes?: string | null;
+          obs_interna?: string | null;
+          obs_pdf?: string | null;
           ordem?: number;
           created_at?: string;
           updated_at?: string;
@@ -667,12 +703,17 @@ export interface Database {
           descricao?: string | null;
           quantidade?: number;
           valor_unitario?: number;
+          desconto_percentual?: number;
+          vertical?: PropostaVertical | null;
+          condicao_especial?: boolean;
           status?: PropostaStatus;
           data_envio?: string;
           data_resposta?: string | null;
           motivo_recusa?: string | null;
           venda_id?: string | null;
           observacoes?: string | null;
+          obs_interna?: string | null;
+          obs_pdf?: string | null;
           ordem?: number;
           created_at?: string;
           updated_at?: string;

@@ -5,7 +5,9 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import {
   PROPOSTA_STATUSES,
+  PROPOSTA_VERTICAIS,
   type PropostaStatus,
+  type PropostaVertical,
 } from "@/lib/database.types";
 
 const emptyToNull = (v: unknown) =>
@@ -38,6 +40,11 @@ const intInput = z.preprocess(
   z.number().int(),
 );
 
+const boolInput = z.preprocess(
+  (v) => v === true || v === "true" || v === "on" || v === "1",
+  z.boolean(),
+);
+
 const propostaSchema = z.object({
   cliente: z
     .string()
@@ -59,6 +66,20 @@ const propostaSchema = z.object({
   ),
   quantidade: intInput.refine((n) => n > 0, "Quantidade deve ser > 0"),
   valor_unitario: numericInput.refine((n) => n >= 0, "Valor inválido"),
+  desconto_percentual: numericInput.refine(
+    (n) => n >= 0 && n <= 100,
+    "Desconto deve estar entre 0 e 100",
+  ),
+  vertical: z.preprocess(
+    emptyToNull,
+    z
+      .enum(
+        [...PROPOSTA_VERTICAIS] as [PropostaVertical, ...PropostaVertical[]],
+      )
+      .nullable()
+      .optional(),
+  ),
+  condicao_especial: boolInput,
   status: z.enum(
     [...PROPOSTA_STATUSES] as [PropostaStatus, ...PropostaStatus[]],
   ),
@@ -77,7 +98,11 @@ const propostaSchema = z.object({
     emptyToNull,
     z.string().max(1000, "Máx 1000 caracteres").nullable().optional(),
   ),
-  observacoes: z.preprocess(
+  obs_interna: z.preprocess(
+    emptyToNull,
+    z.string().max(2000, "Máx 2000 caracteres").nullable().optional(),
+  ),
+  obs_pdf: z.preprocess(
     emptyToNull,
     z.string().max(2000, "Máx 2000 caracteres").nullable().optional(),
   ),
@@ -95,11 +120,15 @@ function parseFormData(fd: FormData) {
     descricao: fd.get("descricao"),
     quantidade: fd.get("quantidade") ?? 1,
     valor_unitario: fd.get("valor_unitario"),
+    desconto_percentual: fd.get("desconto_percentual") ?? 0,
+    vertical: fd.get("vertical"),
+    condicao_especial: fd.get("condicao_especial"),
     status: ((fd.get("status") ?? "aberto") as string) as PropostaStatus,
     data_envio: (fd.get("data_envio") ?? "") as string,
     data_resposta: fd.get("data_resposta"),
     motivo_recusa: fd.get("motivo_recusa"),
-    observacoes: fd.get("observacoes"),
+    obs_interna: fd.get("obs_interna"),
+    obs_pdf: fd.get("obs_pdf"),
   };
 }
 
@@ -120,11 +149,15 @@ export async function createPropostaAction(
       descricao: parsed.data.descricao ?? null,
       quantidade: parsed.data.quantidade,
       valor_unitario: parsed.data.valor_unitario,
+      desconto_percentual: parsed.data.desconto_percentual,
+      vertical: parsed.data.vertical ?? null,
+      condicao_especial: parsed.data.condicao_especial,
       status: parsed.data.status,
       data_envio: parsed.data.data_envio,
       data_resposta: parsed.data.data_resposta ?? null,
       motivo_recusa: parsed.data.motivo_recusa ?? null,
-      observacoes: parsed.data.observacoes ?? null,
+      obs_interna: parsed.data.obs_interna ?? null,
+      obs_pdf: parsed.data.obs_pdf ?? null,
     })
     .select("id")
     .single();
@@ -155,11 +188,15 @@ export async function updatePropostaAction(
       descricao: parsed.data.descricao ?? null,
       quantidade: parsed.data.quantidade,
       valor_unitario: parsed.data.valor_unitario,
+      desconto_percentual: parsed.data.desconto_percentual,
+      vertical: parsed.data.vertical ?? null,
+      condicao_especial: parsed.data.condicao_especial,
       status: parsed.data.status,
       data_envio: parsed.data.data_envio,
       data_resposta: parsed.data.data_resposta ?? null,
       motivo_recusa: parsed.data.motivo_recusa ?? null,
-      observacoes: parsed.data.observacoes ?? null,
+      obs_interna: parsed.data.obs_interna ?? null,
+      obs_pdf: parsed.data.obs_pdf ?? null,
     })
     .eq("id", id);
   if (error) {
