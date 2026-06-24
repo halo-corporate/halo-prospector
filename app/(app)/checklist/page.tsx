@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CalendarCheck2 } from "lucide-react";
 import { AddTarefaInput } from "@/components/checklist/add-tarefa-input";
 import { ChecklistItem } from "@/components/checklist/checklist-item";
@@ -122,28 +123,28 @@ export default async function ChecklistPage({
 
       {/* Navegação entre semanas */}
       <div className="flex items-center justify-between text-xs">
-        <a
+        <Link
           href={`/checklist?semana=${prevWeek}`}
           className="text-muted-foreground hover:text-foreground"
         >
           ← {formatWeekLabelBR(prevWeek)}
-        </a>
+        </Link>
         {isCurrent ? (
           <span className="text-muted-foreground">Semana atual</span>
         ) : (
-          <a
+          <Link
             href="/checklist"
             className="text-primary hover:underline"
           >
             Voltar pra semana atual
-          </a>
+          </Link>
         )}
-        <a
+        <Link
           href={`/checklist?semana=${nextWeek}`}
           className="text-muted-foreground hover:text-foreground"
         >
           {formatWeekLabelBR(nextWeek)} →
-        </a>
+        </Link>
       </div>
 
       {/* Barra de progresso */}
