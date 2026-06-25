@@ -109,7 +109,7 @@ export default async function ChecklistPage({
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            "radial-gradient(60% 50% at 18% 0%, rgba(0,113,227,0.18), transparent 70%), radial-gradient(50% 45% at 88% 12%, rgba(91,168,255,0.12), transparent 70%)",
+            "radial-gradient(38% 30% at 18% 0%, rgba(0,113,227,0.07), transparent 70%), radial-gradient(32% 26% at 88% 10%, rgba(91,168,255,0.05), transparent 70%)",
         }}
       />
       <div className="container py-6 space-y-6 max-w-3xl">

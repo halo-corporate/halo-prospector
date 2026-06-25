@@ -276,6 +276,27 @@ export function ChecklistItem({
           "inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -1px 2px rgba(0,0,0,0.15), 0 12px 32px rgba(0,0,0,0.35)",
       };
 
+  // Isola o conteúdo da camada de composição do backdrop-filter: translateZ(0)
+  // + isolation força uma layer própria pro texto não herdar o desfoque do
+  // vidro (bug clássico de composição). Antialiasing explícito pra nitidez.
+  const contentStyle: CSSProperties | undefined = compact
+    ? undefined
+    : {
+        transform: "translateZ(0)",
+        isolation: "isolate",
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
+        textRendering: "optimizeLegibility",
+      };
+
+  const titleStyle: CSSProperties | undefined = compact
+    ? undefined
+    : {
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
+        textRendering: "optimizeLegibility",
+      };
+
   return (
     <div
       className={cn(
@@ -319,7 +340,7 @@ export function ChecklistItem({
         </>
       ) : null}
 
-      <div className="relative flex items-start gap-2">
+      <div className="relative flex items-start gap-2" style={contentStyle}>
         <button
           type="button"
           onClick={handleToggle}
@@ -503,9 +524,14 @@ export function ChecklistItem({
                 <p
                   className={cn(
                     "text-sm leading-snug flex-1 min-w-0",
+                    !compact &&
+                      !tarefa.concluida &&
+                      !tarefa.stand_by &&
+                      "text-white",
                     tarefa.concluida && "line-through text-muted-foreground",
                     tarefa.stand_by && !tarefa.concluida && "italic text-muted-foreground",
                   )}
+                  style={titleStyle}
                 >
                   {tarefa.texto}
                 </p>
