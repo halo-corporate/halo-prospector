@@ -92,6 +92,16 @@ export function ChecklistItem({
   const [subAdding, setSubAdding] = useState(false);
   const [subDraft, setSubDraft] = useState("");
 
+  // Anim 1 (completar): saída suave do card antes do revalidate remover a tarefa.
+  const [isExiting, setIsExiting] = useState(false);
+  const [exitMaxH, setExitMaxH] = useState<number | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+
+  // Anim 3 (subtarefas): toggle visual de expandir/colapsar (default aberto).
+  const [subtasksOpen, setSubtasksOpen] = useState(true);
+  const subListRef = useRef<HTMLDivElement | null>(null);
+  const [subMaxH, setSubMaxH] = useState<number | undefined>(undefined);
+
   const subConcluidas = subtarefas.filter((s) => s.concluida).length;
   const hasSub = !compact && subtarefas.length > 0;
   const overdue =
@@ -101,6 +111,11 @@ export function ChecklistItem({
   const overdueLabel =
     overdue && tarefa.prazo ? overdueDaysLabel(tarefa.prazo) : "";
 
+  // Estado "marcada" visual: no modo full, durante a saída (isExiting) já
+  // mostramos o check, mesmo antes do revalidate confirmar concluida.
+  const checked = compact ? tarefa.concluida : tarefa.concluida || isExiting;
+  const collapsed = isExiting && exitMaxH === 0;
+
   // Sincroniza drafts quando a tarefa vier nova/atualizada (router.refresh).
   useEffect(() => {
     setDraft(tarefa.texto);
@@ -109,11 +124,41 @@ export function ChecklistItem({
     setObsDraft(tarefa.observacoes ?? "");
   }, [tarefa.observacoes]);
 
+  // Mantém a altura do bloco de subtarefas em sincronia pro collapse animar
+  // suave (mede o conteúdo real; recalcula ao abrir/fechar ou mudar a lista).
+  useEffect(() => {
+    const el = subListRef.current;
+    if (!el) return;
+    setSubMaxH(subtasksOpen ? el.scrollHeight : 0);
+  }, [subtasksOpen, subtarefas.length]);
+
   function handleToggle() {
-    startTransition(async () => {
-      const res = await toggleTarefaAction(tarefa.id, !tarefa.concluida);
-      if (!res.ok) toast.error(res.message);
-    });
+    // Compact OU desmarcar (feita → pendente): comportamento original, sem saída.
+    if (compact || tarefa.concluida) {
+      startTransition(async () => {
+        const res = await toggleTarefaAction(tarefa.id, !tarefa.concluida);
+        if (!res.ok) toast.error(res.message);
+      });
+      return;
+    }
+    // Full + completar: roda a animação de saída (~400ms) ANTES de disparar a
+    // action, pra a tarefa deslizar pra fora antes do revalidate removê-la.
+    const h = cardRef.current?.scrollHeight ?? 0;
+    setExitMaxH(h); // trava a altura atual…
+    setIsExiting(true);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => setExitMaxH(0)),
+    ); // …e colapsa no próximo frame pra o max-height animar
+    setTimeout(() => {
+      startTransition(async () => {
+        const res = await toggleTarefaAction(tarefa.id, true);
+        if (!res.ok) {
+          toast.error(res.message);
+          setIsExiting(false); // falhou: reverte a saída
+          setExitMaxH(null);
+        }
+      });
+    }, 420);
   }
 
   function handleToggleStandBy() {
@@ -291,8 +336,24 @@ export function ChecklistItem({
         textRendering: "optimizeLegibility",
       };
 
+  // Anim 1: saída do card ao completar — primeiro esmaece (opacity 0.5), depois
+  // colapsa (max-height/padding/margin → 0) + desliza (translateX). Só full.
+  const exitStyle: CSSProperties = isExiting
+    ? {
+        maxHeight: exitMaxH ?? undefined,
+        opacity: collapsed ? 0 : 0.5,
+        transform: collapsed ? "translateX(16px)" : undefined,
+        paddingTop: collapsed ? 0 : undefined,
+        paddingBottom: collapsed ? 0 : undefined,
+        marginTop: collapsed ? 0 : undefined,
+        transition:
+          "max-height 400ms ease, opacity 360ms ease, transform 400ms ease, padding 400ms ease, margin 400ms ease",
+      }
+    : {};
+
   return (
     <div
+      ref={cardRef}
       className={cn(
         "group relative transition-all",
         compact
@@ -311,7 +372,7 @@ export function ChecklistItem({
         tarefa.concluida && "opacity-50",
         tarefa.stand_by && !tarefa.concluida && "opacity-70",
       )}
-      style={cardStyle}
+      style={{ ...cardStyle, ...exitStyle }}
     >
       {/* Reflexo de linha no topo do vidro (só modo completo) */}
       {!compact ? (
@@ -330,22 +391,34 @@ export function ChecklistItem({
         <button
           type="button"
           onClick={handleToggle}
-          disabled={pending || editing || obsEditing}
+          disabled={pending || editing || obsEditing || isExiting}
           aria-label={
             tarefa.concluida ? "Marcar como pendente" : "Marcar como concluída"
           }
           className={cn(
             "mt-0.5 shrink-0 rounded-full border flex items-center justify-center transition-all",
             compact ? "h-4 w-4" : "h-5 w-5",
-            tarefa.concluida
+            checked
               ? "bg-primary border-primary text-primary-foreground shadow-[0_0_10px_rgba(0,113,227,0.5)]"
               : "border-white/30 hover:border-white/70",
             pending && "opacity-50",
           )}
         >
-          {tarefa.concluida ? (
-            <Check className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} strokeWidth={3} />
-          ) : null}
+          {compact ? (
+            tarefa.concluida ? (
+              <Check className="h-3 w-3" strokeWidth={3} />
+            ) : null
+          ) : (
+            // Anim 1: o check entra com scale 0→1 + fade (~200ms).
+            <span
+              className={cn(
+                "flex items-center justify-center transition-all duration-200 ease-out",
+                checked ? "scale-100 opacity-100" : "scale-0 opacity-0",
+              )}
+            >
+              <Check className="h-3.5 w-3.5" strokeWidth={3} />
+            </span>
+          )}
         </button>
 
         {editing ? (
@@ -446,20 +519,20 @@ export function ChecklistItem({
               <div className="min-w-0 flex items-baseline gap-2 flex-wrap">
                 <p
                   className={cn(
-                    "leading-snug min-w-0",
-                    !tarefa.concluida && !tarefa.stand_by && "text-white",
-                    tarefa.concluida && "line-through text-muted-foreground",
-                    tarefa.stand_by &&
-                      !tarefa.concluida &&
-                      "italic text-muted-foreground",
+                    "leading-snug min-w-0 transition-colors duration-200",
+                    !checked && !tarefa.stand_by && "text-white",
+                    checked && "line-through text-muted-foreground",
+                    tarefa.stand_by && !checked && "italic text-muted-foreground",
                   )}
                   style={titleStyle}
                 >
                   {tarefa.texto}
                 </p>
                 {subtarefas.length > 0 ? (
-                  <span
-                    className="inline-flex items-center gap-1 font-medium leading-none shrink-0"
+                  <button
+                    type="button"
+                    onClick={() => setSubtasksOpen((v) => !v)}
+                    className="inline-flex items-center gap-1 font-medium leading-none shrink-0 transition-opacity hover:opacity-80"
                     style={{
                       fontSize: "11px",
                       padding: "3px 10px",
@@ -468,11 +541,22 @@ export function ChecklistItem({
                       background: "rgba(127,190,255,0.18)",
                       border: "1px solid rgba(127,190,255,0.3)",
                     }}
-                    title={`${subConcluidas} de ${subtarefas.length} subtarefas concluídas`}
+                    aria-expanded={subtasksOpen}
+                    title={
+                      subtasksOpen ? "Recolher subtarefas" : "Expandir subtarefas"
+                    }
                   >
                     <ListTree className="h-3 w-3" />
                     {subConcluidas} / {subtarefas.length}
-                  </span>
+                    <ChevronDown
+                      className="h-3 w-3 transition-transform duration-300"
+                      style={{
+                        transform: subtasksOpen
+                          ? "rotate(0deg)"
+                          : "rotate(180deg)",
+                      }}
+                    />
+                  </button>
                 ) : null}
               </div>
 
@@ -735,10 +819,23 @@ export function ChecklistItem({
 
       {/* Subtarefas (aninhadas) — só no modo completo */}
       {!compact && !editing && (subtarefas.length > 0 || subAdding) ? (
-        <div className="relative mt-2 ml-6 space-y-0.5 border-l border-primary/20 pl-2.5">
-          {subtarefas.map((sub) => (
-            <SubtarefaRow key={sub.id} sub={sub} />
-          ))}
+        <div className="relative mt-2 ml-6 border-l border-primary/20 pl-2.5">
+          {/* Anim 3: bloco colapsável (max-height + opacity, ~300ms). */}
+          <div
+            ref={subListRef}
+            style={{
+              maxHeight: subMaxH,
+              opacity: subtasksOpen ? 1 : 0,
+              overflow: "hidden",
+              transition: "max-height 300ms ease, opacity 300ms ease",
+            }}
+          >
+            <div className="space-y-0.5">
+              {subtarefas.map((sub) => (
+                <SubtarefaRow key={sub.id} sub={sub} />
+              ))}
+            </div>
+          </div>
           {subAdding ? (
             <div className="flex items-center gap-1 pt-0.5">
               <CornerDownRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />

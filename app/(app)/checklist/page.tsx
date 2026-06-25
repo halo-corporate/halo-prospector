@@ -87,9 +87,14 @@ export default async function ChecklistPage({
   const concluidas = tarefas.filter((t) => t.concluida).length;
   const pct = tarefas.length === 0 ? 0 : Math.round((concluidas / tarefas.length) * 100);
 
-  // Agrupa as tarefas por categoria (na ordem das categorias), com "Sem
-  // categoria" sempre por último. Categorias vazias não aparecem.
-  const grupos = groupByCategoria(tarefas, categorias);
+  // Na lista só aparecem as PENDENTES — ao concluir, a tarefa desliza pra fora
+  // (animação no ChecklistItem) e some daqui. As concluídas seguem contando no
+  // progresso acima e ficam na dialog "Concluídas".
+  const pendentes = tarefas.filter((t) => !t.concluida);
+
+  // Agrupa as tarefas pendentes por categoria (na ordem das categorias), com
+  // "Sem categoria" sempre por último. Categorias vazias não aparecem.
+  const grupos = groupByCategoria(pendentes, categorias);
 
   const isCurrent = week === current;
   const prevWeek = addWeeksISO(week, -1);
@@ -225,6 +230,7 @@ export default async function ChecklistPage({
                 width: `${pct}%`,
                 background: "linear-gradient(90deg, #0071E3, #7FBEFF)",
                 boxShadow: "0 0 16px rgba(0,113,227,0.8)",
+                transition: "width 400ms ease",
               }}
             />
           </div>
@@ -240,10 +246,14 @@ export default async function ChecklistPage({
         <p className="py-12 text-center text-sm text-white/40">
           Nenhuma tarefa nessa semana. Adicione a primeira aí em cima.
         </p>
+      ) : pendentes.length === 0 ? (
+        <p className="py-12 text-center text-sm text-white/40">
+          Tudo concluído nessa semana. As tarefas feitas estão em “Concluídas”.
+        </p>
       ) : grupos.length === 1 && grupos[0]!.categoria === null ? (
         // Sem categorias atribuídas: lista plana (sem cabeçalho de grupo).
         <div className="space-y-2">
-          {tarefas.map((t) => (
+          {pendentes.map((t) => (
             <ChecklistItem
               key={t.id}
               tarefa={t}
