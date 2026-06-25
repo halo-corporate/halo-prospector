@@ -112,6 +112,22 @@ export default async function ChecklistPage({
               {isCurrent ? "Semana atual" : "Outra semana"} ·{" "}
               {formatWeekLabelBR(week)}
             </p>
+            {tarefas.length > 0 ? (
+              <div className="flex items-center gap-2 pt-1.5">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs backdrop-blur">
+                  <span className="font-semibold text-white tabular-nums">
+                    {tarefas.length - concluidas}
+                  </span>
+                  <span className="text-white/50">abertas</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs backdrop-blur">
+                  <span className="font-semibold text-primary tabular-nums">
+                    {concluidas}
+                  </span>
+                  <span className="text-white/50">feitas</span>
+                </span>
+              </div>
+            ) : null}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -150,76 +166,83 @@ export default async function ChecklistPage({
       {/* Barra de progresso */}
       {tarefas.length > 0 ? (
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center justify-between text-xs text-white/50">
             <span>
               {concluidas} de {tarefas.length} concluídas
             </span>
-            <span>{pct}%</span>
+            <span className="font-medium tabular-nums text-primary">{pct}%</span>
           </div>
-          <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
+          <div className="h-2 overflow-hidden rounded-full border border-white/5 bg-white/[0.08]">
             <div
-              className="h-full bg-primary transition-all"
-              style={{ width: `${pct}%` }}
+              className="h-full rounded-full bg-primary"
+              style={{
+                width: `${pct}%`,
+                boxShadow: "0 0 12px rgba(0,113,227,0.55)",
+              }}
             />
           </div>
         </div>
       ) : null}
 
-      <div className="halo-glass rounded-halo p-4 space-y-3">
+      {/* Barra de adicionar tarefa (vidro) */}
+      <div className="halo-glass rounded-[14px] p-3">
         <AddTarefaInput weekStartISO={week} />
-
-        {tarefas.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-8">
-            Nenhuma tarefa nessa semana. Adicione a primeira aí em cima.
-          </p>
-        ) : grupos.length === 1 && grupos[0]!.categoria === null ? (
-          // Sem categorias atribuídas: lista plana (sem cabeçalho de grupo).
-          <div className="space-y-0.5">
-            {tarefas.map((t) => (
-              <ChecklistItem
-                key={t.id}
-                tarefa={t}
-                categorias={categorias}
-                subtarefas={subtarefasByParent.get(t.id) ?? []}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {grupos.map((g) => (
-              <div key={g.categoria?.id ?? "sem-categoria"} className="space-y-1">
-                <div className="flex items-center gap-2 px-1">
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{
-                      backgroundColor: g.categoria?.cor ?? "transparent",
-                      border: g.categoria
-                        ? undefined
-                        : "1px solid hsl(var(--muted-foreground) / 0.4)",
-                    }}
-                  />
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {g.categoria?.nome ?? "Sem categoria"}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground/60">
-                    {g.tarefas.length}
-                  </span>
-                </div>
-                <div className="space-y-0.5">
-                  {g.tarefas.map((t) => (
-                    <ChecklistItem
-                      key={t.id}
-                      tarefa={t}
-                      categorias={categorias}
-                      subtarefas={subtarefasByParent.get(t.id) ?? []}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
+
+      {tarefas.length === 0 ? (
+        <p className="py-12 text-center text-sm text-white/40">
+          Nenhuma tarefa nessa semana. Adicione a primeira aí em cima.
+        </p>
+      ) : grupos.length === 1 && grupos[0]!.categoria === null ? (
+        // Sem categorias atribuídas: lista plana (sem cabeçalho de grupo).
+        <div className="space-y-2">
+          {tarefas.map((t) => (
+            <ChecklistItem
+              key={t.id}
+              tarefa={t}
+              categorias={categorias}
+              subtarefas={subtarefasByParent.get(t.id) ?? []}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {grupos.map((g) => (
+            <div key={g.categoria?.id ?? "sem-categoria"} className="space-y-2">
+              <div className="flex items-center gap-2 px-1">
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{
+                    backgroundColor: g.categoria?.cor ?? "transparent",
+                    boxShadow: g.categoria?.cor
+                      ? `0 0 8px ${g.categoria.cor}80`
+                      : undefined,
+                    border: g.categoria
+                      ? undefined
+                      : "1px solid rgba(255,255,255,0.3)",
+                  }}
+                />
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/60">
+                  {g.categoria?.nome ?? "Sem categoria"}
+                </span>
+                <span className="text-[11px] tabular-nums text-white/30">
+                  {g.tarefas.length}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {g.tarefas.map((t) => (
+                  <ChecklistItem
+                    key={t.id}
+                    tarefa={t}
+                    categorias={categorias}
+                    subtarefas={subtarefasByParent.get(t.id) ?? []}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

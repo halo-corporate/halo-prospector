@@ -80,6 +80,13 @@ export function ChecklistItem({
   const [subDraft, setSubDraft] = useState("");
 
   const subConcluidas = subtarefas.filter((s) => s.concluida).length;
+  const hasSub = !compact && subtarefas.length > 0;
+  const overdue =
+    !compact && tarefa.prazo
+      ? deadlineProximity(tarefa.prazo) === "overdue"
+      : false;
+  const overdueLabel =
+    overdue && tarefa.prazo ? overdueDaysLabel(tarefa.prazo) : "";
 
   // Sincroniza drafts quando a tarefa vier nova/atualizada (router.refresh).
   useEffect(() => {
@@ -230,8 +237,21 @@ export function ChecklistItem({
   return (
     <div
       className={cn(
-        "group rounded-md border border-transparent px-2 py-1.5 -mx-2 transition-colors",
-        !editing && !obsEditing && "hover:border-border hover:bg-accent/30",
+        "group relative transition-all",
+        compact
+          ? cn(
+              "rounded-md border border-transparent px-2 py-1.5 -mx-2",
+              !editing &&
+                !obsEditing &&
+                "hover:border-border hover:bg-accent/30",
+            )
+          : cn(
+              "rounded-[14px] border px-3.5 py-3 backdrop-blur-xl",
+              hasSub
+                ? "border-primary/30 bg-primary/[0.07] shadow-[0_0_0_1px_rgba(0,113,227,0.08),0_8px_30px_rgba(0,0,0,0.45)]"
+                : "border-white/10 bg-white/[0.05] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_30px_rgba(0,0,0,0.4)] hover:border-white/20 hover:bg-white/[0.07]",
+            ),
+        tarefa.concluida && "opacity-50",
         tarefa.stand_by && !tarefa.concluida && "opacity-70",
       )}
     >
@@ -244,15 +264,16 @@ export function ChecklistItem({
             tarefa.concluida ? "Marcar como pendente" : "Marcar como concluída"
           }
           className={cn(
-            "mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors",
+            "mt-0.5 shrink-0 rounded-full border flex items-center justify-center transition-all",
+            compact ? "h-4 w-4" : "h-5 w-5",
             tarefa.concluida
-              ? "bg-primary border-primary text-primary-foreground"
-              : "border-muted-foreground/40 hover:border-foreground",
+              ? "bg-primary border-primary text-primary-foreground shadow-[0_0_10px_rgba(0,113,227,0.5)]"
+              : "border-white/30 hover:border-white/70",
             pending && "opacity-50",
           )}
         >
           {tarefa.concluida ? (
-            <Check className="h-3 w-3" strokeWidth={3} />
+            <Check className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} strokeWidth={3} />
           ) : null}
         </button>
 
@@ -551,27 +572,37 @@ export function ChecklistItem({
             </div>
 
             {!compact ? (
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
-                  onClick={() => setEditing(true)}
-                  disabled={pending}
-                  aria-label="Editar texto"
-                >
-                  <Edit2 className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 hover:text-destructive"
-                  onClick={handleDelete}
-                  disabled={pending}
-                  aria-label="Excluir"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+              <div className="flex items-center gap-1 shrink-0 self-start">
+                {overdue ? (
+                  <span
+                    className="halo-deadline is-overdue inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+                    title={`Vencida — prazo ${formatBR(tarefa.prazo!)}`}
+                  >
+                    {overdueLabel}
+                  </span>
+                ) : null}
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6"
+                    onClick={() => setEditing(true)}
+                    disabled={pending}
+                    aria-label="Editar texto"
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 hover:text-destructive"
+                    onClick={handleDelete}
+                    disabled={pending}
+                    aria-label="Excluir"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             ) : null}
           </>
@@ -580,7 +611,7 @@ export function ChecklistItem({
 
       {/* Subtarefas (aninhadas) — só no modo completo */}
       {!compact && !editing && (subtarefas.length > 0 || subAdding) ? (
-        <div className="mt-1 ml-6 space-y-0.5 border-l border-border/50 pl-2">
+        <div className="mt-2 ml-6 space-y-0.5 border-l border-primary/20 pl-2.5">
           {subtarefas.map((sub) => (
             <SubtarefaRow key={sub.id} sub={sub} />
           ))}
@@ -718,6 +749,18 @@ export function ChecklistItem({
       ) : null}
     </div>
   );
+}
+
+/**
+ * Rótulo compacto de atraso pro chip da direita (ex: "−10d", "−3h"). Só visual;
+ * a proximidade real do prazo vem de deadlineProximity (lib/tarefas/prazo).
+ */
+function overdueDaysLabel(prazoIso: string): string {
+  const ms = Date.now() - new Date(prazoIso).getTime();
+  const days = Math.floor(ms / 86_400_000);
+  if (days >= 1) return `−${days}d`;
+  const hrs = Math.floor(ms / 3_600_000);
+  return `−${Math.max(hrs, 1)}h`;
 }
 
 /** Linha de uma subtarefa: toggle + texto + excluir (aparece no hover). */
