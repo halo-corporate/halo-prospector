@@ -96,7 +96,23 @@ export default async function ChecklistPage({
   const nextWeek = addWeeksISO(week, 1);
 
   return (
-    <div className="container py-6 space-y-6 max-w-3xl">
+    <div className="relative">
+      {/* Fundo escuro + brilhos azuis sutis: dão profundidade pro glass dos
+          cards (o blur precisa de algo atrás pra refratar). */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{ background: "linear-gradient(160deg, #060a11, #0b121d, #0a0f18)" }}
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            "radial-gradient(60% 50% at 18% 0%, rgba(0,113,227,0.18), transparent 70%), radial-gradient(50% 45% at 88% 12%, rgba(91,168,255,0.12), transparent 70%)",
+        }}
+      />
+      <div className="container py-6 space-y-6 max-w-3xl">
       {/* Sincroniza entre dispositivos via tick de 10s (coexiste com o
           RealtimeRefresher global, que cuida do refresh-on-focus). */}
       <ChecklistPoller intervalMs={10000} />
@@ -114,14 +130,37 @@ export default async function ChecklistPage({
             </p>
             {tarefas.length > 0 ? (
               <div className="flex items-center gap-2 pt-1.5">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.06] px-3 py-1 text-xs backdrop-blur">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs"
+                  style={{
+                    backdropFilter: "blur(60px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(60px) saturate(180%)",
+                    background:
+                      "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    boxShadow: "inset 0 1px 1px rgba(255,255,255,0.25)",
+                  }}
+                >
                   <span className="font-semibold text-white tabular-nums">
                     {tarefas.length - concluidas}
                   </span>
                   <span className="text-white/50">abertas</span>
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs backdrop-blur">
-                  <span className="font-semibold text-primary tabular-nums">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs"
+                  style={{
+                    backdropFilter: "blur(60px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(60px) saturate(180%)",
+                    background:
+                      "linear-gradient(135deg, rgba(0,113,227,0.22), rgba(0,113,227,0.08))",
+                    border: "1px solid rgba(91,168,255,0.4)",
+                    boxShadow: "inset 0 1px 1px rgba(255,255,255,0.2)",
+                  }}
+                >
+                  <span
+                    className="font-semibold tabular-nums"
+                    style={{ color: "#7FBEFF" }}
+                  >
                     {concluidas}
                   </span>
                   <span className="text-white/50">feitas</span>
@@ -172,12 +211,20 @@ export default async function ChecklistPage({
             </span>
             <span className="font-medium tabular-nums text-primary">{pct}%</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full border border-white/5 bg-white/[0.08]">
+          <div
+            className="h-2 overflow-hidden rounded-full"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.05)",
+              boxShadow: "inset 0 1px 2px rgba(0,0,0,0.4)",
+            }}
+          >
             <div
-              className="h-full rounded-full bg-primary"
+              className="h-full rounded-full"
               style={{
                 width: `${pct}%`,
-                boxShadow: "0 0 12px rgba(0,113,227,0.55)",
+                background: "linear-gradient(90deg, #0071E3, #7FBEFF)",
+                boxShadow: "0 0 16px rgba(0,113,227,0.8)",
               }}
             />
           </div>
@@ -243,6 +290,7 @@ export default async function ChecklistPage({
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }

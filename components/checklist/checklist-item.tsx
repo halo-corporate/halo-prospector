@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type CSSProperties,
+} from "react";
 import {
   CalendarClock,
   Check,
@@ -45,6 +51,25 @@ import {
   prioridadeChipClass,
 } from "@/lib/tarefas/prazo";
 import { formatBR, fromBRInput, toDateTimeLocalBR } from "@/lib/timezone";
+
+/** Estilo do chip de prioridade no modo completo (refinado — glass-friendly). */
+const PRIO_FULL_STYLE: Record<TarefaSemanal["prioridade"], CSSProperties> = {
+  alta: {
+    color: "#FF7A7A",
+    background: "rgba(255,107,107,0.16)",
+    border: "1px solid rgba(255,107,107,0.3)",
+  },
+  media: {
+    color: "#FFC061",
+    background: "rgba(255,184,77,0.16)",
+    border: "1px solid rgba(255,184,77,0.3)",
+  },
+  baixa: {
+    color: "#7FE3A0",
+    background: "rgba(127,227,160,0.14)",
+    border: "1px solid rgba(127,227,160,0.3)",
+  },
+};
 
 interface Props {
   tarefa: TarefaSemanal;
@@ -234,6 +259,23 @@ export function ChecklistItem({
 
   const hasObs = Boolean(tarefa.observacoes);
 
+  // Glass forte do card (só modo completo). Card com subtarefas vira azulado.
+  const cardStyle: CSSProperties | undefined = compact
+    ? undefined
+    : {
+        backdropFilter: "blur(60px) saturate(180%)",
+        WebkitBackdropFilter: "blur(60px) saturate(180%)",
+        background: hasSub
+          ? "linear-gradient(135deg, rgba(0,113,227,0.18), rgba(0,113,227,0.07))"
+          : "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))",
+        border: hasSub
+          ? "1px solid rgba(91,168,255,0.4)"
+          : "1px solid rgba(255,255,255,0.2)",
+        borderRadius: "18px",
+        boxShadow:
+          "inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -1px 2px rgba(0,0,0,0.15), 0 12px 32px rgba(0,0,0,0.35)",
+      };
+
   return (
     <div
       className={cn(
@@ -245,17 +287,39 @@ export function ChecklistItem({
                 !obsEditing &&
                 "hover:border-border hover:bg-accent/30",
             )
-          : cn(
-              "rounded-[14px] border px-3.5 py-3 backdrop-blur-xl",
-              hasSub
-                ? "border-primary/30 bg-primary/[0.07] shadow-[0_0_0_1px_rgba(0,113,227,0.08),0_8px_30px_rgba(0,0,0,0.45)]"
-                : "border-white/10 bg-white/[0.05] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_8px_30px_rgba(0,0,0,0.4)] hover:border-white/20 hover:bg-white/[0.07]",
-            ),
+          : "overflow-hidden px-3.5 py-3",
         tarefa.concluida && "opacity-50",
         tarefa.stand_by && !tarefa.concluida && "opacity-70",
       )}
+      style={cardStyle}
     >
-      <div className="flex items-start gap-2">
+      {/* Reflexos de luz do glass (só modo completo) */}
+      {!compact ? (
+        <>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px]"
+            style={{
+              background: hasSub
+                ? "linear-gradient(90deg, transparent, rgba(127,190,255,0.6), transparent)"
+                : "linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)",
+            }}
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute left-0 top-0"
+            style={{
+              width: "60%",
+              height: "50%",
+              background: hasSub
+                ? "linear-gradient(160deg, rgba(127,190,255,0.12), transparent)"
+                : "linear-gradient(160deg, rgba(255,255,255,0.08), transparent)",
+            }}
+          />
+        </>
+      ) : null}
+
+      <div className="relative flex items-start gap-2">
         <button
           type="button"
           onClick={handleToggle}
@@ -340,7 +404,12 @@ export function ChecklistItem({
         ) : (
           <>
             <div className="flex-1 min-w-0 space-y-0.5">
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div
+                className={cn(
+                  "flex items-center flex-wrap",
+                  compact ? "gap-1.5" : "gap-[7px]",
+                )}
+              >
                 {compact ? (
                   <span
                     className={cn(
@@ -361,10 +430,17 @@ export function ChecklistItem({
                     aria-label={`Prioridade ${TAREFA_PRIORIDADE_LABELS[tarefa.prioridade]} — clique pra alternar`}
                     title="Clique pra alternar prioridade (alta → média → baixa)"
                     className={cn(
-                      "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide leading-none shrink-0 transition-colors hover:opacity-80",
-                      prioridadeChipClass(tarefa.prioridade),
+                      "inline-flex items-center gap-1 uppercase leading-none shrink-0 transition-opacity hover:opacity-80",
                       pending && "opacity-50",
                     )}
+                    style={{
+                      ...PRIO_FULL_STYLE[tarefa.prioridade],
+                      fontSize: "10px",
+                      fontWeight: 600,
+                      letterSpacing: "0.5px",
+                      padding: "3px 10px",
+                      borderRadius: "8px",
+                    }}
                   >
                     {tarefa.prioridade === "alta" ? (
                       <Flame className="h-2.5 w-2.5" />
@@ -376,29 +452,51 @@ export function ChecklistItem({
                 {/* Chip de prazo (read-only) — exibido inline quando há prazo.
                     O glow de proximidade é a sinalização visual principal. */}
                 {tarefa.prazo ? (
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium leading-none shrink-0",
-                      deadlineGlowClass(
-                        deadlineProximity(tarefa.prazo),
-                      ) || "bg-muted text-muted-foreground",
-                      tarefa.concluida && "opacity-50 saturate-0",
-                    )}
-                    title={`Prazo: ${formatBR(tarefa.prazo)}`}
-                  >
-                    <CalendarClock className="h-2.5 w-2.5" />
-                    {formatBR(tarefa.prazo, "dd/MM HH:mm")}
-                  </span>
+                  compact ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium leading-none shrink-0",
+                        deadlineGlowClass(
+                          deadlineProximity(tarefa.prazo),
+                        ) || "bg-muted text-muted-foreground",
+                        tarefa.concluida && "opacity-50 saturate-0",
+                      )}
+                      title={`Prazo: ${formatBR(tarefa.prazo)}`}
+                    >
+                      <CalendarClock className="h-2.5 w-2.5" />
+                      {formatBR(tarefa.prazo, "dd/MM HH:mm")}
+                    </span>
+                  ) : (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 font-mono leading-none shrink-0",
+                        tarefa.concluida && "opacity-50",
+                      )}
+                      style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)" }}
+                      title={`Prazo: ${formatBR(tarefa.prazo)}`}
+                    >
+                      <CalendarClock className="h-3 w-3" />
+                      {formatBR(tarefa.prazo, "d MMM · HH:mm").replace(".", "")}
+                    </span>
+                  )
                 ) : null}
 
                 {/* Contador de subtarefas */}
                 {!compact && subtarefas.length > 0 ? (
                   <span
-                    className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium leading-none shrink-0 bg-muted text-muted-foreground"
+                    className="inline-flex items-center gap-1 font-medium leading-none shrink-0"
+                    style={{
+                      fontSize: "11px",
+                      padding: "3px 10px",
+                      borderRadius: "8px",
+                      color: "#7FBEFF",
+                      background: "rgba(127,190,255,0.18)",
+                      border: "1px solid rgba(127,190,255,0.3)",
+                    }}
                     title={`${subConcluidas} de ${subtarefas.length} subtarefas concluídas`}
                   >
-                    <ListTree className="h-2.5 w-2.5" />
-                    {subConcluidas}/{subtarefas.length}
+                    <ListTree className="h-3 w-3" />
+                    {subConcluidas} / {subtarefas.length}
                   </span>
                 ) : null}
 
@@ -575,7 +673,15 @@ export function ChecklistItem({
               <div className="flex items-center gap-1 shrink-0 self-start">
                 {overdue ? (
                   <span
-                    className="halo-deadline is-overdue inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+                    className="inline-flex items-center font-semibold leading-none shrink-0"
+                    style={{
+                      fontSize: "11px",
+                      padding: "5px 12px",
+                      borderRadius: "10px",
+                      color: "#FF7A7A",
+                      background: "rgba(255,107,107,0.14)",
+                      border: "1px solid rgba(255,107,107,0.35)",
+                    }}
                     title={`Vencida — prazo ${formatBR(tarefa.prazo!)}`}
                   >
                     {overdueLabel}
@@ -611,7 +717,7 @@ export function ChecklistItem({
 
       {/* Subtarefas (aninhadas) — só no modo completo */}
       {!compact && !editing && (subtarefas.length > 0 || subAdding) ? (
-        <div className="mt-2 ml-6 space-y-0.5 border-l border-primary/20 pl-2.5">
+        <div className="relative mt-2 ml-6 space-y-0.5 border-l border-primary/20 pl-2.5">
           {subtarefas.map((sub) => (
             <SubtarefaRow key={sub.id} sub={sub} />
           ))}
@@ -664,7 +770,7 @@ export function ChecklistItem({
 
       {/* Card de observações — só no modo completo */}
       {!compact && obsOpen && !editing ? (
-        <div className="mt-2 ml-6 rounded-md border border-border/60 bg-card/40 p-2.5 space-y-1.5">
+        <div className="relative mt-2 ml-6 rounded-md border border-border/60 bg-card/40 p-2.5 space-y-1.5">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
               <FileText className="h-3 w-3" />
@@ -752,15 +858,16 @@ export function ChecklistItem({
 }
 
 /**
- * Rótulo compacto de atraso pro chip da direita (ex: "−10d", "−3h"). Só visual;
- * a proximidade real do prazo vem de deadlineProximity (lib/tarefas/prazo).
+ * Rótulo de atraso pro chip da direita (ex: "3 dias atrás", "1 dia atrás").
+ * Só visual; a proximidade real do prazo vem de deadlineProximity
+ * (lib/tarefas/prazo). Mesma conta de dias de antes, só o texto mudou.
  */
 function overdueDaysLabel(prazoIso: string): string {
   const ms = Date.now() - new Date(prazoIso).getTime();
   const days = Math.floor(ms / 86_400_000);
-  if (days >= 1) return `−${days}d`;
-  const hrs = Math.floor(ms / 3_600_000);
-  return `−${Math.max(hrs, 1)}h`;
+  if (days >= 1) return `${days} ${days === 1 ? "dia" : "dias"} atrás`;
+  const hrs = Math.max(Math.floor(ms / 3_600_000), 1);
+  return `${hrs} ${hrs === 1 ? "hora" : "horas"} atrás`;
 }
 
 /** Linha de uma subtarefa: toggle + texto + excluir (aparece no hover). */
