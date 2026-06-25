@@ -1,50 +1,70 @@
 import { notFound } from "next/navigation";
 import { getPropostaById } from "@/lib/propostas/queries";
-import { PROPOSTA_VERTICAL_LABELS } from "@/lib/database.types";
 import { formatBRL } from "@/lib/format";
 import { PrintButton } from "@/components/propostas/print-button";
 
 export const dynamic = "force-dynamic";
 
-// Documento da proposta pro cliente — pele CLARA (fundo branco), fora do layout
-// do app. Fonte de verdade dos valores: colunas geradas valor_total (bruto) e
-// valor_liquido (líquido). Nada é recalculado aqui.
+// Documento da proposta pro cliente — identidade dark da marca HALO (fundo
+// preto, azul #0071E3). Fora do layout do app. Fonte de verdade dos valores:
+// colunas geradas valor_total (bruto) e valor_liquido (líquido). Nada é
+// recalculado aqui.
 //
 // IMPORTANTE: obs_interna JAMAIS aparece neste documento — só obs_pdf é exibido
-// pro cliente.
+// pro cliente. O `vertical` é controle interno e também NÃO é renderizado aqui.
 
-const ACCENT = "#1a56db";
-const INK = "#111827";
-const MUTED = "#6b7280";
-const LINE = "#e5e7eb";
+const BLUE = "#0071E3";
+const WHITE = "#fff";
+const W85 = "rgba(255,255,255,0.85)";
+const W60 = "rgba(255,255,255,0.6)";
+const W45 = "rgba(255,255,255,0.45)";
+const W35 = "rgba(255,255,255,0.35)";
+const W10 = "rgba(255,255,255,0.1)";
+const W08 = "rgba(255,255,255,0.08)";
+const W05 = "rgba(255,255,255,0.05)";
+const HEADING_FONT = "'Helvetica Neue', Helvetica, Arial, sans-serif";
 
 const CSS = `
   @page { size: A4; margin: 16mm; }
+  html, body { background: #000; }
   @media print {
     .no-print { display: none !important; }
-    html, body { background: #ffffff !important; }
-    .proposta-doc { box-shadow: none !important; margin: 0 !important; }
-    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    html, body, .proposta-doc { background: #000 !important; }
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
   }
   .proposta-doc {
-    background: #ffffff;
-    color: ${INK};
-    font-family: "Open Sans", ui-sans-serif, system-ui, sans-serif;
+    background: #000;
+    color: ${WHITE};
+    font-family: 'Open Sans', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 300;
     max-width: 720px;
+    min-height: 100vh;
     margin: 0 auto;
-    padding: 56px 48px 40px;
+    padding: 56px 48px 44px;
   }
-  .proposta-doc .mono {
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-variant-numeric: tabular-nums;
+  .proposta-doc .heading {
+    font-family: ${HEADING_FONT};
+    font-weight: 700;
   }
   .proposta-doc .sec-label {
+    font-family: 'Open Sans', sans-serif;
     font-size: 10px;
-    letter-spacing: 0.18em;
+    font-weight: 600;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: ${MUTED};
-    margin: 0 0 10px;
+    color: ${W45};
+    margin: 0 0 14px;
   }
+  .proposta-doc .divider {
+    height: 1px;
+    border: 0;
+    background: linear-gradient(90deg, ${BLUE}, transparent);
+    margin: 36px 0;
+  }
+  .proposta-doc .num { font-variant-numeric: tabular-nums; }
 `;
 
 function formatDataDots(iso: string): string {
@@ -65,13 +85,22 @@ export default async function PropostaDocumentoPage({
   const descontoValor = bruto - liquido;
   const porAnel = proposta.quantidade > 0 ? liquido / proposta.quantidade : 0;
   const parcela4 = liquido / 4;
-
-  const verticalLabel = proposta.vertical
-    ? PROPOSTA_VERTICAL_LABELS[proposta.vertical]
-    : null;
+  const descontoPct = proposta.desconto_percentual.toLocaleString("pt-BR", {
+    maximumFractionDigits: 2,
+  });
 
   return (
     <>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossOrigin="anonymous"
+      />
+      <link
+        href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600&display=swap"
+        rel="stylesheet"
+      />
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <PrintButton />
 
@@ -82,82 +111,123 @@ export default async function PropostaDocumentoPage({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            borderBottom: `2px solid ${INK}`,
-            paddingBottom: "18px",
           }}
         >
-          <div
-            style={{
-              fontSize: "30px",
-              fontWeight: 700,
-              letterSpacing: "0.28em",
-              color: INK,
-            }}
+          <svg
+            viewBox="0 0 180 38"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ height: "26px", width: "auto" }}
           >
-            HALO
-          </div>
+            <circle
+              cx="14"
+              cy="19"
+              r="11"
+              stroke="white"
+              strokeWidth="4.5"
+              fill="none"
+            />
+            <circle
+              cx="40"
+              cy="19"
+              r="11"
+              stroke="white"
+              strokeWidth="4.5"
+              fill="none"
+            />
+            <line
+              x1="47"
+              y1="27"
+              x2="54"
+              y2="36"
+              stroke="white"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+            />
+            <text
+              x="64"
+              y="27"
+              fontFamily="Helvetica Neue,Helvetica,Arial,sans-serif"
+              fontWeight="300"
+              fontSize="20"
+              letterSpacing="4"
+              fill="white"
+            >
+              HALO
+            </text>
+          </svg>
+
           <div style={{ textAlign: "right" }}>
             <div
               style={{
+                fontFamily: "'Open Sans', sans-serif",
                 fontSize: "11px",
+                fontWeight: 600,
                 letterSpacing: "0.18em",
                 textTransform: "uppercase",
-                color: ACCENT,
-                fontWeight: 600,
+                color: BLUE,
               }}
             >
               Proposta Comercial
             </div>
             <div
-              className="mono"
-              style={{ fontSize: "13px", color: MUTED, marginTop: "4px" }}
+              className="num"
+              style={{ fontSize: "13px", color: W45, marginTop: "5px" }}
             >
               {formatDataDots(proposta.data_envio)}
             </div>
           </div>
         </header>
 
-        {/* PARA */}
-        <section style={{ marginTop: "36px" }}>
+        <hr className="divider" />
+
+        {/* PARA — só o nome do cliente (vertical é interno, não vai no PDF) */}
+        <section>
           <p className="sec-label">Para</p>
-          <div style={{ fontSize: "24px", fontWeight: 600, color: INK }}>
+          <div
+            style={{
+              fontFamily: "'Open Sans', sans-serif",
+              fontSize: "24px",
+              fontWeight: 400,
+              color: WHITE,
+            }}
+          >
             {proposta.cliente}
           </div>
-          {verticalLabel ? (
-            <div style={{ fontSize: "13px", color: MUTED, marginTop: "2px" }}>
-              {verticalLabel}
-            </div>
-          ) : null}
         </section>
 
+        <hr className="divider" />
+
         {/* INVESTIMENTO TOTAL */}
-        <section style={{ marginTop: "36px" }}>
+        <section>
           <p className="sec-label">Investimento total</p>
           <div
-            className="mono"
-            style={{ fontSize: "40px", fontWeight: 700, color: ACCENT, lineHeight: 1.1 }}
+            className="heading num"
+            style={{ fontSize: "44px", color: WHITE, lineHeight: 1.05 }}
           >
             {formatBRL(liquido)}
           </div>
-          <div style={{ fontSize: "13px", color: MUTED, marginTop: "6px" }}>
+          <div style={{ fontSize: "13px", color: W60, marginTop: "8px" }}>
             {proposta.quantidade}{" "}
             {proposta.quantidade === 1 ? "anel HALO" : "anéis HALO"} ·{" "}
-            <span className="mono">{formatBRL(porAnel)}</span> por anel
+            <span className="num">{formatBRL(porAnel)}</span> por anel
           </div>
 
           {proposta.condicao_especial ? (
             <div
               style={{
                 display: "inline-block",
-                marginTop: "14px",
+                marginTop: "16px",
                 padding: "5px 12px",
                 borderRadius: "999px",
-                border: `1px solid ${ACCENT}`,
-                color: ACCENT,
+                border: `1px solid rgba(0,113,227,0.5)`,
+                background: "rgba(0,113,227,0.1)",
+                color: BLUE,
+                fontFamily: "'Open Sans', sans-serif",
                 fontSize: "10px",
+                fontWeight: 600,
                 letterSpacing: "0.16em",
                 textTransform: "uppercase",
-                fontWeight: 600,
               }}
             >
               Condição Especial
@@ -165,8 +235,10 @@ export default async function PropostaDocumentoPage({
           ) : null}
         </section>
 
+        <hr className="divider" />
+
         {/* DETALHAMENTO */}
-        <section style={{ marginTop: "40px" }}>
+        <section>
           <p className="sec-label">Detalhamento</p>
           <table
             style={{
@@ -186,30 +258,30 @@ export default async function PropostaDocumentoPage({
               />
               <DetailRow label="Valor bruto" value={formatBRL(bruto)} />
               <DetailRow
-                label={`Desconto (${proposta.desconto_percentual.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%)`}
+                label={`Desconto (${descontoPct}%)`}
                 value={`− ${formatBRL(descontoValor)}`}
-                valueColor={ACCENT}
+                valueColor={BLUE}
               />
               <tr>
                 <td
+                  className="heading"
                   style={{
-                    padding: "14px 0 0",
-                    borderTop: `2px solid ${INK}`,
-                    fontWeight: 700,
-                    fontSize: "15px",
+                    padding: "16px 0 0",
+                    borderTop: `1px solid rgba(255,255,255,0.15)`,
+                    color: BLUE,
+                    fontSize: "18px",
                   }}
                 >
                   Total líquido
                 </td>
                 <td
-                  className="mono"
+                  className="heading num"
                   style={{
-                    padding: "14px 0 0",
-                    borderTop: `2px solid ${INK}`,
+                    padding: "16px 0 0",
+                    borderTop: `1px solid rgba(255,255,255,0.15)`,
                     textAlign: "right",
-                    fontWeight: 700,
-                    fontSize: "16px",
-                    color: ACCENT,
+                    color: BLUE,
+                    fontSize: "18px",
                   }}
                 >
                   {formatBRL(liquido)}
@@ -219,67 +291,60 @@ export default async function PropostaDocumentoPage({
           </table>
         </section>
 
-        {/* FORMAS DE PAGAMENTO */}
-        <section style={{ marginTop: "40px" }}>
+        <hr className="divider" />
+
+        {/* FORMAS DE PAGAMENTO — grid 2×2 */}
+        <section>
           <p className="sec-label">Formas de pagamento</p>
-          <div style={{ display: "grid", gap: "10px", fontSize: "13px" }}>
-            <PaymentRow titulo="Pix" detalhe="Aprovação instantânea." />
-            <PaymentRow titulo="Boleto" detalhe="Aprovado em 1 ou 2 dias úteis." />
-            <PaymentRow
-              titulo="Cartão de crédito"
-              detalhe="Aprovação imediata."
-            />
-            <PaymentRow
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "12px",
+            }}
+          >
+            <PaymentBox titulo="Pix" desc="Aprovação instantânea." />
+            <PaymentBox titulo="Boleto" desc="Aprovado em 1 ou 2 dias úteis." />
+            <PaymentBox titulo="Cartão de crédito" desc="Aprovação imediata." />
+            <PaymentBox
               titulo="4× sem juros"
-              detalhe={
-                <>
-                  No cartão. 4× de{" "}
-                  <span className="mono">{formatBRL(parcela4)}</span>.
-                </>
-              }
+              desc="No cartão."
+              destaque
+              valorAzul={`4× de ${formatBRL(parcela4)}`}
             />
           </div>
         </section>
 
         {/* OBSERVAÇÕES (somente obs_pdf — pro cliente) */}
         {proposta.obs_pdf && proposta.obs_pdf.trim() ? (
-          <section style={{ marginTop: "40px" }}>
-            <p className="sec-label">Observações</p>
-            <p
-              style={{
-                fontSize: "13px",
-                color: INK,
-                lineHeight: 1.6,
-                whiteSpace: "pre-wrap",
-                margin: 0,
-              }}
-            >
-              {proposta.obs_pdf}
-            </p>
-          </section>
+          <>
+            <hr className="divider" />
+            <section>
+              <p className="sec-label">Observações</p>
+              <p
+                style={{
+                  fontSize: "13px",
+                  color: W85,
+                  lineHeight: 1.7,
+                  whiteSpace: "pre-wrap",
+                  margin: 0,
+                }}
+              >
+                {proposta.obs_pdf}
+              </p>
+            </section>
+          </>
         ) : null}
-
-        {/* VALIDADE */}
-        <p
-          style={{
-            marginTop: "40px",
-            fontSize: "12px",
-            color: MUTED,
-            fontStyle: "italic",
-          }}
-        >
-          Proposta válida por 15 dias.
-        </p>
 
         {/* RODAPÉ */}
         <footer
           style={{
-            marginTop: "32px",
-            paddingTop: "18px",
-            borderTop: `1px solid ${LINE}`,
+            marginTop: "48px",
+            paddingTop: "20px",
+            borderTop: `1px solid ${W08}`,
             fontSize: "11px",
-            color: MUTED,
-            lineHeight: 1.8,
+            color: W35,
+            lineHeight: 1.9,
           }}
         >
           <div>
@@ -304,16 +369,22 @@ function DetailRow({
 }) {
   return (
     <tr>
-      <td style={{ padding: "9px 0", borderBottom: `1px solid ${LINE}`, color: INK }}>
+      <td
+        style={{
+          padding: "11px 0",
+          borderBottom: `1px solid rgba(255,255,255,0.08)`,
+          color: "rgba(255,255,255,0.6)",
+        }}
+      >
         {label}
       </td>
       <td
-        className="mono"
+        className="num"
         style={{
-          padding: "9px 0",
-          borderBottom: `1px solid ${LINE}`,
+          padding: "11px 0",
+          borderBottom: `1px solid rgba(255,255,255,0.08)`,
           textAlign: "right",
-          color: valueColor ?? INK,
+          color: valueColor ?? "rgba(255,255,255,0.85)",
         }}
       >
         {value}
@@ -322,26 +393,61 @@ function DetailRow({
   );
 }
 
-function PaymentRow({
+function PaymentBox({
   titulo,
-  detalhe,
+  desc,
+  destaque,
+  valorAzul,
 }: {
   titulo: string;
-  detalhe: React.ReactNode;
+  desc: string;
+  destaque?: boolean;
+  valorAzul?: string;
 }) {
   return (
     <div
       style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "baseline",
-        gap: "16px",
-        borderBottom: `1px solid ${LINE}`,
-        paddingBottom: "9px",
+        background: destaque ? "rgba(0,113,227,0.1)" : W05,
+        border: `1px solid ${destaque ? "rgba(0,113,227,0.5)" : W10}`,
+        borderRadius: "12px",
+        padding: "16px",
       }}
     >
-      <span style={{ fontWeight: 600, color: INK }}>{titulo}</span>
-      <span style={{ color: MUTED, textAlign: "right" }}>{detalhe}</span>
+      <div
+        style={{
+          fontFamily: "'Open Sans', sans-serif",
+          fontWeight: 400,
+          fontSize: "14px",
+          color: WHITE,
+        }}
+      >
+        {titulo}
+      </div>
+      <div
+        style={{
+          fontFamily: "'Open Sans', sans-serif",
+          fontWeight: 300,
+          fontSize: "12px",
+          color: W45,
+          marginTop: "4px",
+        }}
+      >
+        {desc}
+      </div>
+      {valorAzul ? (
+        <div
+          className="num"
+          style={{
+            fontFamily: "'Open Sans', sans-serif",
+            fontWeight: 600,
+            fontSize: "13px",
+            color: BLUE,
+            marginTop: "8px",
+          }}
+        >
+          {valorAzul}
+        </div>
+      ) : null}
     </div>
   );
 }

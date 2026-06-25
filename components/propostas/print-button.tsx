@@ -19,12 +19,12 @@ export function PrintButton() {
         padding: "10px 18px",
         borderRadius: "8px",
         border: "none",
-        background: "#1a56db",
+        background: "#0071E3",
         color: "#fff",
         font: "600 13px/1 ui-sans-serif, system-ui, sans-serif",
         letterSpacing: "0.02em",
         cursor: "pointer",
-        boxShadow: "0 4px 14px rgba(26,86,219,0.35)",
+        boxShadow: "0 4px 14px rgba(0,113,227,0.35)",
       }}
     >
       Gerar PDF / Imprimir
