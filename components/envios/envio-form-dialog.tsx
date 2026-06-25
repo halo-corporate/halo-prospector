@@ -100,27 +100,42 @@ export function EnvioFormDialog({
   const [cidade, setCidade] = useState(envio?.endereco_destino?.cidade ?? "");
   const [uf, setUf] = useState(envio?.endereco_destino?.uf ?? "");
 
-  // Pacote
+  // Pacote — no modo de criação, parte de defaults de embalagem padrão (o
+  // usuário pode sobrescrever); na edição, carrega o valor salvo do envio.
   const [pesoG, setPesoG] = useState(
-    envio?.peso_g != null ? String(envio.peso_g) : "",
+    envio?.peso_g != null
+      ? String(envio.peso_g)
+      : mode === "create"
+        ? "500"
+        : "",
   );
   const [dimAltura, setDimAltura] = useState(
-    envio?.dimensoes_cm?.altura != null ? String(envio.dimensoes_cm.altura) : "",
+    envio?.dimensoes_cm?.altura != null
+      ? String(envio.dimensoes_cm.altura)
+      : mode === "create"
+        ? "2"
+        : "",
   );
   const [dimLargura, setDimLargura] = useState(
     envio?.dimensoes_cm?.largura != null
       ? String(envio.dimensoes_cm.largura)
-      : "",
+      : mode === "create"
+        ? "12"
+        : "",
   );
   const [dimComprimento, setDimComprimento] = useState(
     envio?.dimensoes_cm?.comprimento != null
       ? String(envio.dimensoes_cm.comprimento)
-      : "",
+      : mode === "create"
+        ? "17"
+        : "",
   );
   const [valorSeguro, setValorSeguro] = useState(
     envio?.valor_seguro != null
       ? String(envio.valor_seguro).replace(".", ",")
-      : "",
+      : mode === "create"
+        ? "100,00"
+        : "",
   );
   const [cepLoading, setCepLoading] = useState(false);
 
@@ -179,26 +194,40 @@ export function EnvioFormDialog({
     setBairro(envio?.endereco_destino?.bairro ?? "");
     setCidade(envio?.endereco_destino?.cidade ?? "");
     setUf(envio?.endereco_destino?.uf ?? "");
-    setPesoG(envio?.peso_g != null ? String(envio.peso_g) : "");
+    setPesoG(
+      envio?.peso_g != null
+        ? String(envio.peso_g)
+        : mode === "create"
+          ? "500"
+          : "",
+    );
     setDimAltura(
       envio?.dimensoes_cm?.altura != null
         ? String(envio.dimensoes_cm.altura)
-        : "",
+        : mode === "create"
+          ? "2"
+          : "",
     );
     setDimLargura(
       envio?.dimensoes_cm?.largura != null
         ? String(envio.dimensoes_cm.largura)
-        : "",
+        : mode === "create"
+          ? "12"
+          : "",
     );
     setDimComprimento(
       envio?.dimensoes_cm?.comprimento != null
         ? String(envio.dimensoes_cm.comprimento)
-        : "",
+        : mode === "create"
+          ? "17"
+          : "",
     );
     setValorSeguro(
       envio?.valor_seguro != null
         ? String(envio.valor_seguro).replace(".", ",")
-        : "",
+        : mode === "create"
+          ? "100,00"
+          : "",
     );
     setTransportadora(envio?.transportadora ?? "");
     setServico(envio?.servico ?? "");
@@ -213,7 +242,9 @@ export function EnvioFormDialog({
     setDataEntregaPrevista(envio?.data_entrega_prevista ?? "");
     setDataEntregaEfetiva(envio?.data_entrega_efetiva ?? "");
     setObservacoes(envio?.observacoes ?? "");
-  }, [open]);
+    // `mode` é estável por instância do diálogo (create vs edit) — incluído só
+    // pra satisfazer o exhaustive-deps; não causa reset extra.
+  }, [open, mode]);
 
   // Auto-preenche o endereço pelo CEP (ViaCEP). Dispara quando o CEP tem 8
   // dígitos; preenche rua/bairro/cidade/uf (mantém o que o usuário já digitou
