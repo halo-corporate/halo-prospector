@@ -951,7 +951,14 @@ export function ChecklistItem({
               </div>
             </div>
           ) : hasObs ? (
-            <p className="text-xs text-foreground/80 whitespace-pre-wrap break-words leading-snug">
+            <p
+              className="text-xs text-foreground/90 whitespace-pre-wrap break-words leading-snug"
+              style={{
+                transform: "translateZ(0)",
+                WebkitFontSmoothing: "antialiased",
+                MozOsxFontSmoothing: "grayscale",
+              }}
+            >
               {tarefa.observacoes}
             </p>
           ) : (
@@ -988,6 +995,13 @@ function overdueDaysLabel(prazoIso: string): string {
 /** Linha de uma subtarefa: toggle + texto + excluir (aparece no hover). */
 function SubtarefaRow({ sub }: { sub: TarefaSemanal }) {
   const [pending, startTransition] = useTransition();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(sub.texto);
+
+  // Sincroniza o draft quando a subtarefa vier atualizada (router.refresh).
+  useEffect(() => {
+    setDraft(sub.texto);
+  }, [sub.texto]);
 
   function handleToggle() {
     startTransition(async () => {
@@ -1003,12 +1017,36 @@ function SubtarefaRow({ sub }: { sub: TarefaSemanal }) {
     });
   }
 
+  // Mesmo padrão da tarefa principal: reusa updateTarefaTextoAction (grava em
+  // tasks.title; a subtarefa é uma row com parent_id). Não salva vazio ou igual.
+  function handleSaveEdit() {
+    const t = draft.trim();
+    if (!t || t === sub.texto) {
+      setEditing(false);
+      setDraft(sub.texto);
+      return;
+    }
+    startTransition(async () => {
+      const res = await updateTarefaTextoAction(sub.id, t);
+      if (!res.ok) {
+        toast.error(res.message);
+        return;
+      }
+      setEditing(false);
+    });
+  }
+
+  function handleCancelEdit() {
+    setEditing(false);
+    setDraft(sub.texto);
+  }
+
   return (
     <div className="group/sub flex items-center gap-2 py-0.5">
       <button
         type="button"
         onClick={handleToggle}
-        disabled={pending}
+        disabled={pending || editing}
         aria-label={
           sub.concluida ? "Marcar como pendente" : "Marcar como concluída"
         }
@@ -1022,28 +1060,86 @@ function SubtarefaRow({ sub }: { sub: TarefaSemanal }) {
       >
         {sub.concluida ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : null}
       </button>
-      <p
-        className={cn(
-          "flex-1 min-w-0 leading-snug",
-          sub.concluida && "line-through text-muted-foreground",
-        )}
-        style={{
-          fontSize: "13.5px",
-          color: sub.concluida ? undefined : "rgba(255,255,255,0.78)",
-        }}
-      >
-        {sub.texto}
-      </p>
-      <Button
-        size="icon"
-        variant="ghost"
-        className="h-5 w-5 shrink-0 opacity-0 group-hover/sub:opacity-100 transition-opacity hover:text-destructive"
-        onClick={handleDelete}
-        disabled={pending}
-        aria-label="Excluir subtarefa"
-      >
-        <Trash2 className="h-2.5 w-2.5" />
-      </Button>
+      {editing ? (
+        <div className="flex-1 flex items-center gap-1">
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSaveEdit();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                handleCancelEdit();
+              }
+            }}
+            autoFocus
+            maxLength={200}
+            className="h-7 text-xs"
+          />
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            onClick={handleSaveEdit}
+            disabled={pending}
+            aria-label="Salvar"
+          >
+            <Check className="h-3 w-3" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            onClick={handleCancelEdit}
+            disabled={pending}
+            aria-label="Cancelar"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      ) : (
+        <>
+          <p
+            className={cn(
+              "flex-1 min-w-0 leading-snug",
+              sub.concluida && "line-through text-muted-foreground",
+            )}
+            style={{
+              fontSize: "13.5px",
+              color: sub.concluida ? undefined : "#E8E8E8",
+              transform: "translateZ(0)",
+              WebkitFontSmoothing: "antialiased",
+              MozOsxFontSmoothing: "grayscale",
+            }}
+          >
+            {sub.texto}
+          </p>
+          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/sub:opacity-100 transition-opacity">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-5 w-5"
+              onClick={() => setEditing(true)}
+              disabled={pending}
+              aria-label="Editar subtarefa"
+            >
+              <Edit2 className="h-2.5 w-2.5" />
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-5 w-5 hover:text-destructive"
+              onClick={handleDelete}
+              disabled={pending}
+              aria-label="Excluir subtarefa"
+            >
+              <Trash2 className="h-2.5 w-2.5" />
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
