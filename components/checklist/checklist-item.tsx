@@ -52,23 +52,11 @@ import {
 } from "@/lib/tarefas/prazo";
 import { formatBR, fromBRInput, toDateTimeLocalBR } from "@/lib/timezone";
 
-/** Estilo do chip de prioridade no modo completo (refinado — glass-friendly). */
-const PRIO_FULL_STYLE: Record<TarefaSemanal["prioridade"], CSSProperties> = {
-  alta: {
-    color: "#FF7A7A",
-    background: "rgba(255,107,107,0.16)",
-    border: "1px solid rgba(255,107,107,0.3)",
-  },
-  media: {
-    color: "#FFC061",
-    background: "rgba(255,184,77,0.16)",
-    border: "1px solid rgba(255,184,77,0.3)",
-  },
-  baixa: {
-    color: "#7FE3A0",
-    background: "rgba(127,227,160,0.14)",
-    border: "1px solid rgba(127,227,160,0.3)",
-  },
+/** Cor da prioridade no modo completo (bolinha + texto na linha de metadados). */
+const PRIO_COLOR: Record<TarefaSemanal["prioridade"], string> = {
+  alta: "#FF7A7A",
+  media: "#FFC061",
+  baixa: "#7FE3A0",
 };
 
 interface Props {
@@ -259,21 +247,23 @@ export function ChecklistItem({
 
   const hasObs = Boolean(tarefa.observacoes);
 
-  // Glass forte do card (só modo completo). Card com subtarefas vira azulado.
+  // Nome da categoria (só leitura) pra linha de metadados no modo completo.
+  const categoriaNome =
+    !compact && tarefa.categoria_id
+      ? (categorias.find((c) => c.id === tarefa.categoria_id)?.nome ?? null)
+      : null;
+
+  // Glass limpo/uniforme (só modo completo). Fundo e borda ficam em classes
+  // Tailwind (pra ter variação no :hover); aqui só blur, raio e sombras.
+  // Card com subtarefas é azulado (ver className do card).
   const cardStyle: CSSProperties | undefined = compact
     ? undefined
     : {
-        backdropFilter: "blur(60px) saturate(180%)",
-        WebkitBackdropFilter: "blur(60px) saturate(180%)",
-        background: hasSub
-          ? "linear-gradient(135deg, rgba(0,113,227,0.18), rgba(0,113,227,0.07))"
-          : "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05))",
-        border: hasSub
-          ? "1px solid rgba(91,168,255,0.4)"
-          : "1px solid rgba(255,255,255,0.2)",
+        backdropFilter: "blur(40px) saturate(160%)",
+        WebkitBackdropFilter: "blur(40px) saturate(160%)",
         borderRadius: "18px",
         boxShadow:
-          "inset 0 1px 1px rgba(255,255,255,0.25), inset 0 -1px 2px rgba(0,0,0,0.15), 0 12px 32px rgba(0,0,0,0.35)",
+          "inset 0 1px 1px rgba(255,255,255,0.15), 0 8px 24px rgba(0,0,0,0.28)",
       };
 
   // Isola o conteúdo da camada de composição do backdrop-filter: translateZ(0)
@@ -289,9 +279,13 @@ export function ChecklistItem({
         textRendering: "optimizeLegibility",
       };
 
+  // Título dominante (só modo completo): grande, sólido, nítido.
   const titleStyle: CSSProperties | undefined = compact
     ? undefined
     : {
+        fontSize: "16px",
+        fontWeight: 600,
+        letterSpacing: "-0.01em",
         WebkitFontSmoothing: "antialiased",
         MozOsxFontSmoothing: "grayscale",
         textRendering: "optimizeLegibility",
@@ -308,36 +302,28 @@ export function ChecklistItem({
                 !obsEditing &&
                 "hover:border-border hover:bg-accent/30",
             )
-          : "overflow-hidden px-3.5 py-3",
+          : cn(
+              "overflow-hidden border px-3.5 py-3",
+              hasSub
+                ? "bg-[rgba(0,113,227,0.1)] border-[rgba(91,168,255,0.35)] hover:bg-[rgba(0,113,227,0.14)] hover:border-[rgba(91,168,255,0.5)]"
+                : "bg-[rgba(255,255,255,0.06)] border-[rgba(255,255,255,0.16)] hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.22)]",
+            ),
         tarefa.concluida && "opacity-50",
         tarefa.stand_by && !tarefa.concluida && "opacity-70",
       )}
       style={cardStyle}
     >
-      {/* Reflexos de luz do glass (só modo completo) */}
+      {/* Reflexo de linha no topo do vidro (só modo completo) */}
       {!compact ? (
-        <>
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 top-0 h-[1.5px]"
-            style={{
-              background: hasSub
-                ? "linear-gradient(90deg, transparent, rgba(127,190,255,0.6), transparent)"
-                : "linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)",
-            }}
-          />
-          <div
-            aria-hidden
-            className="pointer-events-none absolute left-0 top-0"
-            style={{
-              width: "60%",
-              height: "50%",
-              background: hasSub
-                ? "linear-gradient(160deg, rgba(127,190,255,0.12), transparent)"
-                : "linear-gradient(160deg, rgba(255,255,255,0.08), transparent)",
-            }}
-          />
-        </>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-px"
+          style={{
+            background: hasSub
+              ? "linear-gradient(90deg, transparent, rgba(127,190,255,0.6), transparent)"
+              : "linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)",
+          }}
+        />
       ) : null}
 
       <div className="relative flex items-start gap-2" style={contentStyle}>
@@ -361,27 +347,6 @@ export function ChecklistItem({
             <Check className={compact ? "h-3 w-3" : "h-3.5 w-3.5"} strokeWidth={3} />
           ) : null}
         </button>
-
-        {!compact ? (
-          <button
-            type="button"
-            onClick={handleToggleStandBy}
-            disabled={pending || editing || obsEditing}
-            aria-label={
-              tarefa.stand_by ? "Sair do stand by" : "Marcar como stand by"
-            }
-            title={tarefa.stand_by ? "Stand by — clique pra ativar" : "Stand by"}
-            className={cn(
-              "mt-0.5 h-4 w-4 shrink-0 flex items-center justify-center transition-colors",
-              tarefa.stand_by
-                ? "text-amber-500"
-                : "text-muted-foreground/40 hover:text-foreground",
-              pending && "opacity-50",
-            )}
-          >
-            <PauseCircle className="h-3.5 w-3.5" />
-          </button>
-        ) : null}
 
         {editing ? (
           <div className="flex-1 flex items-center gap-1">
@@ -422,88 +387,77 @@ export function ChecklistItem({
               <X className="h-3.5 w-3.5" />
             </Button>
           </div>
-        ) : (
-          <>
-            <div className="flex-1 min-w-0 space-y-0.5">
-              <div
+        ) : compact ? (
+          /* ----- MODO COMPACT (widget da Home) — inalterado ----- */
+          <div className="flex-1 min-w-0 space-y-0.5">
+            <div className="flex items-center flex-wrap gap-1.5">
+              <span
                 className={cn(
-                  "flex items-center flex-wrap",
-                  compact ? "gap-1.5" : "gap-[7px]",
+                  "inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-medium uppercase tracking-wide leading-none shrink-0",
+                  prioridadeChipClass(tarefa.prioridade),
                 )}
               >
-                {compact ? (
-                  <span
-                    className={cn(
-                      "inline-flex items-center gap-0.5 rounded px-1 py-px text-[9px] font-medium uppercase tracking-wide leading-none shrink-0",
-                      prioridadeChipClass(tarefa.prioridade),
-                    )}
-                  >
-                    {tarefa.prioridade === "alta" ? (
-                      <Flame className="h-2.5 w-2.5" />
-                    ) : null}
-                    {TAREFA_PRIORIDADE_LABELS[tarefa.prioridade]}
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleCyclePrioridade}
-                    disabled={pending}
-                    aria-label={`Prioridade ${TAREFA_PRIORIDADE_LABELS[tarefa.prioridade]} — clique pra alternar`}
-                    title="Clique pra alternar prioridade (alta → média → baixa)"
-                    className={cn(
-                      "inline-flex items-center gap-1 uppercase leading-none shrink-0 transition-opacity hover:opacity-80",
-                      pending && "opacity-50",
-                    )}
-                    style={{
-                      ...PRIO_FULL_STYLE[tarefa.prioridade],
-                      fontSize: "10px",
-                      fontWeight: 600,
-                      letterSpacing: "0.5px",
-                      padding: "3px 10px",
-                      borderRadius: "8px",
-                    }}
-                  >
-                    {tarefa.prioridade === "alta" ? (
-                      <Flame className="h-2.5 w-2.5" />
-                    ) : null}
-                    {TAREFA_PRIORIDADE_LABELS[tarefa.prioridade]}
-                  </button>
-                )}
-
-                {/* Chip de prazo (read-only) — exibido inline quando há prazo.
-                    O glow de proximidade é a sinalização visual principal. */}
-                {tarefa.prazo ? (
-                  compact ? (
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium leading-none shrink-0",
-                        deadlineGlowClass(
-                          deadlineProximity(tarefa.prazo),
-                        ) || "bg-muted text-muted-foreground",
-                        tarefa.concluida && "opacity-50 saturate-0",
-                      )}
-                      title={`Prazo: ${formatBR(tarefa.prazo)}`}
-                    >
-                      <CalendarClock className="h-2.5 w-2.5" />
-                      {formatBR(tarefa.prazo, "dd/MM HH:mm")}
-                    </span>
-                  ) : (
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 font-mono leading-none shrink-0",
-                        tarefa.concluida && "opacity-50",
-                      )}
-                      style={{ fontSize: "11px", color: "rgba(255,255,255,0.5)" }}
-                      title={`Prazo: ${formatBR(tarefa.prazo)}`}
-                    >
-                      <CalendarClock className="h-3 w-3" />
-                      {formatBR(tarefa.prazo, "d MMM · HH:mm").replace(".", "")}
-                    </span>
-                  )
+                {tarefa.prioridade === "alta" ? (
+                  <Flame className="h-2.5 w-2.5" />
                 ) : null}
+                {TAREFA_PRIORIDADE_LABELS[tarefa.prioridade]}
+              </span>
 
-                {/* Contador de subtarefas */}
-                {!compact && subtarefas.length > 0 ? (
+              {tarefa.prazo ? (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-medium leading-none shrink-0",
+                    deadlineGlowClass(deadlineProximity(tarefa.prazo)) ||
+                      "bg-muted text-muted-foreground",
+                    tarefa.concluida && "opacity-50 saturate-0",
+                  )}
+                  title={`Prazo: ${formatBR(tarefa.prazo)}`}
+                >
+                  <CalendarClock className="h-2.5 w-2.5" />
+                  {formatBR(tarefa.prazo, "dd/MM HH:mm")}
+                </span>
+              ) : null}
+
+              <p
+                className={cn(
+                  "text-sm leading-snug flex-1 min-w-0",
+                  tarefa.concluida && "line-through text-muted-foreground",
+                  tarefa.stand_by &&
+                    !tarefa.concluida &&
+                    "italic text-muted-foreground",
+                )}
+              >
+                {tarefa.texto}
+              </p>
+              {hasObs ? (
+                <StickyNote
+                  className="h-3 w-3 text-primary shrink-0"
+                  aria-label="Tem observações"
+                />
+              ) : null}
+            </div>
+          </div>
+        ) : (
+          /* ----- MODO COMPLETO ----- */
+          <div className="flex-1 min-w-0">
+            {/* Linha 1: título dominante + contador de subtarefas colado;
+                chip de atraso isolado à direita. */}
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex items-baseline gap-2 flex-wrap">
+                <p
+                  className={cn(
+                    "leading-snug min-w-0",
+                    !tarefa.concluida && !tarefa.stand_by && "text-white",
+                    tarefa.concluida && "line-through text-muted-foreground",
+                    tarefa.stand_by &&
+                      !tarefa.concluida &&
+                      "italic text-muted-foreground",
+                  )}
+                  style={titleStyle}
+                >
+                  {tarefa.texto}
+                </p>
+                {subtarefas.length > 0 ? (
                   <span
                     className="inline-flex items-center gap-1 font-medium leading-none shrink-0"
                     style={{
@@ -520,200 +474,180 @@ export function ChecklistItem({
                     {subConcluidas} / {subtarefas.length}
                   </span>
                 ) : null}
-
-                <p
-                  className={cn(
-                    "text-sm leading-snug flex-1 min-w-0",
-                    !compact &&
-                      !tarefa.concluida &&
-                      !tarefa.stand_by &&
-                      "text-white",
-                    tarefa.concluida && "line-through text-muted-foreground",
-                    tarefa.stand_by && !tarefa.concluida && "italic text-muted-foreground",
-                  )}
-                  style={titleStyle}
-                >
-                  {tarefa.texto}
-                </p>
-                {/* Indicador de observação no modo compact */}
-                {compact && hasObs ? (
-                  <StickyNote
-                    className="h-3 w-3 text-primary shrink-0"
-                    aria-label="Tem observações"
-                  />
-                ) : null}
               </div>
 
-              {/* Meta: observações + prazo (só modo completo) */}
-              {!compact ? (
-                <div className="flex items-center gap-3 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (obsEditing) return;
-                      if (!obsOpen && !hasObs) {
-                        openObsEditor();
-                      } else {
-                        setObsOpen((o) => !o);
-                      }
-                    }}
-                    className={cn(
-                      "inline-flex items-center gap-1 text-[10px] leading-none text-muted-foreground/70 hover:text-muted-foreground transition-colors",
-                      hasObs ? "" : "opacity-0 group-hover:opacity-100",
-                    )}
-                  >
-                    {obsOpen ? (
-                      <ChevronDown className="h-2.5 w-2.5" />
-                    ) : (
-                      <ChevronRight className="h-2.5 w-2.5" />
-                    )}
-                    {hasObs ? (
-                      <span>
-                        <FileText className="inline h-2.5 w-2.5 -mt-px mr-0.5" />
-                        Observações
-                      </span>
-                    ) : (
-                      <span>+ Adicionar observação</span>
-                    )}
-                  </button>
-
-                  {/* Prazo: botão pra abrir o editor (datetime-local) */}
-                  {!prazoEditing ? (
-                    <button
-                      type="button"
-                      onClick={() => setPrazoEditing(true)}
-                      disabled={pending}
-                      className={cn(
-                        "inline-flex items-center gap-1 text-[10px] leading-none text-muted-foreground/70 hover:text-muted-foreground transition-colors",
-                        tarefa.prazo ? "" : "opacity-0 group-hover:opacity-100",
-                      )}
-                    >
-                      <CalendarClock className="h-2.5 w-2.5" />
-                      {tarefa.prazo ? "Editar prazo" : "+ Definir prazo"}
-                    </button>
-                  ) : null}
-
-                  {/* Categoria: seletor nativo (só se houver categorias) */}
-                  {categorias.length > 0 ? (
-                    <select
-                      value={tarefa.categoria_id ?? ""}
-                      onChange={(e) =>
-                        handleSetCategoria(e.target.value || null)
-                      }
-                      disabled={pending}
-                      aria-label="Categoria da tarefa"
-                      className={cn(
-                        "h-5 rounded border border-input bg-transparent px-1 text-[10px] leading-none text-muted-foreground/80 hover:text-foreground transition-colors max-w-[140px]",
-                        tarefa.categoria_id
-                          ? ""
-                          : "opacity-0 group-hover:opacity-100 focus:opacity-100",
-                      )}
-                    >
-                      <option value="">Sem categoria</option>
-                      {categorias.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nome}
-                        </option>
-                      ))}
-                    </select>
-                  ) : null}
-
-                  {/* + Subtarefa */}
-                  <button
-                    type="button"
-                    onClick={() => setSubAdding((v) => !v)}
-                    disabled={pending}
-                    className={cn(
-                      "inline-flex items-center gap-1 text-[10px] leading-none text-muted-foreground/70 hover:text-muted-foreground transition-colors",
-                      subtarefas.length > 0
-                        ? ""
-                        : "opacity-0 group-hover:opacity-100",
-                    )}
-                  >
-                    <Plus className="h-2.5 w-2.5" />
-                    Subtarefa
-                  </button>
-                </div>
-              ) : null}
-
-              {/* Editor de prazo inline */}
-              {!compact && prazoEditing ? (
-                <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                  <input
-                    type="datetime-local"
-                    defaultValue={
-                      tarefa.prazo ? toDateTimeLocalBR(tarefa.prazo) : ""
-                    }
-                    autoFocus
-                    disabled={pending}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        handleSavePrazo((e.target as HTMLInputElement).value);
-                      } else if (e.key === "Escape") {
-                        e.preventDefault();
-                        setPrazoEditing(false);
-                      }
-                    }}
-                    id={`prazo-${tarefa.id}`}
-                    className="h-7 rounded-md border border-input bg-transparent px-2 text-xs"
-                  />
-                  <Button
-                    size="sm"
-                    className="h-7 px-2 text-xs"
-                    disabled={pending}
-                    onClick={() => {
-                      const el = document.getElementById(
-                        `prazo-${tarefa.id}`,
-                      ) as HTMLInputElement | null;
-                      handleSavePrazo(el?.value ?? "");
-                    }}
-                  >
-                    Salvar
-                  </Button>
-                  {tarefa.prazo ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-xs hover:text-destructive"
-                      disabled={pending}
-                      onClick={handleClearPrazo}
-                    >
-                      Remover
-                    </Button>
-                  ) : null}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 text-xs"
-                    disabled={pending}
-                    onClick={() => setPrazoEditing(false)}
-                  >
-                    Cancelar
-                  </Button>
-                </div>
+              {overdue ? (
+                <span
+                  className="inline-flex items-center font-semibold leading-none shrink-0"
+                  style={{
+                    fontSize: "11px",
+                    padding: "5px 11px",
+                    borderRadius: "9px",
+                    color: "#FF7A7A",
+                    background: "rgba(255,107,107,0.12)",
+                    border: "1px solid rgba(255,107,107,0.28)",
+                  }}
+                  title={`Vencida — prazo ${formatBR(tarefa.prazo!)}`}
+                >
+                  {overdueLabel}
+                </span>
               ) : null}
             </div>
 
-            {!compact ? (
-              <div className="flex items-center gap-1 shrink-0 self-start">
-                {overdue ? (
-                  <span
-                    className="inline-flex items-center font-semibold leading-none shrink-0"
-                    style={{
-                      fontSize: "11px",
-                      padding: "5px 12px",
-                      borderRadius: "10px",
-                      color: "#FF7A7A",
-                      background: "rgba(255,107,107,0.14)",
-                      border: "1px solid rgba(255,107,107,0.35)",
-                    }}
-                    title={`Vencida — prazo ${formatBR(tarefa.prazo!)}`}
-                  >
-                    {overdueLabel}
+            {/* Linha 2: metadados discretos — prioridade (dot+texto, clicável
+                pra ciclar) · prazo · categoria. */}
+            <div
+              className="flex items-center flex-wrap gap-1.5"
+              style={{
+                marginTop: "6px",
+                fontSize: "12px",
+                color: "rgba(255,255,255,0.42)",
+              }}
+            >
+              <button
+                type="button"
+                onClick={handleCyclePrioridade}
+                disabled={pending}
+                aria-label={`Prioridade ${TAREFA_PRIORIDADE_LABELS[tarefa.prioridade]} — clique pra alternar`}
+                title="Clique pra alternar prioridade (alta → média → baixa)"
+                className={cn(
+                  "inline-flex items-center gap-1.5 leading-none transition-opacity hover:opacity-70",
+                  pending && "opacity-50",
+                )}
+              >
+                <span
+                  aria-hidden
+                  style={{
+                    width: "6px",
+                    height: "6px",
+                    borderRadius: "9999px",
+                    background: PRIO_COLOR[tarefa.prioridade],
+                    boxShadow: `0 0 6px ${PRIO_COLOR[tarefa.prioridade]}`,
+                  }}
+                />
+                {TAREFA_PRIORIDADE_LABELS[tarefa.prioridade]}
+              </button>
+
+              {tarefa.prazo ? (
+                <>
+                  <span aria-hidden>·</span>
+                  <span title={`Prazo: ${formatBR(tarefa.prazo)}`}>
+                    {formatBR(tarefa.prazo, "d MMM, HH:mm").replace(".", "")}
                   </span>
+                </>
+              ) : null}
+
+              {categoriaNome ? (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>{categoriaNome}</span>
+                </>
+              ) : null}
+            </div>
+
+            {/* Linha 3: controles — só aparecem no hover (ou foco). Revelam
+                numa linha com divisória; toda a lógica é a mesma de antes. */}
+            <div className="max-h-0 overflow-hidden opacity-0 transition-all duration-200 group-hover:max-h-32 group-hover:opacity-100 group-focus-within:max-h-32 group-focus-within:opacity-100">
+              <div
+                className="flex items-center gap-3 flex-wrap"
+                style={{
+                  borderTop: "1px solid rgba(255,255,255,0.08)",
+                  marginTop: "13px",
+                  paddingTop: "13px",
+                }}
+              >
+                {/* Stand-by */}
+                <button
+                  type="button"
+                  onClick={handleToggleStandBy}
+                  disabled={pending}
+                  aria-label={
+                    tarefa.stand_by ? "Sair do stand by" : "Marcar como stand by"
+                  }
+                  className={cn(
+                    "inline-flex items-center gap-1 text-[10px] leading-none transition-colors",
+                    tarefa.stand_by
+                      ? "text-amber-500"
+                      : "text-muted-foreground/70 hover:text-muted-foreground",
+                    pending && "opacity-50",
+                  )}
+                >
+                  <PauseCircle className="h-3 w-3" />
+                  {tarefa.stand_by ? "Stand by ativo" : "Stand by"}
+                </button>
+
+                {/* Editar prazo */}
+                {!prazoEditing ? (
+                  <button
+                    type="button"
+                    onClick={() => setPrazoEditing(true)}
+                    disabled={pending}
+                    className="inline-flex items-center gap-1 text-[10px] leading-none text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+                  >
+                    <CalendarClock className="h-3 w-3" />
+                    {tarefa.prazo ? "Editar prazo" : "+ Definir prazo"}
+                  </button>
                 ) : null}
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                {/* Categoria */}
+                {categorias.length > 0 ? (
+                  <select
+                    value={tarefa.categoria_id ?? ""}
+                    onChange={(e) => handleSetCategoria(e.target.value || null)}
+                    disabled={pending}
+                    aria-label="Categoria da tarefa"
+                    className="h-5 rounded border border-input bg-transparent px-1 text-[10px] leading-none text-muted-foreground/80 hover:text-foreground transition-colors max-w-[140px]"
+                  >
+                    <option value="">Sem categoria</option>
+                    {categorias.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+
+                {/* + Subtarefa */}
+                <button
+                  type="button"
+                  onClick={() => setSubAdding((v) => !v)}
+                  disabled={pending}
+                  className="inline-flex items-center gap-1 text-[10px] leading-none text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+                >
+                  <Plus className="h-3 w-3" />
+                  Subtarefa
+                </button>
+
+                {/* Observações */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (obsEditing) return;
+                    if (!obsOpen && !hasObs) {
+                      openObsEditor();
+                    } else {
+                      setObsOpen((o) => !o);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 text-[10px] leading-none text-muted-foreground/70 hover:text-muted-foreground transition-colors"
+                >
+                  {obsOpen ? (
+                    <ChevronDown className="h-3 w-3" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" />
+                  )}
+                  {hasObs ? (
+                    <span>
+                      <FileText className="inline h-2.5 w-2.5 -mt-px mr-0.5" />
+                      Observações
+                    </span>
+                  ) : (
+                    <span>+ Observação</span>
+                  )}
+                </button>
+
+                {/* Editar texto + Excluir (ícones à direita) */}
+                <div className="ml-auto flex items-center gap-0.5">
                   <Button
                     size="icon"
                     variant="ghost"
@@ -736,8 +670,66 @@ export function ChecklistItem({
                   </Button>
                 </div>
               </div>
+            </div>
+
+            {/* Editor de prazo inline — fica visível independente do hover */}
+            {prazoEditing ? (
+              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                <input
+                  type="datetime-local"
+                  defaultValue={
+                    tarefa.prazo ? toDateTimeLocalBR(tarefa.prazo) : ""
+                  }
+                  autoFocus
+                  disabled={pending}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSavePrazo((e.target as HTMLInputElement).value);
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      setPrazoEditing(false);
+                    }
+                  }}
+                  id={`prazo-${tarefa.id}`}
+                  className="h-7 rounded-md border border-input bg-transparent px-2 text-xs"
+                />
+                <Button
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  disabled={pending}
+                  onClick={() => {
+                    const el = document.getElementById(
+                      `prazo-${tarefa.id}`,
+                    ) as HTMLInputElement | null;
+                    handleSavePrazo(el?.value ?? "");
+                  }}
+                >
+                  Salvar
+                </Button>
+                {tarefa.prazo ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs hover:text-destructive"
+                    disabled={pending}
+                    onClick={handleClearPrazo}
+                  >
+                    Remover
+                  </Button>
+                ) : null}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-xs"
+                  disabled={pending}
+                  onClick={() => setPrazoEditing(false)}
+                >
+                  Cancelar
+                </Button>
+              </div>
             ) : null}
-          </>
+          </div>
         )}
       </div>
 
@@ -935,9 +927,13 @@ function SubtarefaRow({ sub }: { sub: TarefaSemanal }) {
       </button>
       <p
         className={cn(
-          "flex-1 min-w-0 text-xs leading-snug",
+          "flex-1 min-w-0 leading-snug",
           sub.concluida && "line-through text-muted-foreground",
         )}
+        style={{
+          fontSize: "13.5px",
+          color: sub.concluida ? undefined : "rgba(255,255,255,0.78)",
+        }}
       >
         {sub.texto}
       </p>
