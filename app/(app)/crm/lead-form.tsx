@@ -76,7 +76,15 @@ export function LeadForm({ mode, lead, verticais }: Props) {
   }, [state, mode]);
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form
+      action={formAction}
+      className="space-y-6"
+      style={{
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
+        transform: "translateZ(0)",
+      }}
+    >
       {mode === "edit" && lead ? (
         <input type="hidden" name="id" value={lead.id} />
       ) : null}

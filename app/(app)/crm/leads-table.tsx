@@ -21,7 +21,7 @@ import {
   type Lead,
   type InteracaoCanal,
 } from "@/lib/database.types";
-import { statusBadgeClass, temperaturaBadgeClass } from "@/lib/leads/badge";
+import { CHIP_FORM, statusBadgeClass, temperaturaBadgeClass } from "@/lib/leads/badge";
 import { formatBR, formatBRHuman, isOverdueBR } from "@/lib/timezone";
 
 type OrderBy = "updated_at" | "created_at" | "empresa" | "proximo_followup";
@@ -83,7 +83,14 @@ export function LeadsTable({
   }
 
   return (
-    <div className="halo-glass rounded-halo overflow-hidden">
+    <div
+      className="halo-glass rounded-halo overflow-hidden"
+      style={{
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
+        transform: "translateZ(0)",
+      }}
+    >
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -126,7 +133,7 @@ export function LeadsTable({
                 className="cursor-pointer"
                 onClick={() => router.push(`/crm/${lead.id}`)}
               >
-                <TableCell className="font-medium">{lead.empresa}</TableCell>
+                <TableCell className="font-medium text-white">{lead.empresa}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {(() => {
                     const slugs = readLeadVerticais(lead);
@@ -142,7 +149,7 @@ export function LeadsTable({
                 <TableCell>
                   <Badge
                     variant="outline"
-                    className={cn("border", statusBadgeClass(lead.status))}
+                    className={cn("border", CHIP_FORM, statusBadgeClass(lead.status))}
                   >
                     {LEAD_STATUS_LABELS[lead.status]}
                   </Badge>
@@ -151,7 +158,7 @@ export function LeadsTable({
                   {lead.temperatura ? (
                     <Badge
                       variant="outline"
-                      className={temperaturaBadgeClass(lead.temperatura)}
+                      className={cn(CHIP_FORM, temperaturaBadgeClass(lead.temperatura))}
                     >
                       {LEAD_TEMPERATURA_LABELS[lead.temperatura]}
                     </Badge>

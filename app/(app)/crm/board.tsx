@@ -12,7 +12,7 @@ import {
   type Lead,
   type LeadStatus,
 } from "@/lib/database.types";
-import { statusBadgeClass, temperaturaBadgeClass } from "@/lib/leads/badge";
+import { CHIP_FORM, statusBadgeClass, temperaturaBadgeClass } from "@/lib/leads/badge";
 import { formatBR, formatBRHuman, isOverdueBR } from "@/lib/timezone";
 import { updateLeadStatusAction } from "@/lib/leads/actions";
 
@@ -82,7 +82,14 @@ export function LeadsBoard({ leads, d1Map, lastInteracaoMap }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto pb-2 -mx-2 px-2">
+    <div
+      className="overflow-x-auto pb-2 -mx-2 px-2"
+      style={{
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
+        transform: "translateZ(0)",
+      }}
+    >
       <div className="flex gap-3 min-w-max">
         {BOARD_COLUMNS.map((status) => {
           const columnLeads = byStatus.get(status) ?? [];
@@ -100,10 +107,7 @@ export function LeadsBoard({ leads, d1Map, lastInteracaoMap }: Props) {
                 <div className="flex items-center gap-2 min-w-0">
                   <Badge
                     variant="outline"
-                    className={cn(
-                      "border text-[11px]",
-                      statusBadgeClass(status),
-                    )}
+                    className={cn("border", CHIP_FORM, statusBadgeClass(status))}
                   >
                     {LEAD_STATUS_LABELS[status]}
                   </Badge>
@@ -146,7 +150,7 @@ export function LeadsBoard({ leads, d1Map, lastInteracaoMap }: Props) {
                         )}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <p className="text-sm font-medium truncate flex-1">
+                          <p className="text-sm font-medium truncate flex-1 text-white">
                             {lead.empresa}
                           </p>
                           {lead.temperatura ? (
@@ -154,7 +158,8 @@ export function LeadsBoard({ leads, d1Map, lastInteracaoMap }: Props) {
                               variant="outline"
                               className={cn(
                                 temperaturaBadgeClass(lead.temperatura),
-                                "text-[10px] py-0 px-1.5 shrink-0",
+                                CHIP_FORM,
+                                "shrink-0",
                               )}
                             >
                               {LEAD_TEMPERATURA_LABELS[lead.temperatura]}

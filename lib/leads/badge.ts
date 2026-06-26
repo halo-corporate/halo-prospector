@@ -56,3 +56,12 @@ export function temperaturaBadgeClass(t: LeadTemperatura): string {
       return `${base} is-quente`;
   }
 }
+
+/**
+ * Refino de FORMA do chip de status/temperatura no CRM — NÃO mexe na cor.
+ * Aplicar via className nos usos do Badge (o componente shadcn é compartilhado
+ * com outras telas, então o ajuste vive aqui e não no componente base). As
+ * cores semânticas seguem vindo de statusBadgeClass/temperaturaBadgeClass.
+ */
+export const CHIP_FORM =
+  "text-[10px] font-semibold tracking-[0.5px] px-2.5 py-[3px] rounded-lg";

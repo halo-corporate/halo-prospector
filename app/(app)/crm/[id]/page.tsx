@@ -13,7 +13,7 @@ import {
   readLeadVerticais,
   verticalLabel,
 } from "@/lib/database.types";
-import { statusBadgeClass, temperaturaBadgeClass } from "@/lib/leads/badge";
+import { CHIP_FORM, statusBadgeClass, temperaturaBadgeClass } from "@/lib/leads/badge";
 import { formatBR } from "@/lib/timezone";
 import { LeadForm } from "../lead-form";
 import { DeleteLeadButton } from "./delete-lead-button";
@@ -59,17 +59,17 @@ export default async function LeadDetailPage({
           <h1 className="title-display text-2xl truncate">
             {lead.empresa}
           </h1>
-          <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+          <div className="flex items-center gap-2.5 flex-wrap text-xs text-muted-foreground">
             <Badge
               variant="outline"
-              className={cn("border", statusBadgeClass(lead.status))}
+              className={cn("border", CHIP_FORM, statusBadgeClass(lead.status))}
             >
               {LEAD_STATUS_LABELS[lead.status]}
             </Badge>
             {lead.temperatura ? (
               <Badge
                 variant="outline"
-                className={temperaturaBadgeClass(lead.temperatura)}
+                className={cn(CHIP_FORM, temperaturaBadgeClass(lead.temperatura))}
               >
                 {LEAD_TEMPERATURA_LABELS[lead.temperatura]}
               </Badge>
