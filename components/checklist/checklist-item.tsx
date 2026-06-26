@@ -1108,7 +1108,7 @@ function SubtarefaRow({ sub }: { sub: TarefaSemanal }) {
             )}
             style={{
               fontSize: "13.5px",
-              color: sub.concluida ? undefined : "#E8E8E8",
+              color: sub.concluida ? undefined : "#fff",
               transform: "translateZ(0)",
               WebkitFontSmoothing: "antialiased",
               MozOsxFontSmoothing: "grayscale",
