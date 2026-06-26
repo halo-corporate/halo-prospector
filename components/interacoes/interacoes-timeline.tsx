@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import {
   MessageSquare,
   Instagram as InstagramIcon,
@@ -10,6 +10,7 @@ import {
   Users,
   StickyNote,
   Globe,
+  Edit2,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,11 +19,13 @@ import { Button } from "@/components/ui/button";
 import {
   INTERACAO_CANAL_LABELS,
   INTERACAO_TIPO_LABELS,
+  type Decisor,
   type Interacao,
   type InteracaoCanal,
 } from "@/lib/database.types";
 import { formatBR, formatBRHuman } from "@/lib/timezone";
 import { deleteInteracaoAction } from "@/lib/interacoes/actions";
+import { AddInteracaoDialog } from "./add-interacao-dialog";
 
 function canalIcon(canal: InteracaoCanal) {
   switch (canal) {
@@ -52,10 +55,12 @@ function tipoIsNota(tipo: string) {
 interface Props {
   interacoes: Interacao[];
   leadId: string;
+  decisores: Pick<Decisor, "id" | "nome" | "prioridade">[];
 }
 
-export function InteracoesTimeline({ interacoes, leadId }: Props) {
+export function InteracoesTimeline({ interacoes, leadId, decisores }: Props) {
   const [pending, startTransition] = useTransition();
+  const [editing, setEditing] = useState<Interacao | null>(null);
 
   function handleDelete(id: string) {
     startTransition(async () => {
@@ -63,6 +68,21 @@ export function InteracoesTimeline({ interacoes, leadId }: Props) {
       if (!res.ok) toast.error(res.message);
     });
   }
+
+  // Dialog controlado de edição (montado fresh por interação via key) — reusa o
+  // AddInteracaoDialog em modo edição. Vive fora do ramo de empty state.
+  const editDialog = editing ? (
+    <AddInteracaoDialog
+      key={editing.id}
+      leadId={leadId}
+      decisores={decisores}
+      interacao={editing}
+      open
+      onOpenChange={(o) => {
+        if (!o) setEditing(null);
+      }}
+    />
+  ) : null;
 
   if (interacoes.length === 0) {
     return (
@@ -73,6 +93,7 @@ export function InteracoesTimeline({ interacoes, leadId }: Props) {
   }
 
   return (
+    <>
     <ol className="relative space-y-3 pl-6 border-l border-border ml-2">
       {interacoes.map((i) => {
         const Icon = tipoIsCallMissed(i.tipo)
@@ -117,6 +138,16 @@ export function InteracoesTimeline({ interacoes, leadId }: Props) {
                   <Button
                     size="icon"
                     variant="ghost"
+                    className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity hover:text-foreground"
+                    onClick={() => setEditing(i)}
+                    disabled={pending}
+                    aria-label="Editar interação"
+                  >
+                    <Edit2 className="h-2.5 w-2.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
                     className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive"
                     onClick={() => handleDelete(i.id)}
                     disabled={pending}
@@ -134,5 +165,7 @@ export function InteracoesTimeline({ interacoes, leadId }: Props) {
         );
       })}
     </ol>
+    {editDialog}
+    </>
   );
 }

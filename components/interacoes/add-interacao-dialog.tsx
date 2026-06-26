@@ -27,34 +27,69 @@ import {
   INTERACAO_CANAL_LABELS,
   INTERACAO_TIPO_LABELS,
   type Decisor,
+  type Interacao,
   type InteracaoCanal,
   type InteracaoTipo,
 } from "@/lib/database.types";
-import { nowBRInputValue } from "@/lib/timezone";
-import { createInteracaoAction } from "@/lib/interacoes/actions";
+import { nowBRInputValue, toDateTimeLocalBR } from "@/lib/timezone";
+import {
+  createInteracaoAction,
+  updateInteracaoAction,
+} from "@/lib/interacoes/actions";
 
 interface Props {
   leadId: string;
   decisores: Pick<Decisor, "id" | "nome" | "prioridade">[];
+  /** Quando presente, o dialog opera em modo edição (controlado externamente). */
+  interacao?: Interacao;
+  /** Open controlado (modo edição). Se ausente, o dialog gerencia o próprio. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const NONE = "_none_";
 
-export function AddInteracaoDialog({ leadId, decisores }: Props) {
-  const [open, setOpen] = useState(false);
-  const [canal, setCanal] = useState<InteracaoCanal>("whatsapp");
-  const [tipo, setTipo] = useState<InteracaoTipo>("envio_mensagem");
-  const [decisorId, setDecisorId] = useState<string>(NONE);
-  const [dataHora, setDataHora] = useState<string>(nowBRInputValue());
-  const [resumo, setResumo] = useState("");
+export function AddInteracaoDialog({
+  leadId,
+  decisores,
+  interacao,
+  open: openProp,
+  onOpenChange,
+}: Props) {
+  const isEdit = !!interacao;
+  const isControlled = openProp !== undefined;
+
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? openProp : internalOpen;
+  function setOpen(o: boolean) {
+    onOpenChange?.(o);
+    if (!isControlled) setInternalOpen(o);
+  }
+
+  const [canal, setCanal] = useState<InteracaoCanal>(
+    interacao?.canal ?? "whatsapp",
+  );
+  const [tipo, setTipo] = useState<InteracaoTipo>(
+    interacao?.tipo ?? "envio_mensagem",
+  );
+  const [decisorId, setDecisorId] = useState<string>(
+    interacao?.decisor_id ?? NONE,
+  );
+  const [dataHora, setDataHora] = useState<string>(
+    interacao ? toDateTimeLocalBR(interacao.data_hora) : nowBRInputValue(),
+  );
+  const [resumo, setResumo] = useState(interacao?.resumo ?? "");
   const [pending, startTransition] = useTransition();
 
+  // Volta aos valores originais (edição) ou aos defaults (criação).
   function reset() {
-    setCanal("whatsapp");
-    setTipo("envio_mensagem");
-    setDecisorId(NONE);
-    setDataHora(nowBRInputValue());
-    setResumo("");
+    setCanal(interacao?.canal ?? "whatsapp");
+    setTipo(interacao?.tipo ?? "envio_mensagem");
+    setDecisorId(interacao?.decisor_id ?? NONE);
+    setDataHora(
+      interacao ? toDateTimeLocalBR(interacao.data_hora) : nowBRInputValue(),
+    );
+    setResumo(interacao?.resumo ?? "");
   }
 
   function handleSubmit() {
@@ -67,13 +102,15 @@ export function AddInteracaoDialog({ leadId, decisores }: Props) {
     fd.set("resumo", resumo);
 
     startTransition(async () => {
-      const res = await createInteracaoAction(fd);
+      const res = isEdit
+        ? await updateInteracaoAction(interacao!.id, fd)
+        : await createInteracaoAction(fd);
       if (!res.ok) {
         toast.error(res.message);
         return;
       }
-      toast.success("Interação registrada");
-      reset();
+      toast.success(isEdit ? "Interação atualizada" : "Interação registrada");
+      if (!isEdit) reset();
       setOpen(false);
     });
   }
@@ -83,19 +120,21 @@ export function AddInteracaoDialog({ leadId, decisores }: Props) {
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
-        if (o) setDataHora(nowBRInputValue());
-        else reset();
+        if (o && !isEdit) setDataHora(nowBRInputValue());
+        else if (!o) reset();
       }}
     >
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
-          <Plus className="h-3.5 w-3.5" />
-          Registrar interação
-        </Button>
-      </DialogTrigger>
+      {isEdit ? null : (
+        <DialogTrigger asChild>
+          <Button size="sm" variant="outline">
+            <Plus className="h-3.5 w-3.5" />
+            Registrar interação
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Nova interação</DialogTitle>
+          <DialogTitle>{isEdit ? "Editar interação" : "Nova interação"}</DialogTitle>
           <DialogDescription>
             Registra mensagens, ligações, reuniões e notas. Data/hora em fuso BR.
           </DialogDescription>
@@ -211,7 +250,13 @@ export function AddInteracaoDialog({ leadId, decisores }: Props) {
             onClick={handleSubmit}
             disabled={pending || !resumo.trim() || !dataHora}
           >
-            {pending ? "Registrando…" : "Registrar"}
+            {pending
+              ? isEdit
+                ? "Salvando…"
+                : "Registrando…"
+              : isEdit
+                ? "Salvar"
+                : "Registrar"}
           </Button>
         </DialogFooter>
       </DialogContent>

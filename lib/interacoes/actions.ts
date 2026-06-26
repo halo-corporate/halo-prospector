@@ -80,6 +80,50 @@ export async function createInteracaoAction(
   return { ok: true, id: data.id };
 }
 
+export async function updateInteracaoAction(
+  id: string,
+  fd: FormData,
+): Promise<InteracaoActionResult> {
+  if (!id) return { ok: false, message: "ID ausente" };
+
+  const parsed = interacaoSchema.safeParse({
+    lead_id: fd.get("lead_id"),
+    decisor_id: fd.get("decisor_id") || undefined,
+    data_hora_br: fd.get("data_hora_br"),
+    canal: fd.get("canal"),
+    tipo: fd.get("tipo"),
+    resumo: fd.get("resumo"),
+  });
+  if (!parsed.success) {
+    return { ok: false, message: parsed.error.issues[0]!.message };
+  }
+
+  const data_hora_utc = fromBRInput(parsed.data.data_hora_br).toISOString();
+
+  const supabase = createClient();
+  // RLS (user_id) garante o escopo — segue o mesmo padrão de create/delete.
+  const { error } = await supabase
+    .from("interacoes")
+    .update({
+      lead_id: parsed.data.lead_id,
+      decisor_id: parsed.data.decisor_id ?? null,
+      data_hora: data_hora_utc,
+      canal: parsed.data.canal,
+      tipo: parsed.data.tipo,
+      resumo: parsed.data.resumo,
+    })
+    .eq("id", id);
+  if (error) {
+    console.error("[updateInteracaoAction]", error);
+    return { ok: false, message: error.message };
+  }
+
+  revalidatePath(`/crm/${parsed.data.lead_id}`);
+  revalidatePath("/crm");
+  revalidatePath("/");
+  return { ok: true, id };
+}
+
 export async function deleteInteracaoAction(
   id: string,
   leadId: string,

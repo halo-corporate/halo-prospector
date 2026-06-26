@@ -145,7 +145,15 @@ export default async function LeadDetailPage({
               />
             </div>
 
-            <InteracoesTimeline interacoes={interacoes} leadId={lead.id} />
+            <InteracoesTimeline
+              interacoes={interacoes}
+              leadId={lead.id}
+              decisores={decisores.map((d) => ({
+                id: d.id,
+                nome: d.nome,
+                prioridade: d.prioridade,
+              }))}
+            />
           </section>
         </div>
       </div>
