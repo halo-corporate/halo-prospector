@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ExternalLink, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -24,8 +26,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Embalagem, Envio, Influencer } from "@/lib/database.types";
-import { deleteEnvioAction } from "@/lib/envios/actions";
+import {
+  ENVIO_STATUSES,
+  ENVIO_STATUS_LABELS,
+  type Embalagem,
+  type Envio,
+  type EnvioStatus,
+  type Influencer,
+} from "@/lib/database.types";
+import {
+  deleteEnvioAction,
+  updateEnvioStatusAction,
+} from "@/lib/envios/actions";
 import { formatBRL, formatDateBR } from "@/lib/format";
 import { EnvioStatusBadge } from "./envio-status-badge";
 import { EnvioFormDialog } from "./envio-form-dialog";
@@ -45,7 +57,9 @@ export function EnviosTable({
   melhorEnvioConectado = false,
   fromCepDefault = "",
 }: Props) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const embalagensById = new Map(embalagens.map((e) => [e.id, e.nome]));
 
   function handleDelete(id: string) {
@@ -53,6 +67,16 @@ export function EnviosTable({
       const res = await deleteEnvioAction(id);
       if (!res.ok) toast.error(res.message);
       else toast.success("Envio excluído");
+    });
+  }
+
+  function handleStatusChange(id: string, status: EnvioStatus) {
+    setPendingId(id);
+    startTransition(async () => {
+      const res = await updateEnvioStatusAction(id, status);
+      setPendingId(null);
+      if (res.ok) router.refresh();
+      else toast.error(res.message);
     });
   }
 
@@ -92,7 +116,41 @@ export function EnviosTable({
             return (
               <TableRow key={e.id} className={pending ? "opacity-50" : ""}>
                 <TableCell>
-                  <EnvioStatusBadge status={e.status} />
+                  {/* Badge visível + select nativo por cima (opacity-0) captura o
+                      clique pra trocar status inline. stopPropagation pra não
+                      vazar pra eventuais cliques da linha. */}
+                  <div
+                    className={cn(
+                      "relative inline-flex",
+                      pendingId === e.id && "opacity-50",
+                    )}
+                    onClick={(ev) => ev.stopPropagation()}
+                  >
+                    <EnvioStatusBadge status={e.status} />
+                    <select
+                      value={e.status}
+                      disabled={pendingId === e.id}
+                      onChange={(ev) =>
+                        handleStatusChange(
+                          e.id,
+                          ev.target.value as EnvioStatus,
+                        )
+                      }
+                      onClick={(ev) => ev.stopPropagation()}
+                      aria-label="Trocar status do envio"
+                      className="absolute inset-0 w-full cursor-pointer opacity-0 disabled:cursor-default"
+                    >
+                      {ENVIO_STATUSES.map((s) => (
+                        <option
+                          key={s}
+                          value={s}
+                          className="bg-background text-foreground"
+                        >
+                          {ENVIO_STATUS_LABELS[s]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </TableCell>
                 <TableCell className="font-medium">
                   <Link

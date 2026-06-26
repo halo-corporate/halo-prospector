@@ -13,7 +13,7 @@ export function EnvioStatusBadge({ status, className }: Props) {
     <Badge
       variant="outline"
       className={cn(
-        "border text-[10px] py-0",
+        "border text-[10px] font-semibold tracking-[0.5px] px-2.5 py-[3px] rounded-lg",
         envioStatusBadgeClass(status),
         className,
       )}
