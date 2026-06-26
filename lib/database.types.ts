@@ -434,10 +434,17 @@ export interface Database {
           estado: string | null;
           bairro_regiao: string | null;
           sub_nicho: string | null;
+          /** @deprecated use `sites` (multi). Congelado: não escrever mais. */
           site: string | null;
+          /** @deprecated use `instagrams` (multi). Congelado: não escrever mais. */
           instagram: string | null;
           telefone: string | null;
+          celular: string | null;
+          /** @deprecated use `emails` (multi). Congelado: não escrever mais. */
           email: string | null;
+          sites: string[];
+          instagrams: string[];
+          emails: string[];
           ticket_estimado: number | null;
           status: LeadStatus;
           temperatura: LeadTemperatura | null;
@@ -461,7 +468,11 @@ export interface Database {
           site?: string | null;
           instagram?: string | null;
           telefone?: string | null;
+          celular?: string | null;
           email?: string | null;
+          sites?: string[];
+          instagrams?: string[];
+          emails?: string[];
           ticket_estimado?: number | null;
           status?: LeadStatus;
           temperatura?: LeadTemperatura | null;
@@ -485,7 +496,11 @@ export interface Database {
           site?: string | null;
           instagram?: string | null;
           telefone?: string | null;
+          celular?: string | null;
           email?: string | null;
+          sites?: string[];
+          instagrams?: string[];
+          emails?: string[];
           ticket_estimado?: number | null;
           status?: LeadStatus;
           temperatura?: LeadTemperatura | null;

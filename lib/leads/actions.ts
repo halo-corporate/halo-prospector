@@ -51,10 +51,13 @@ function buildLeadPayload(parsed: import("zod").infer<typeof leadFormSchema>) {
     estado: parsed.estado ?? null,
     bairro_regiao: parsed.bairro_regiao ?? null,
     sub_nicho: parsed.sub_nicho ?? null,
-    site: parsed.site ?? null,
-    instagram: parsed.instagram ?? null,
     telefone: parsed.telefone ?? null,
-    email: parsed.email ?? null,
+    celular: parsed.celular ?? null,
+    // Multi-contato (text[]). Colunas antigas site/instagram/email ficam
+    // congeladas (não escrevemos mais — drop numa migration futura).
+    sites: parsed.sites,
+    instagrams: parsed.instagrams,
+    emails: parsed.emails,
     ticket_estimado: parsed.ticket_estimado ?? null,
     status: parsed.status,
     temperatura: parsed.temperatura ?? null,

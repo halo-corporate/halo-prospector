@@ -34,6 +34,34 @@ const verticaisFromCsv = z.preprocess(
   z.array(verticalSlug).min(1, "Selecione ao menos 1 vertical"),
 );
 
+/**
+ * Fábrica de preprocessador de array pra texto livre (espelha verticaisFromCsv,
+ * mas sem slug). Aceita CSV ("a@x.com,b@y.com") ou array. Split por vírgula,
+ * trim, remove vazios, dedup preservando ordem. O `item` valida cada entrada
+ * (ex.: z.string().email() pra emails; z.string() pra texto livre). Sem `.min()`
+ * — contato é opcional, array vazio é válido.
+ */
+const freeTextArrayFromCsv = (item: z.ZodTypeAny) =>
+  z.preprocess((v) => {
+    let arr: unknown[] = [];
+    if (Array.isArray(v)) arr = v;
+    else if (typeof v === "string") {
+      arr = v.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const x of arr) {
+      if (typeof x === "string") {
+        const t = x.trim();
+        if (t && !seen.has(t)) {
+          seen.add(t);
+          out.push(t);
+        }
+      }
+    }
+    return out;
+  }, z.array(item));
+
 const enumLeadStatus = z.enum([
   "novo",
   "pesquisando",
@@ -96,13 +124,12 @@ export const leadBaseSchema = z.object({
   estado: optEstado,
   bairro_regiao: optStr,
   sub_nicho: optStr,
-  site: optStr,
-  instagram: optStr,
   telefone: optStr,
-  email: z.preprocess(
-    emptyToNull,
-    z.string().email("E-mail inválido").nullable().optional(),
-  ),
+  celular: optStr,
+  // Multi-contato (text[]). Site/instagram = texto livre; email valida formato.
+  sites: freeTextArrayFromCsv(z.string()),
+  instagrams: freeTextArrayFromCsv(z.string()),
+  emails: freeTextArrayFromCsv(z.string().email("E-mail inválido")),
   ticket_estimado: optInt,
   status: enumLeadStatus.default("novo"),
   temperatura: optTemperatura,
@@ -142,10 +169,12 @@ export function leadFormDataToObject(fd: FormData) {
     estado: fd.get("estado"),
     bairro_regiao: fd.get("bairro_regiao"),
     sub_nicho: fd.get("sub_nicho"),
-    site: fd.get("site"),
-    instagram: fd.get("instagram"),
     telefone: fd.get("telefone"),
-    email: fd.get("email"),
+    celular: fd.get("celular"),
+    // CSV vindos dos hidden inputs do MultiInput (igual `verticais`).
+    sites: fd.get("sites") ?? "",
+    instagrams: fd.get("instagrams") ?? "",
+    emails: fd.get("emails") ?? "",
     ticket_estimado: fd.get("ticket_estimado"),
     status: fd.get("status") || "novo",
     temperatura: fd.get("temperatura"),

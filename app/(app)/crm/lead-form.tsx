@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { toast } from "sonner";
+import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -139,23 +140,33 @@ export function LeadForm({ mode, lead, verticais }: Props) {
       </Section>
 
       <Section title="Contato">
-        <Field label="Site" name="site" defaultValue={lead?.site ?? ""} />
-        <Field
-          label="Instagram"
-          name="instagram"
-          defaultValue={lead?.instagram ?? ""}
-          placeholder="@handle"
-        />
         <Field
           label="Telefone"
           name="telefone"
           defaultValue={lead?.telefone ?? ""}
         />
         <Field
+          label="Celular"
+          name="celular"
+          defaultValue={lead?.celular ?? ""}
+        />
+        <MultiInput
           label="E-mail"
-          name="email"
-          type="email"
-          defaultValue={lead?.email ?? ""}
+          name="emails"
+          initial={lead?.emails ?? []}
+          placeholder="contato@empresa.com"
+        />
+        <MultiInput
+          label="Instagram"
+          name="instagrams"
+          initial={lead?.instagrams ?? []}
+          placeholder="@handle"
+        />
+        <MultiInput
+          label="Site"
+          name="sites"
+          initial={lead?.sites ?? []}
+          placeholder="https://…"
         />
       </Section>
 
@@ -270,6 +281,81 @@ export function LeadForm({ mode, lead, verticais }: Props) {
         <SubmitButton mode={mode} />
       </div>
     </form>
+  );
+}
+
+/**
+ * Repeater de inputs de texto livre pra contato multi-valor (emails, instagrams,
+ * sites). Espelha o padrão do VerticalSelect: estado local + um hidden input que
+ * serializa pra CSV (vazios filtrados), pra o FormData mandar igual `verticais`.
+ * Os inputs visíveis NÃO têm `name` — só o hidden carrega o valor.
+ */
+function MultiInput({
+  label,
+  name,
+  initial,
+  placeholder,
+}: {
+  label: string;
+  name: string;
+  initial: string[];
+  placeholder?: string;
+}) {
+  // Começa com 1 box vazia quando o lead não tem nenhum valor ainda.
+  const [values, setValues] = useState<string[]>(
+    initial.length > 0 ? initial : [""],
+  );
+
+  function update(i: number, v: string) {
+    setValues((prev) => prev.map((x, idx) => (idx === i ? v : x)));
+  }
+  function add() {
+    setValues((prev) => [...prev, ""]);
+  }
+  function remove(i: number) {
+    setValues((prev) => prev.filter((_, idx) => idx !== i));
+  }
+
+  // Filtra vazios antes de serializar — boxes em branco não viram contato.
+  const serialized = values
+    .map((v) => v.trim())
+    .filter(Boolean)
+    .join(",");
+
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <div className="space-y-1.5">
+        {values.map((v, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <Input
+              value={v}
+              onChange={(e) => update(i, e.target.value)}
+              placeholder={placeholder}
+            />
+            {values.length > 1 ? (
+              <button
+                type="button"
+                onClick={() => remove(i)}
+                aria-label={`Remover ${label}`}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-input text-muted-foreground transition-colors hover:border-white/30 hover:text-foreground"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={add}
+        className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+      >
+        <Plus className="h-3 w-3" />
+        adicionar {label.toLowerCase()}
+      </button>
+      <input type="hidden" name={name} value={serialized} />
+    </div>
   );
 }
 
