@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -39,7 +39,7 @@ export async function loginAction(
     };
   }
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
