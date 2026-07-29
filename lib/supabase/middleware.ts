@@ -1,70 +1,52 @@
-// ⚠️ ALTERADO PARA SSO COM ALIEN — não reverter sem entender o impacto.
-// Este middleware deixou de validar a sessão do HALO e passou a validar a
-// sessão do ALIEN (a PORTA do login único). Reverter pro auth do HALO quebra
-// o SSO e tranca o Gabriel pra fora.
+// PORTÃO DO HALO — valida a sessão do próprio HALO (auth nativo).
+// Substituiu o gate SSO do ALIEN (fatia 3a.4). O login vive em /halo/login
+// (app/login/actions.ts, via createSessionClient). Reverter isto volta o
+// portão pro ALIEN (commit anterior).
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 
-/**
- * ALIEN Fase 2 / Opção C — SSO de login único.
- *
- * O HALO deixou de ter login próprio. A PORTA é a sessão do ALIEN. Este
- * middleware valida o cookie de sessão do ALIEN (`sb-<ref-alien>-auth-token`,
- * encaminhado pelo rewrite do mesmo domínio apex) chamando `getUser()` contra
- * o Supabase do ALIEN — o que também REFRESCA o token (modo de falha #4: o
- * Gabriel não pode ser jogado pra fora depois de 1h dentro do /halo). Sem
- * sessão ALIEN válida → redireciona pro `/login` do ALIEN, NUNCA pro login do
- * HALO (que não existe mais).
- *
- * Os dados do HALO são lidos server-side via service-role (lib/supabase/server.ts),
- * atrás deste portão — app single-user, só o Gabriel cruza (regra de ouro).
- */
 export async function updateSession(request: NextRequest) {
-  // Com basePath '/halo', o pathname pode ou não trazer o prefixo dependendo
-  // da versão do Next — normaliza removendo-o pra a lógica abaixo.
   const rawPath = request.nextUrl.pathname;
   const path = rawPath.startsWith("/halo")
     ? rawPath.slice("/halo".length) || "/"
     : rawPath;
 
-  // Cron (Vercel) roda sem cookies, batendo na própria URL do HALO. Protege-se
-  // com CRON_SECRET dentro da rota — não pode cair no gate de auth.
+  // Skip 1: cron do Vercel (sem cookies, protegido por CRON_SECRET na rota).
   if (path.startsWith("/api/cron")) {
     return NextResponse.next({ request });
   }
 
-  const alienUrl = process.env.ALIEN_SUPABASE_URL;
-  const alienAnon = process.env.ALIEN_SUPABASE_ANON_KEY;
-  const alienBase =
-    process.env.ALIEN_BASE_URL ?? "https://alien-eosin-nu.vercel.app";
+  // Skip 2 (ANTI-LOOP): a própria tela de login não passa pelo gate,
+  // senão deslogado -> /halo/login -> redirect -> /halo/login -> loop.
+  if (path === "/login") {
+    return NextResponse.next({ request });
+  }
 
-  // Redireciona pro /login do ALIEN anexando ?redirect=<destino> pra ele
-  // devolver o Gabriel pra rota que ele tentou abrir (o login do ALIEN respeita
-  // esse param desde o fix/login-redirect).
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Redireciona pra /halo/login. NextResponse.redirect NÃO soma o basePath
+  // no middleware -> caminho explícito /halo/login. Preserva ?redirect= pra
+  // loginAction devolver o usuário pra rota que ele tentou abrir.
   const loginRedirect = () => {
-    const loginUrl = new URL("/login", alienBase);
-    // Evita loop: não anexa retorno pra rotas de login/auth.
-    const isAuthRoute = path === "/login" || path.startsWith("/auth");
-    if (!isAuthRoute) {
-      // `path` já vem normalizado SEM o /halo (ver acima), então prefixar /halo
-      // garante exatamente um prefixo — do domínio do ALIEN, o HALO vive em
-      // /halo/*. `searchParams.set` cuida do encode (= encodeURIComponent).
-      const destino = "/halo" + path + request.nextUrl.search;
-      loginUrl.searchParams.set("redirect", destino);
-    }
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/halo/login";
+    loginUrl.search = "";
+    const destino = "/halo" + path + request.nextUrl.search;
+    loginUrl.searchParams.set("redirect", destino);
     return NextResponse.redirect(loginUrl);
   };
 
-  // Falha segura: sem as envs do ALIEN, NÃO libera — manda pro login do ALIEN.
-  if (!alienUrl || !alienAnon) {
+  // Falha segura: sem as envs do HALO, não libera.
+  if (!supabaseUrl || !supabaseAnon) {
     return loginRedirect();
   }
 
   let response = NextResponse.next({ request });
 
-  const supabase = createServerClient(alienUrl, alienAnon, {
+  const supabase = createServerClient(supabaseUrl, supabaseAnon, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -81,7 +63,6 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  // getUser() revalida o token no servidor do Supabase do ALIEN + refresca.
   const {
     data: { user },
   } = await supabase.auth.getUser();
