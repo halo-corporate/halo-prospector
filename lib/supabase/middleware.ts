@@ -27,15 +27,16 @@ export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Redireciona pra /halo/login. NextResponse.redirect NÃO soma o basePath
-  // no middleware -> caminho explícito /halo/login. Preserva ?redirect= pra
-  // loginAction devolver o usuário pra rota que ele tentou abrir.
+  // Redireciona pra tela de login. GOTCHA do basePath: no Next 14, tanto o
+  // NextURL (aqui) quanto o redirect() de Server Action (na loginAction)
+  // RE-SOMAM o basePath "/halo" na serialização. Por isso pathname e o valor
+  // de `next` vão RELATIVOS (sem /halo) — senão dobra pra /halo/halo/...
+  // O param é `next` porque é o que a tela de login (app/login) lê.
   const loginRedirect = () => {
     const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/halo/login";
+    loginUrl.pathname = "/login";
     loginUrl.search = "";
-    const destino = "/halo" + path + request.nextUrl.search;
-    loginUrl.searchParams.set("redirect", destino);
+    loginUrl.searchParams.set("next", path + request.nextUrl.search);
     return NextResponse.redirect(loginUrl);
   };
 
