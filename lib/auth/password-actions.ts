@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 
 export type TrocarSenhaResult =
   | { ok: true }
@@ -26,7 +26,7 @@ export async function trocarSenhaAction(
     return { ok: false, message: "A nova senha é igual à atual." };
   }
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
