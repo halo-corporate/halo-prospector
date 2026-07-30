@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import type {
   Influencer,
   InfluencerContratoTipo,
@@ -25,7 +25,7 @@ export interface ListInfluencersFilters {
 export async function listInfluencers(
   filters: ListInfluencersFilters = {},
 ): Promise<Influencer[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   let query = supabase
     .from("influencers")
     .select("*")
@@ -61,7 +61,7 @@ export async function listInfluencers(
 export async function getInfluencerById(
   id: string,
 ): Promise<Influencer | null> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("influencers")
     .select("*")
@@ -85,7 +85,7 @@ export async function countInfluencersV3Buckets(): Promise<{
   postsPublicados: number;
 }> {
   const empty = { parceriasAtivas: 0, postsPublicados: 0 };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("influencers")
     .select("status, posts_url");
@@ -116,7 +116,7 @@ export async function countInfluencersV3Buckets(): Promise<{
 export async function listInfluencersForSelect(): Promise<
   Pick<Influencer, "id" | "nome">[]
 > {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("influencers")
     .select("id, nome")

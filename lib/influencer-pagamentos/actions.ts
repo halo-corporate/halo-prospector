@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import {
   PAGAMENTO_STATUSES,
   PAGAMENTO_TIPOS,
@@ -112,7 +112,7 @@ export async function createPagamentoAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("influencer_pagamentos")
     .insert(buildPayload(parsed.data))
@@ -135,7 +135,7 @@ export async function updatePagamentoAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("influencer_pagamentos")
     .update(buildPayload(parsed.data))
@@ -153,7 +153,7 @@ export async function deletePagamentoAction(
   influencerId: string,
 ): Promise<PagamentoActionResult> {
   if (!id || id.length < 10) return { ok: false, message: "ID inválido" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("influencer_pagamentos")
     .delete()
@@ -172,7 +172,7 @@ export async function markPagamentoPagoAction(
 ): Promise<PagamentoActionResult> {
   if (!id || id.length < 10) return { ok: false, message: "ID inválido" };
   const today = todayBRISO();
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("influencer_pagamentos")
     .update({ status: "pago", data_pago: today })

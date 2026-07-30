@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import {
   INFLUENCER_STATUSES,
   INFLUENCER_CONTRATO_TIPOS,
@@ -194,7 +194,7 @@ export async function createInfluencerAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("influencers")
     .insert(buildPayload(parsed.data))
@@ -221,7 +221,7 @@ export async function updateInfluencerAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("influencers")
     .update(buildPayload(parsed.data))
@@ -240,7 +240,7 @@ export async function deleteInfluencerAction(
   id: string,
 ): Promise<InfluencerActionResult> {
   if (!id || id.length < 10) return { ok: false, message: "ID inválido" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("influencers")
     .delete()
@@ -263,7 +263,7 @@ export async function updateInfluencerStatusAction(
   if (!INFLUENCER_STATUSES.includes(status)) {
     return { ok: false, message: "Status inválido" };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("influencers")
     .update({ status })
@@ -286,7 +286,7 @@ export async function addPostUrlAction(
   const cleaned = (url ?? "").trim();
   if (!cleaned) return { ok: false, message: "URL obrigatória" };
   if (cleaned.length > 1000) return { ok: false, message: "URL muito longa" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data: current, error: getErr } = await supabase
     .from("influencers")
     .select("posts_url")
@@ -314,7 +314,7 @@ export async function removePostUrlAction(
   url: string,
 ): Promise<InfluencerActionResult> {
   if (!influencerId) return { ok: false, message: "ID inválido" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data: current, error: getErr } = await supabase
     .from("influencers")
     .select("posts_url")

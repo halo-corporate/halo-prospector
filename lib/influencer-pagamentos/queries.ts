@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import type { InfluencerPagamento } from "@/lib/database.types";
 
 function isMissingTableError(err: { code?: string; message?: string }): boolean {
@@ -14,7 +14,7 @@ function isMissingTableError(err: { code?: string; message?: string }): boolean 
 export async function listPagamentosByInfluencer(
   influencerId: string,
 ): Promise<InfluencerPagamento[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("influencer_pagamentos")
     .select("*")

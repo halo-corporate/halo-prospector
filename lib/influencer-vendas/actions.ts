@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 
 const emptyToNull = (v: unknown) =>
   typeof v === "string" && v.trim() === "" ? null : v;
@@ -84,7 +84,7 @@ export async function createVendaAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("influencer_vendas")
     .insert(buildPayload(parsed.data))
@@ -107,7 +107,7 @@ export async function updateVendaAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("influencer_vendas")
     .update(buildPayload(parsed.data))
@@ -125,7 +125,7 @@ export async function deleteVendaAction(
   influencerId: string,
 ): Promise<VendaActionResult> {
   if (!id || id.length < 10) return { ok: false, message: "ID inválido" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("influencer_vendas")
     .delete()
