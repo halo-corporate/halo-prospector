@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Settings } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Button } from "@/components/ui/button";
 import { HaloLockup } from "@/components/halo-lockup";
@@ -18,7 +18,7 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

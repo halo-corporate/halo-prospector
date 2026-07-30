@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import {
   countFollowupBuckets,
   listOverdueFollowups,
@@ -42,7 +42,7 @@ import { TarefasSemanaWidget } from "./tarefas-semana-widget";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const supabase = createClient();
+  const supabase = createSessionClient();
 
   // Tudo em paralelo
   const [
