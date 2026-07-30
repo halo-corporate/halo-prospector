@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 
 const dimensoesSchema = z
   .object({
@@ -74,7 +74,7 @@ export async function createEmbalagemAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("embalagens")
     .insert({
@@ -107,7 +107,7 @@ export async function updateEmbalagemAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("embalagens")
     .update({
@@ -134,7 +134,7 @@ export async function deleteEmbalagemAction(
   id: string,
 ): Promise<EmbalagemActionResult> {
   if (!id || id.length < 10) return { ok: false, message: "ID inválido" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase.from("embalagens").delete().eq("id", id);
   if (error) {
     console.error("[deleteEmbalagemAction]", error);
@@ -152,7 +152,7 @@ export async function createEmbalagemQuickAction(
   if (!nome || nome.length > 80) {
     return { ok: false, message: "Nome inválido (1–80 caracteres)" };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("embalagens")
     .insert({ nome })

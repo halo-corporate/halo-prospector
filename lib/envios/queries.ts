@@ -1,5 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import type { Envio, EnvioStatus } from "@/lib/database.types";
 import { BR_TZ } from "@/lib/timezone";
 
@@ -24,7 +24,7 @@ export interface ListEnviosFilters {
 export async function listEnvios(
   filters: ListEnviosFilters = {},
 ): Promise<Envio[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   let query = supabase
     .from("envios")
     .select("*")
@@ -70,7 +70,7 @@ export async function listEnvios(
 }
 
 export async function getEnvioById(id: string): Promise<Envio | null> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("envios")
     .select("*")
@@ -92,7 +92,7 @@ export async function countEnviosByPropostaIds(
 ): Promise<Map<string, number>> {
   const result = new Map<string, number>();
   if (propostaIds.length === 0) return result;
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("envios")
     .select("proposta_id")
@@ -133,7 +133,7 @@ export async function countEnviosV3Buckets(): Promise<{
     entreguesMes: 0,
     kitsInfluencer: 0,
   };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("envios")
     .select("status, influencer_id, data_entrega_efetiva");
@@ -169,7 +169,7 @@ export async function countEnviosV3Buckets(): Promise<{
 export async function countEnviosByStatus(): Promise<
   Record<EnvioStatus, number>
 > {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase.from("envios").select("status");
   const empty: Record<EnvioStatus, number> = {
     a_despachar: 0,

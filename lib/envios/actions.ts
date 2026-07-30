@@ -5,7 +5,8 @@
 // O path do upload de etiqueta usa a constante fixa HALO_USER_ID, não user.id.
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient, HALO_USER_ID } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
+import { HALO_USER_ID } from "@/lib/supabase/server";
 import { ENVIO_STATUSES, type EnvioStatus } from "@/lib/database.types";
 
 const emptyToNull = (v: unknown) =>
@@ -214,7 +215,7 @@ export async function createEnvioAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("envios")
     .insert(buildPayload(parsed.data))
@@ -238,7 +239,7 @@ export async function updateEnvioAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("envios")
     .update(buildPayload(parsed.data))
@@ -257,7 +258,7 @@ export async function deleteEnvioAction(
   id: string,
 ): Promise<EnvioActionResult> {
   if (!id || id.length < 10) return { ok: false, message: "ID inválido" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase.from("envios").delete().eq("id", id);
   if (error) {
     console.error("[deleteEnvioAction]", error);
@@ -277,7 +278,7 @@ export async function updateEnvioStatusAction(
   if (!ENVIO_STATUSES.includes(status)) {
     return { ok: false, message: "Status inválido" };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("envios")
     .update({ status })
@@ -317,7 +318,7 @@ export async function uploadEtiquetaAction(
     return { ok: false, message: "Envie um PDF" };
   }
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const rand = Math.random().toString(36).slice(2, 10);
   const path = `${HALO_USER_ID}/${envioId}-${rand}.pdf`;
 
@@ -349,7 +350,7 @@ export async function getEtiquetaSignedUrlAction(
   envioId: string,
 ): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
   if (!envioId) return { ok: false, message: "ID inválido" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data: envio, error } = await supabase
     .from("envios")
     .select("etiqueta_url")
@@ -379,7 +380,7 @@ export async function deleteEtiquetaAction(
   envioId: string,
 ): Promise<EnvioActionResult> {
   if (!envioId) return { ok: false, message: "ID inválido" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data: envio } = await supabase
     .from("envios")
     .select("etiqueta_url")

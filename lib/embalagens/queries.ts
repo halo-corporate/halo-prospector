@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import type { Embalagem } from "@/lib/database.types";
 
 /**
@@ -8,7 +8,7 @@ import type { Embalagem } from "@/lib/database.types";
 export async function listEmbalagens(
   includeInativas = false,
 ): Promise<Embalagem[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   let q = supabase.from("embalagens").select("*");
   if (!includeInativas) q = q.eq("ativo", true);
   const { data, error } = await q.order("nome", { ascending: true });
@@ -21,7 +21,7 @@ export async function listEmbalagens(
 }
 
 export async function getEmbalagem(id: string): Promise<Embalagem | null> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("embalagens")
     .select("*")
