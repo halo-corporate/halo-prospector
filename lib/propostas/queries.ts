@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import type { Proposta, PropostaStatus } from "@/lib/database.types";
 
 function isMissingTableError(err: { code?: string; message?: string }): boolean {
@@ -26,7 +26,7 @@ export interface ListPropostasFilters {
 export async function listPropostas(
   filters: ListPropostasFilters = {},
 ): Promise<Proposta[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   let query = supabase
     .from("propostas")
     .select("*")
@@ -61,7 +61,7 @@ export async function listPropostas(
 }
 
 export async function getPropostaById(id: string): Promise<Proposta | null> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("propostas")
     .select("*")

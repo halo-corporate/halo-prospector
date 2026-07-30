@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import type { LeadStatus } from "@/lib/database.types";
 import { fromBRInput } from "@/lib/timezone";
 import { leadFormSchema, leadFormDataToObject } from "./schema";
@@ -81,7 +81,7 @@ export async function createLeadAction(
     return { status: "error", ...formatZodErrors(parsed.error.issues) };
   }
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("leads")
     .insert(buildLeadPayload(parsed.data))
@@ -117,7 +117,7 @@ export async function updateLeadAction(
     return { status: "error", ...formatZodErrors(parsed.error.issues) };
   }
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("leads")
     .update(buildLeadPayload(parsed.data))
@@ -162,7 +162,7 @@ export async function updateLeadStatusAction(
   if (!isLeadStatus(nextStatus)) {
     return { ok: false, message: "Status inválido" };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("leads")
     .update({ status: nextStatus })
@@ -182,7 +182,7 @@ export async function updateLeadStatusAction(
  * Redireciona pra /leads.
  */
 export async function deleteLeadAction(id: string): Promise<void> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase.from("leads").delete().eq("id", id);
   if (error) {
     console.error("[deleteLeadAction]", error);

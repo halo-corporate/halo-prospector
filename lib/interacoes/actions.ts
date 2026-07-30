@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import { fromBRInput } from "@/lib/timezone";
 
 const canalEnum = z.enum([
@@ -56,7 +56,7 @@ export async function createInteracaoAction(
 
   const data_hora_utc = fromBRInput(parsed.data.data_hora_br).toISOString();
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("interacoes")
     .insert({
@@ -100,7 +100,7 @@ export async function updateInteracaoAction(
 
   const data_hora_utc = fromBRInput(parsed.data.data_hora_br).toISOString();
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   // RLS (user_id) garante o escopo — segue o mesmo padrão de create/delete.
   const { error } = await supabase
     .from("interacoes")
@@ -128,7 +128,7 @@ export async function deleteInteracaoAction(
   id: string,
   leadId: string,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase.from("interacoes").delete().eq("id", id);
   if (error) {
     console.error("[deleteInteracaoAction]", error);

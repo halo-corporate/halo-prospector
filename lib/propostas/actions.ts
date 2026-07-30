@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import {
   PROPOSTA_STATUSES,
   PROPOSTA_VERTICAIS,
@@ -139,7 +139,7 @@ export async function createPropostaAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("propostas")
     .insert({
@@ -178,7 +178,7 @@ export async function updatePropostaAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("propostas")
     .update({
@@ -211,7 +211,7 @@ export async function deletePropostaAction(
   id: string,
 ): Promise<PropostaActionResult> {
   if (!id || id.length < 10) return { ok: false, message: "ID inválido" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase.from("propostas").delete().eq("id", id);
   if (error) {
     console.error("[deletePropostaAction]", error);

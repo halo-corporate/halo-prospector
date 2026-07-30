@@ -1,11 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import type { Decisor } from "@/lib/database.types";
 
 /**
  * Lista decisores de um lead, ordenados por prioridade (d1 < d2 < d3) e nome.
  */
 export async function listDecisoresByLead(leadId: string): Promise<Decisor[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("decisores")
     .select("*")
@@ -30,7 +30,7 @@ export async function fetchPrimaryDecisorMap(
   const out = new Map<string, string>();
   if (leadIds.length === 0) return out;
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("decisores")
     .select("lead_id, nome, prioridade")

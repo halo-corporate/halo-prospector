@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import type { DecisorPrioridade } from "@/lib/database.types";
 
 const emptyToNull = (v: unknown) =>
@@ -47,7 +47,7 @@ export async function createDecisorAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("decisores")
     .insert({
@@ -105,7 +105,7 @@ export async function updateDecisorAction(
   if (fields.prioridade !== undefined) cleaned.prioridade = fields.prioridade;
   if (fields.contatado !== undefined) cleaned.contatado = fields.contatado;
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase.from("decisores").update(cleaned).eq("id", id);
   if (error) {
     console.error("[updateDecisorAction]", error);
@@ -120,7 +120,7 @@ export async function deleteDecisorAction(
   id: string,
   leadId: string,
 ): Promise<DecisorActionResult> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase.from("decisores").delete().eq("id", id);
   if (error) {
     console.error("[deleteDecisorAction]", error);

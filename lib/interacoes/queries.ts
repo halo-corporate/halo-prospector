@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import type {
   Interacao,
   InteracaoCanal,
@@ -21,7 +21,7 @@ export interface RecentInteracao {
 export async function listInteracoesByLead(
   leadId: string,
 ): Promise<Interacao[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("interacoes")
     .select("*")
@@ -44,7 +44,7 @@ export async function fetchLastInteracaoMap(
   const out = new Map<string, { canal: string; data_hora: string }>();
   if (leadIds.length === 0) return out;
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("interacoes")
     .select("lead_id, canal, data_hora")
@@ -69,7 +69,7 @@ export async function fetchLastInteracaoMap(
 export async function listRecentInteracoes(
   limit = 5,
 ): Promise<RecentInteracao[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("interacoes")
     .select("id, lead_id, data_hora, canal, tipo, resumo, leads(empresa)")

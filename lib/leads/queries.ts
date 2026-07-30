@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import { todayRangeBR, nextNDaysRangeBR } from "@/lib/timezone";
 import type {
   Lead,
@@ -32,7 +32,7 @@ export interface ListLeadsFilters {
  * tenham QUALQUER um dos slugs passados.
  */
 export async function listLeads(filters: ListLeadsFilters = {}): Promise<Lead[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const orderBy: LeadOrderBy = filters.orderBy ?? "updated_at";
   const ascending = (filters.orderDir ?? "desc") === "asc";
 
@@ -65,7 +65,7 @@ export async function listLeads(filters: ListLeadsFilters = {}): Promise<Lead[]>
  * Ordenado pelo mais antigo primeiro.
  */
 export async function listOverdueFollowups(limit?: number): Promise<Lead[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const nowIso = new Date().toISOString();
   let q = supabase
     .from("leads")
@@ -87,7 +87,7 @@ export async function listOverdueFollowups(limit?: number): Promise<Lead[]> {
  * Evita overlap com vencidos.
  */
 export async function listTodayFollowups(limit?: number): Promise<Lead[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { endUtc } = todayRangeBR();
   const nowIso = new Date().toISOString();
   let q = supabase
@@ -113,7 +113,7 @@ export async function listUpcomingFollowups(
   days = 7,
   limit?: number,
 ): Promise<Lead[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { startUtc, endUtc } = nextNDaysRangeBR(days);
   let q = supabase
     .from("leads")
@@ -139,7 +139,7 @@ export async function countFollowupBuckets(): Promise<{
   today: number;
   upcoming: number;
 }> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const nowIso = new Date().toISOString();
   const { endUtc: endToday } = todayRangeBR();
   const { startUtc: startNext, endUtc: endNext } = nextNDaysRangeBR(7);
@@ -176,7 +176,7 @@ export async function countFollowupBuckets(): Promise<{
  * (RLS bloqueia leitura).
  */
 export async function getLeadById(id: string): Promise<Lead | null> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("leads")
     .select("*")
