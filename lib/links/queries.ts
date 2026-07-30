@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import type { Link } from "@/lib/database.types";
 
 function isMissingTableError(err: { code?: string; message?: string }): boolean {
@@ -18,7 +18,7 @@ function isMissingTableError(err: { code?: string; message?: string }): boolean 
  * quebrar.
  */
 export async function listLinks(): Promise<Link[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("links")
     .select("*")

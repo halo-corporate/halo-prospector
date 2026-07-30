@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import {
   DEFAULT_VERTICAL_LABELS,
   DEFAULT_VERTICAL_SLUGS,
@@ -44,7 +44,7 @@ function defaultVerticais(): Vertical[] {
  * em memória pra UI não quebrar.
  */
 export async function listVerticais(): Promise<Vertical[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("verticais")
     .select("*")

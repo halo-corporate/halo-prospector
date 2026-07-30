@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 
 const nomeSchema = z
   .string()
@@ -34,7 +34,7 @@ export async function createCategoriaAction(
   const c = corSchema.safeParse(cor);
   if (!c.success) return { ok: false, message: c.error.issues[0]!.message };
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data: max } = await supabase
     .from("categorias_tarefa")
     .select("ordem")
@@ -70,7 +70,7 @@ export async function updateCategoriaAction(
   const c = corSchema.safeParse(cor);
   if (!c.success) return { ok: false, message: c.error.issues[0]!.message };
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("categorias_tarefa")
     .update({ nome: n.data, cor: c.data })
@@ -94,7 +94,7 @@ export async function deleteCategoriaAction(
   const i = idSchema.safeParse(id);
   if (!i.success) return { ok: false, message: i.error.issues[0]!.message };
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("categorias_tarefa")
     .delete()

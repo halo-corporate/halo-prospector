@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import { MENSAGEM_CANAIS, type MensagemCanal } from "@/lib/database.types";
 
 const emptyToNull = (v: unknown) =>
@@ -94,7 +94,7 @@ export async function createTemplateAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
 
   const { data: max } = await supabase
     .from("mensagem_templates")
@@ -130,7 +130,7 @@ export async function updateTemplateAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("mensagem_templates")
     .update(buildPayload(parsed.data))
@@ -147,7 +147,7 @@ export async function deleteTemplateAction(
   id: string,
 ): Promise<TemplateActionResult> {
   if (!id || id.length < 10) return { ok: false, message: "ID inválido" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("mensagem_templates")
     .delete()

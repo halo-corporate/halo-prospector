@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import type { MensagemTemplate, MensagemCanal } from "@/lib/database.types";
 
 function isMissingTableError(err: { code?: string; message?: string }): boolean {
@@ -29,7 +29,7 @@ export interface ListTemplatesFilters {
 export async function listTemplates(
   filters: ListTemplatesFilters = {},
 ): Promise<MensagemTemplate[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
 
   let query = supabase
     .from("mensagem_templates")
@@ -66,7 +66,7 @@ export async function listTemplates(
  * dos arrays `etapas_funil` de cada template). Alimenta o filtro.
  */
 export async function listEtapas(): Promise<string[]> {
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { data, error } = await supabase
     .from("mensagem_templates")
     .select("etapas_funil");

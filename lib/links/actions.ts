@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import { LINK_TIPOS, type LinkTipo } from "@/lib/database.types";
 
 const emptyToNull = (v: unknown) =>
@@ -78,7 +78,7 @@ export async function createLinkAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
 
   // Próximo `ordem` baseado no maior existente
   const { data: max } = await supabase
@@ -123,7 +123,7 @@ export async function updateLinkAction(
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]!.message };
   }
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase
     .from("links")
     .update({
@@ -146,7 +146,7 @@ export async function updateLinkAction(
  */
 export async function deleteLinkAction(id: string): Promise<LinkActionResult> {
   if (!id || id.length < 10) return { ok: false, message: "ID inválido" };
-  const supabase = createClient();
+  const supabase = createSessionClient();
   const { error } = await supabase.from("links").delete().eq("id", id);
   if (error) {
     console.error("[deleteLinkAction]", error);

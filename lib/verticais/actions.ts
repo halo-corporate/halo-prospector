@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
+import { createSessionClient } from "@/lib/supabase/session";
 import { slugifyVertical } from "./slug";
 
 const newVerticalSchema = z.object({
@@ -30,7 +30,7 @@ export async function createVerticalAction(
     return { ok: false, message: "Nome inválido" };
   }
 
-  const supabase = createClient();
+  const supabase = createSessionClient();
 
   // Tenta inserir; se conflito de unique (user_id, slug), busca a existente.
   const { error } = await supabase
