@@ -1,9 +1,6 @@
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { listPropostas } from "@/lib/propostas/queries";
-import { countEnviosByPropostaIds } from "@/lib/envios/queries";
-import { listEmbalagens } from "@/lib/embalagens/queries";
-import { listInfluencersForSelect } from "@/lib/influencers/queries";
 import {
   PROPOSTA_STATUSES,
   type PropostaStatus,
@@ -53,11 +50,6 @@ export default async function PropostasPage({
   };
 
   const propostas = await listPropostas(filters);
-  const [embalagens, influencers, enviosCountByProposta] = await Promise.all([
-    listEmbalagens(),
-    listInfluencersForSelect(),
-    countEnviosByPropostaIds(propostas.map((p) => p.id)),
-  ]);
 
   const hasFiltersActive = Boolean(
     filters.status ||
@@ -154,13 +146,7 @@ export default async function PropostasPage({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {propostas.map((p) => (
-            <PropostaCard
-              key={p.id}
-              proposta={p}
-              embalagens={embalagens}
-              influencers={influencers}
-              enviosCount={enviosCountByProposta.get(p.id) ?? 0}
-            />
+            <PropostaCard key={p.id} proposta={p} />
           ))}
         </div>
       )}

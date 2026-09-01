@@ -11,8 +11,6 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/crm", label: "CRM" },
   { href: "/propostas", label: "Propostas" },
-  { href: "/envios", label: "Envios" },
-  { href: "/influencers", label: "Influencers" },
   { href: "/checklist", label: "Checklist" },
   { href: "/mensagens", label: "Mensagens" },
   { href: "/links", label: "Links" },

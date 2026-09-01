@@ -4,11 +4,7 @@ import {
   CalendarCheck,
   CalendarClock,
   Flame,
-  Instagram,
-  PackageCheck,
-  Sparkles,
   TrendingUp,
-  Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,8 +18,6 @@ import {
 } from "@/lib/leads/queries";
 import { listRecentInteracoes } from "@/lib/interacoes/queries";
 import { listVerticais } from "@/lib/verticais/queries";
-import { countEnviosV3Buckets } from "@/lib/envios/queries";
-import { countInfluencersV3Buckets } from "@/lib/influencers/queries";
 import {
   INTERACAO_CANAL_LABELS,
   INTERACAO_TIPO_LABELS,
@@ -53,8 +47,6 @@ export default async function DashboardPage() {
     upcoming,
     buckets,
     recentInteracoes,
-    enviosV3,
-    influencersV3,
   ] = await Promise.all([
     supabase.from("leads").select("vertical, verticais, status, temperatura"),
     listVerticais(),
@@ -63,8 +55,6 @@ export default async function DashboardPage() {
     listUpcomingFollowups(7, 8),
     countFollowupBuckets(),
     listRecentInteracoes(5),
-    countEnviosV3Buckets(),
-    countInfluencersV3Buckets(),
   ]);
 
   const leads = leadsRes.data ?? [];
@@ -138,48 +128,6 @@ export default async function DashboardPage() {
           tone={aquecidos > 0 ? "primary" : "neutral"}
         />
       </div>
-
-      {/* V3 — Envios & Influencers */}
-      <section className="space-y-3">
-        <h2 className="halo-eyebrow">Envios & Influencers</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <KpiCard
-            icon={<Truck className="h-4 w-4" />}
-            label="A despachar"
-            value={enviosV3.aDespachar}
-            href="/envios?status=a_despachar"
-            tone={enviosV3.aDespachar > 0 ? "warning" : "neutral"}
-          />
-          <KpiCard
-            icon={<Truck className="h-4 w-4" />}
-            label="Em trânsito"
-            value={enviosV3.emTransito}
-            href="/envios?status=em_transito"
-            tone={enviosV3.emTransito > 0 ? "info" : "neutral"}
-          />
-          <KpiCard
-            icon={<PackageCheck className="h-4 w-4" />}
-            label="Entregues no mês"
-            value={enviosV3.entreguesMes}
-            href="/envios?status=entregue"
-            tone={enviosV3.entreguesMes > 0 ? "primary" : "neutral"}
-          />
-          <KpiCard
-            icon={<Sparkles className="h-4 w-4" />}
-            label="Parcerias ativas"
-            value={influencersV3.parceriasAtivas}
-            href="/influencers?status=parceria_ativa"
-            tone={influencersV3.parceriasAtivas > 0 ? "primary" : "neutral"}
-          />
-          <KpiCard
-            icon={<Instagram className="h-4 w-4" />}
-            label="Posts publicados"
-            value={influencersV3.postsPublicados}
-            href="/influencers"
-            tone={influencersV3.postsPublicados > 0 ? "primary" : "neutral"}
-          />
-        </div>
-      </section>
 
       {/* Follow-ups + Atividade */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
