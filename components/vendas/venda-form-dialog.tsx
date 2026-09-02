@@ -55,6 +55,33 @@ function numToInput(n: number): string {
   return String(n).replace(".", ",");
 }
 
+/** Arredonda a 2 casas (casa com o numeric(12,2) do banco). */
+function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Converte o modelo do form (total do pedido + quantidade + desconto %) pro
+ * formato do banco (valor_unitario + quantidade + desconto em R$), com o
+ * MESMO arredondamento a 2 casas que o numeric(12,2) aplica. O `liquido`
+ * calculado aqui é EXATAMENTE o valor_liquido que o banco vai gerar
+ * (quantidade*valor_unitario - desconto), então o preview do form nunca
+ * diverge do que fica gravado.
+ */
+function convertToDb(
+  valorTotalStr: string,
+  quantidadeStr: string,
+  descontoPctStr: string,
+) {
+  const qtd = parseInt(quantidadeStr, 10) || 0;
+  const totalBruto = parseNum(valorTotalStr);
+  const pct = parseNum(descontoPctStr);
+  const descontoRS = round2(totalBruto * (pct / 100));
+  const valorUnit = qtd > 0 ? round2(totalBruto / qtd) : 0;
+  const liquido = round2(qtd * valorUnit - descontoRS);
+  return { qtd, valorUnit, descontoRS, liquido };
+}
+
 interface Props {
   mode: "create" | "edit";
   venda?: Venda;
@@ -65,11 +92,18 @@ export function VendaFormDialog({ mode, venda, trigger }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
+  // Modelo do form: valor TOTAL do pedido + quantidade (informativa) +
+  // desconto em %. Na edição, converte de volta dos campos crus do banco.
   const [cliente, setCliente] = useState(venda?.cliente ?? "");
-  const [valorUnitario, setValorUnitario] = useState(
-    venda?.valor_unitario != null ? numToInput(venda.valor_unitario) : "",
+  const [valorTotal, setValorTotal] = useState(
+    venda?.valor_bruto != null ? numToInput(venda.valor_bruto) : "",
   );
   const [quantidade, setQuantidade] = useState(String(venda?.quantidade ?? 1));
+  const [descontoPct, setDescontoPct] = useState(
+    (venda?.desconto ?? 0) > 0 && (venda?.valor_bruto ?? 0) > 0
+      ? numToInput(round2(((venda?.desconto ?? 0) / (venda?.valor_bruto ?? 1)) * 100))
+      : "0",
+  );
   const [status, setStatus] = useState<VendaStatus>(venda?.status ?? "pendente");
   const [canal, setCanal] = useState<string>(
     venda?.canal_pagamento ?? CANAL_NENHUM,
@@ -80,10 +114,13 @@ export function VendaFormDialog({ mode, venda, trigger }: Props) {
   useEffect(() => {
     if (open) {
       setCliente(venda?.cliente ?? "");
-      setValorUnitario(
-        venda?.valor_unitario != null ? numToInput(venda.valor_unitario) : "",
-      );
+      setValorTotal(venda?.valor_bruto != null ? numToInput(venda.valor_bruto) : "");
       setQuantidade(String(venda?.quantidade ?? 1));
+      setDescontoPct(
+        (venda?.desconto ?? 0) > 0 && (venda?.valor_bruto ?? 0) > 0
+          ? numToInput(round2(((venda?.desconto ?? 0) / (venda?.valor_bruto ?? 1)) * 100))
+          : "0",
+      );
       setStatus(venda?.status ?? "pendente");
       setCanal(venda?.canal_pagamento ?? CANAL_NENHUM);
       setDataVenda(venda?.data_venda ?? todayISO());
@@ -93,25 +130,33 @@ export function VendaFormDialog({ mode, venda, trigger }: Props) {
     open,
     venda?.id,
     venda?.cliente,
-    venda?.valor_unitario,
+    venda?.valor_bruto,
     venda?.quantidade,
+    venda?.desconto,
     venda?.status,
     venda?.canal_pagamento,
     venda?.data_venda,
     venda?.observacoes,
   ]);
 
-  // Preview do total (só visual — quem grava o líquido é a coluna gerada).
-  const total = useMemo(() => {
-    const qtd = parseInt(quantidade, 10);
-    return (Number.isFinite(qtd) ? qtd : 0) * parseNum(valorUnitario);
-  }, [quantidade, valorUnitario]);
+  // Preview do total líquido — mesma conta do submit/banco (ver convertToDb).
+  const liquido = useMemo(
+    () => convertToDb(valorTotal, quantidade, descontoPct).liquido,
+    [valorTotal, quantidade, descontoPct],
+  );
 
   function handleSubmit() {
+    const { qtd, valorUnit, descontoRS } = convertToDb(
+      valorTotal,
+      quantidade,
+      descontoPct,
+    );
+
     const input: VendaInput = {
       cliente: cliente.trim(),
-      valor_unitario: parseNum(valorUnitario),
-      quantidade: parseInt(quantidade, 10) || 0,
+      valor_unitario: valorUnit,
+      quantidade: qtd,
+      desconto: descontoRS,
       status,
       canal_pagamento:
         canal === CANAL_NENHUM ? null : (canal as VendaCanalPagamento),
@@ -145,6 +190,8 @@ export function VendaFormDialog({ mode, venda, trigger }: Props) {
       </Button>
     );
 
+  const pct = parseNum(descontoPct);
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger ?? defaultTrigger}</DialogTrigger>
@@ -171,14 +218,14 @@ export function VendaFormDialog({ mode, venda, trigger }: Props) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <Label htmlFor="venda-vu">Valor unitário (R$) *</Label>
+              <Label htmlFor="venda-total">Valor total (R$) *</Label>
               <Input
-                id="venda-vu"
+                id="venda-total"
                 inputMode="decimal"
-                value={valorUnitario}
-                onChange={(e) => setValorUnitario(e.target.value)}
+                value={valorTotal}
+                onChange={(e) => setValorTotal(e.target.value)}
                 placeholder="0,00"
               />
             </div>
@@ -192,12 +239,22 @@ export function VendaFormDialog({ mode, venda, trigger }: Props) {
                 onChange={(e) => setQuantidade(e.target.value)}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="venda-desc">Desconto (%)</Label>
+              <Input
+                id="venda-desc"
+                inputMode="decimal"
+                value={descontoPct}
+                onChange={(e) => setDescontoPct(e.target.value)}
+                placeholder="0"
+              />
+            </div>
           </div>
 
           <p className="text-[11px] text-muted-foreground">
-            Total:{" "}
-            <span className="font-mono text-sm text-primary">
-              {formatBRL(total)}
+            Total líquido:{" "}
+            <span className="font-mono text-sm font-semibold text-primary">
+              {formatBRL(liquido)}
             </span>
           </p>
 
@@ -278,7 +335,9 @@ export function VendaFormDialog({ mode, venda, trigger }: Props) {
                 !cliente.trim() ||
                 !dataVenda ||
                 parseInt(quantidade, 10) <= 0 ||
-                parseNum(valorUnitario) < 0
+                parseNum(valorTotal) < 0 ||
+                pct < 0 ||
+                pct > 100
               }
             >
               {pending

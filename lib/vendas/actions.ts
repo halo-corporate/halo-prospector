@@ -16,6 +16,8 @@ export interface VendaInput {
   cliente: string;
   valor_unitario: number;
   quantidade: number;
+  /** Desconto em R$ (não %). Coluna `desconto` NOT NULL default 0 no banco. */
+  desconto?: number;
   status?: VendaStatus;
   canal_pagamento?: VendaCanalPagamento | null;
   data_venda?: string;
@@ -39,6 +41,7 @@ function buildVendaPayload(input: VendaInput) {
     cliente: input.cliente.trim(),
     valor_unitario: input.valor_unitario,
     quantidade: input.quantidade,
+    desconto: input.desconto ?? 0,
     responsavel: input.responsavel ?? "gabriel",
     status: input.status ?? "pendente",
     canal_pagamento: input.canal_pagamento ?? null,
