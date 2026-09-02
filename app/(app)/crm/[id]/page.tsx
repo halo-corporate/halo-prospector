@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getLeadById } from "@/lib/leads/queries";
 import { listVerticais } from "@/lib/verticais/queries";
@@ -20,6 +21,7 @@ import { DeleteLeadButton } from "./delete-lead-button";
 import { DecisorCard } from "@/components/decisores/decisor-card";
 import { AddDecisorForm } from "@/components/decisores/add-decisor-form";
 import { AddInteracaoDialog } from "@/components/interacoes/add-interacao-dialog";
+import { VendaFormDialog } from "@/components/vendas/venda-form-dialog";
 import { InteracoesTimeline } from "@/components/interacoes/interacoes-timeline";
 
 export const dynamic = "force-dynamic";
@@ -88,7 +90,18 @@ export default async function LeadDetailPage({
             <span>atualizado em {formatBR(lead.updated_at)}</span>
           </div>
         </div>
-        <DeleteLeadButton id={lead.id} empresa={lead.empresa} />
+        <div className="flex items-center gap-2 shrink-0">
+          <VendaFormDialog
+            mode="create"
+            prefill={{ cliente: lead.empresa, leadId: lead.id }}
+            trigger={
+              <Button variant="outline" size="sm">
+                Registrar venda
+              </Button>
+            }
+          />
+          <DeleteLeadButton id={lead.id} empresa={lead.empresa} />
+        </div>
       </div>
 
       {/* 2 colunas no desktop, empilhado no mobile */}

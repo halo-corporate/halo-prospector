@@ -86,15 +86,23 @@ interface Props {
   mode: "create" | "edit";
   venda?: Venda;
   trigger?: React.ReactNode;
+  /**
+   * Pré-preenchimento opcional (ex.: registrar venda a partir de um lead).
+   * `cliente` preenche o campo; `leadId` vincula a venda ao lead (grava
+   * lead_id). Aditivo — não afeta os usos sem prefill.
+   */
+  prefill?: { cliente?: string; leadId?: string };
 }
 
-export function VendaFormDialog({ mode, venda, trigger }: Props) {
+export function VendaFormDialog({ mode, venda, trigger, prefill }: Props) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
 
   // Modelo do form: valor TOTAL do pedido + quantidade (informativa) +
   // desconto em %. Na edição, converte de volta dos campos crus do banco.
-  const [cliente, setCliente] = useState(venda?.cliente ?? "");
+  const [cliente, setCliente] = useState(
+    venda?.cliente ?? prefill?.cliente ?? "",
+  );
   const [valorTotal, setValorTotal] = useState(
     venda?.valor_bruto != null ? numToInput(venda.valor_bruto) : "",
   );
@@ -113,7 +121,7 @@ export function VendaFormDialog({ mode, venda, trigger }: Props) {
 
   useEffect(() => {
     if (open) {
-      setCliente(venda?.cliente ?? "");
+      setCliente(venda?.cliente ?? prefill?.cliente ?? "");
       setValorTotal(venda?.valor_bruto != null ? numToInput(venda.valor_bruto) : "");
       setQuantidade(String(venda?.quantidade ?? 1));
       setDescontoPct(
@@ -128,6 +136,7 @@ export function VendaFormDialog({ mode, venda, trigger }: Props) {
     }
   }, [
     open,
+    prefill?.cliente,
     venda?.id,
     venda?.cliente,
     venda?.valor_bruto,
@@ -162,6 +171,9 @@ export function VendaFormDialog({ mode, venda, trigger }: Props) {
         canal === CANAL_NENHUM ? null : (canal as VendaCanalPagamento),
       data_venda: dataVenda || undefined,
       observacoes: observacoes.trim() || null,
+      // Vincula ao lead quando vem do CRM (prefill) e PRESERVA o vínculo
+      // existente na edição (senão o update zeraria lead_id).
+      lead_id: venda?.lead_id ?? prefill?.leadId ?? null,
     };
 
     startTransition(async () => {
