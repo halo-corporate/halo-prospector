@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { getVendasTotais, listVendas } from "@/lib/vendas/queries";
 import { formatBRL } from "@/lib/format";
 import { VendasTable } from "@/components/vendas/vendas-table";
+import { VendaFormDialog } from "@/components/vendas/venda-form-dialog";
 
 export const metadata = { title: "Vendas — HALO Prospector" };
 export const dynamic = "force-dynamic";
@@ -15,12 +16,15 @@ export default async function VendasPage() {
 
   return (
     <div className="container py-6 space-y-6 max-w-6xl">
-      <div className="space-y-1">
-        <p className="halo-eyebrow">Financeiro</p>
-        <h1 className="title-display text-3xl sm:text-4xl">Vendas</h1>
-        <p className="text-sm text-muted-foreground">
-          Registro das vendas fechadas.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-1">
+          <p className="halo-eyebrow">Financeiro</p>
+          <h1 className="title-display text-3xl sm:text-4xl">Vendas</h1>
+          <p className="text-sm text-muted-foreground">
+            Registro das vendas fechadas.
+          </p>
+        </div>
+        <VendaFormDialog mode="create" />
       </div>
 
       {/* KPIs */}

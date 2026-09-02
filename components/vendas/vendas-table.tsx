@@ -1,5 +1,8 @@
 "use client";
 
+import { useTransition } from "react";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -9,6 +12,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import {
   VENDA_STATUS_LABELS,
@@ -17,6 +32,8 @@ import {
   type VendaStatus,
 } from "@/lib/database.types";
 import { formatBRL, formatDateBR } from "@/lib/format";
+import { deleteVenda } from "@/lib/vendas/actions";
+import { VendaFormDialog } from "./venda-form-dialog";
 
 // Refino de forma do chip (mesmo token do CRM). Local pra manter a fatia
 // self-contained (sem lib/vendas/badge.ts ainda).
@@ -59,6 +76,7 @@ export function VendasTable({ vendas }: { vendas: Venda[] }) {
             <TableHead>Status</TableHead>
             <TableHead>Canal</TableHead>
             <TableHead>Data</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -89,10 +107,70 @@ export function VendasTable({ vendas }: { vendas: Venda[] }) {
               <TableCell className="text-muted-foreground whitespace-nowrap">
                 {formatDateBR(v.data_venda)}
               </TableCell>
+              <TableCell className="text-right">
+                <RowActions venda={v} />
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+    </div>
+  );
+}
+
+/**
+ * Ações por linha: editar (abre o dialog preenchido) e apagar (confirmação).
+ * Espelha o padrão de edit/delete do proposta-card.
+ */
+function RowActions({ venda }: { venda: Venda }) {
+  const [pending, startTransition] = useTransition();
+
+  function handleDelete() {
+    startTransition(async () => {
+      const res = await deleteVenda(venda.id);
+      if (!res.ok) toast.error(res.message);
+      // Sucesso: revalidatePath na action atualiza a lista.
+    });
+  }
+
+  return (
+    <div className="inline-flex items-center gap-0.5">
+      <VendaFormDialog mode="edit" venda={venda} />
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6 hover:text-destructive"
+            disabled={pending}
+            aria-label="Excluir venda"
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir venda?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A venda de{" "}
+              <strong className="text-foreground">{venda.cliente}</strong> vai
+              ser removida permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
