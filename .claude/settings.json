@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielblborba/Desktop/gabriel-borba/.claude/hooks/commit-guard.sh",
+            "timeout": 180
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/gabrielblborba/Desktop/gabriel-borba/.claude/hooks/skill-audit-guard.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
