@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/halo/api/cron/rastreio",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}

@@ -1,0 +1,229 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* HALO dark theme — base navy profundo (saiu do preto chapado), branco
+       texto, azul #0071E3 accent. Todos os neutros recebem leve tom azul
+       (hue ~218) pra dar coesão de marca e profundidade. */
+    --background: 220 45% 5%;
+    --foreground: 0 0% 100%;
+
+    --card: 220 38% 8%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 220 40% 9%;
+    --popover-foreground: 0 0% 100%;
+
+    /* primary = HALO blue #0071E3 ≈ hsl(211, 100%, 45%) */
+    --primary: 211 100% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 30% 14%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 220 24% 16%;
+    --muted-foreground: 220 12% 66%;
+
+    --accent: 220 30% 17%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 75% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 26% 18%;
+    --input: 220 26% 18%;
+    --ring: 211 100% 45%;
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    /* HALO brand — body em peso 300 (light), line-height arejada. Cor base
+       do texto fica em rgba(255,255,255,.78) pra remover peso visual. */
+    font-weight: 300;
+    line-height: 1.6;
+    letter-spacing: -0.005em;
+    /* Profundidade: brilhos azuis fixos sobre o navy — o fundo deixa de ser
+       chapado e ganha a atmosfera premium do brandbook. */
+    background-image:
+      radial-gradient(
+        70% 55% at 50% -5%,
+        rgba(0, 113, 227, 0.16),
+        transparent 70%
+      ),
+      radial-gradient(
+        45% 40% at 100% 0%,
+        rgba(0, 113, 227, 0.08),
+        transparent 70%
+      );
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    min-height: 100vh;
+  }
+
+  /* HALO V2 — hierarquia tipográfica: títulos top-level em Helvetica Neue
+     Bold, caixa alta, tracking generoso. Subtitles em fonte sans (Open
+     Sans) com case normal para criar contraste claro entre os dois. */
+  h1.title-display,
+  h2.title-display {
+    @apply font-display font-bold uppercase tracking-[0.04em];
+  }
+}
+
+@layer components {
+  /* HALO brand — "eyebrow" label que precede H1/H2 nas seções. Azul HALO,
+     uppercase, tracking aberto, com uma barrinha azul à esquerda pra dar
+     presença de marca. */
+  .halo-eyebrow {
+    @apply inline-flex items-center gap-2 text-[12px] font-semibold uppercase text-primary;
+    letter-spacing: 0.18em;
+  }
+  .halo-eyebrow::before {
+    content: "";
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: hsl(var(--primary));
+    flex: none;
+  }
+
+  /* HALO brand — glass card mais presente. Fundo translúcido + blur + borda
+     definida + sombra de elevação + hairline superior interno. No hover
+     ganha luz e um leve glow azul da marca. */
+  .halo-glass {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 8px 30px rgba(0, 0, 0, 0.45);
+    transition: background 0.25s ease, border-color 0.25s ease,
+      box-shadow 0.25s ease, transform 0.25s ease;
+  }
+  .halo-glass:hover {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      0 10px 36px rgba(0, 0, 0, 0.5),
+      0 0 0 1px rgba(0, 113, 227, 0.12),
+      0 0 28px rgba(0, 113, 227, 0.12);
+  }
+
+  /* HALO brand — brilho azul radial (assinatura do brandbook). Camada
+     decorativa absoluta; colocar dentro de um container `relative`. */
+  .halo-glow {
+    position: absolute;
+    top: -120px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 760px;
+    max-width: 120%;
+    height: 360px;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(0, 113, 227, 0.22),
+      transparent 62%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Temperatura NEON — badge com glow forte e pulso sutil contínuo.
+     Cada variante define --neon (cor RGB) que dirige a borda, o texto e
+     o box-shadow. O pulso anima o box-shadow entre 2 intensidades. */
+  .halo-neon-temp {
+    --neon: 56 189 248; /* sky-400 default (frio) */
+    color: rgb(var(--neon));
+    background: rgba(var(--neon) / 0.12);
+    border: 1px solid rgba(var(--neon) / 0.55);
+    box-shadow:
+      0 0 8px rgba(var(--neon) / 0.55),
+      0 0 18px rgba(var(--neon) / 0.35),
+      inset 0 0 6px rgba(var(--neon) / 0.18);
+    animation: halo-neon-pulse 2.4s ease-in-out infinite;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 6px rgba(var(--neon) / 0.85);
+  }
+  .halo-neon-temp.is-frio { --neon: 56 189 248; } /* sky-400 */
+  .halo-neon-temp.is-morno { --neon: 0 113 227; } /* HALO blue */
+  .halo-neon-temp.is-quente { --neon: 248 113 113; } /* red-400 */
+
+  @keyframes halo-neon-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 8px rgba(var(--neon) / 0.55),
+        0 0 18px rgba(var(--neon) / 0.35),
+        inset 0 0 6px rgba(var(--neon) / 0.18);
+    }
+    50% {
+      box-shadow:
+        0 0 14px rgba(var(--neon) / 0.85),
+        0 0 32px rgba(var(--neon) / 0.55),
+        0 0 60px rgba(var(--neon) / 0.25),
+        inset 0 0 10px rgba(var(--neon) / 0.28);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .halo-neon-temp { animation: none; }
+  }
+
+  /* Prazo (deadline) — chip com glow de proximidade. Quanto mais perto o
+     vencimento, mais quente e intenso o glow. `overdue` e `today` pulsam
+     pra puxar atenção; `soon` fica em glow estático âmbar. Cada variante
+     define --pz (cor RGB) que dirige borda, texto e box-shadow. */
+  .halo-deadline {
+    --pz: 251 191 36; /* amber-400 default */
+    color: rgb(var(--pz));
+    background: rgba(var(--pz) / 0.12);
+    border: 1px solid rgba(var(--pz) / 0.5);
+    box-shadow:
+      0 0 6px rgba(var(--pz) / 0.5),
+      inset 0 0 4px rgba(var(--pz) / 0.15);
+    font-weight: 600;
+  }
+  .halo-deadline.is-soon {
+    --pz: 251 191 36; /* amber-400 */
+  }
+  .halo-deadline.is-today {
+    --pz: 251 146 60; /* orange-400 */
+    animation: halo-deadline-pulse 2s ease-in-out infinite;
+  }
+  .halo-deadline.is-overdue {
+    --pz: 248 113 113; /* red-400 */
+    animation: halo-deadline-pulse 1.4s ease-in-out infinite;
+  }
+
+  @keyframes halo-deadline-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 6px rgba(var(--pz) / 0.5),
+        inset 0 0 4px rgba(var(--pz) / 0.15);
+    }
+    50% {
+      box-shadow:
+        0 0 12px rgba(var(--pz) / 0.8),
+        0 0 22px rgba(var(--pz) / 0.4),
+        inset 0 0 7px rgba(var(--pz) / 0.25);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .halo-deadline { animation: none; }
+  }
+}

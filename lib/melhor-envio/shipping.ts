@@ -1,0 +1,146 @@
+/**
+ * Cotação de frete via Melhor Envio (POST /api/v2/me/shipment/calculate).
+ * Recebe origem/destino + pacote e devolve as opções de transportadora/serviço
+ * com preço e prazo. Não cria pedido nem cobra nada — é só consulta.
+ */
+import { type MelhorEnvioConfig } from "./config";
+import { meFetch } from "./api";
+
+export interface CotacaoInput {
+  fromCep: string; // só dígitos (8)
+  toCep: string; // só dígitos (8)
+  pesoG: number; // gramas (> 0)
+  alturaCm: number;
+  larguraCm: number;
+  comprimentoCm: number;
+}
+
+export interface CotacaoOpcao {
+  servicoId: number;
+  transportadora: string;
+  servico: string;
+  valor: number; // R$
+  prazoDias: number | null;
+}
+
+/** Serviço que a API retornou mas SEM preço (com `error` ou sem valor). */
+export interface CotacaoIndisponivel {
+  transportadora: string;
+  servico: string;
+  motivo: string; // texto literal do `error` da API, ou explicação do porquê
+}
+
+/** Item bruto retornado pela API (campos que usamos). */
+interface CalculateItem {
+  id: number;
+  name: string;
+  price?: string;
+  custom_price?: string;
+  delivery_time?: number;
+  company?: { id: number; name: string };
+  error?: string;
+}
+
+export type CotacaoResult =
+  | { ok: true; opcoes: CotacaoOpcao[]; indisponiveis: CotacaoIndisponivel[] }
+  | { ok: false; message: string };
+
+/** Um candidato a item é um objeto com `id` (numérico) — o shape de uma opção. */
+function looksLikeItem(v: unknown): v is CalculateItem {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    typeof (v as { id?: unknown }).id === "number"
+  );
+}
+
+/**
+ * Normaliza a resposta do shipment/calculate. A API pode devolver:
+ *  - um array de opções `[{...}, {...}]`
+ *  - um objeto-único de opção `{id, name, price, ...}` (1 serviço)
+ *  - um objeto mapeado por id `{"1": {...}, "2": {...}}`
+ */
+function normalizeCalculateResponse(data: unknown): CalculateItem[] {
+  if (Array.isArray(data)) return data.filter(looksLikeItem);
+  if (looksLikeItem(data)) return [data];
+  if (data && typeof data === "object") {
+    return Object.values(data as Record<string, unknown>).filter(looksLikeItem);
+  }
+  return [];
+}
+
+export async function calcularFrete(
+  cfg: MelhorEnvioConfig,
+  accessToken: string,
+  input: CotacaoInput,
+): Promise<CotacaoResult> {
+  const body = {
+    from: { postal_code: input.fromCep },
+    to: { postal_code: input.toCep },
+    package: {
+      height: input.alturaCm,
+      width: input.larguraCm,
+      length: input.comprimentoCm,
+      weight: input.pesoG / 1000, // API espera kg
+    },
+    options: { receipt: false, own_hand: false },
+  };
+
+  const res = await meFetch<unknown>(
+    cfg,
+    accessToken,
+    "/api/v2/me/shipment/calculate",
+    { method: "POST", body },
+  );
+
+  if (!res.ok) {
+    return { ok: false, message: `Cotação recusada pelo Melhor Envio: ${res.message}` };
+  }
+
+  const itens = normalizeCalculateResponse(res.data);
+  if (itens.length === 0) {
+    return { ok: false, message: "Resposta inesperada do Melhor Envio." };
+  }
+
+  // Separa o que tem preço (selecionável) do que veio sem preço — guardando o
+  // motivo literal pra mostrar pro usuário por que aquela transportadora não
+  // aparece como opção.
+  const opcoes: CotacaoOpcao[] = [];
+  const indisponiveis: CotacaoIndisponivel[] = [];
+  for (const it of itens) {
+    const transportadora = it.company?.name ?? "—";
+    const servico = it.name;
+    const precoStr = it.custom_price ?? it.price;
+    if (it.error || !precoStr) {
+      indisponiveis.push({
+        transportadora,
+        servico,
+        motivo: it.error ?? "sem preço para este trajeto/pacote",
+      });
+      continue;
+    }
+    const valor = Number(precoStr);
+    if (!Number.isFinite(valor)) {
+      indisponiveis.push({ transportadora, servico, motivo: `preço inválido: "${precoStr}"` });
+      continue;
+    }
+    opcoes.push({
+      servicoId: it.id,
+      transportadora,
+      servico,
+      valor,
+      prazoDias: typeof it.delivery_time === "number" ? it.delivery_time : null,
+    });
+  }
+  opcoes.sort((a, b) => a.valor - b.valor);
+
+  if (opcoes.length === 0 && indisponiveis.length === 0) {
+    return {
+      ok: false,
+      message:
+        "Nenhum serviço disponível pra esse trajeto/pacote. Confira CEPs, peso e dimensões.",
+    };
+  }
+
+  return { ok: true, opcoes, indisponiveis };
+}
