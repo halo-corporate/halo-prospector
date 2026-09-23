@@ -1,5 +1,6 @@
 import { createSessionClient } from "@/lib/supabase/session";
-import { todayRangeBR, nextNDaysRangeBR } from "@/lib/timezone";
+import { todayRangeBR, nextNDaysRangeBR, BR_TZ } from "@/lib/timezone";
+import { toZonedTime } from "date-fns-tz";
 import type {
   Lead,
   LeadStatus,
@@ -66,7 +67,8 @@ export async function listLeads(filters: ListLeadsFilters = {}): Promise<Lead[]>
  */
 export async function listOverdueFollowups(limit?: number): Promise<Lead[]> {
   const supabase = createSessionClient();
-  const nowIso = new Date().toISOString();
+  const nowBR = toZonedTime(new Date(), BR_TZ);
+  const nowIso = nowBR.toISOString();
   let q = supabase
     .from("leads")
     .select("*")
@@ -140,7 +142,8 @@ export async function countFollowupBuckets(): Promise<{
   upcoming: number;
 }> {
   const supabase = createSessionClient();
-  const nowIso = new Date().toISOString();
+  const nowBR = toZonedTime(new Date(), BR_TZ);
+  const nowIso = nowBR.toISOString();
   const { endUtc: endToday } = todayRangeBR();
   const { startUtc: startNext, endUtc: endNext } = nextNDaysRangeBR(7);
 

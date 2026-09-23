@@ -7,7 +7,7 @@ import { createSessionClient } from "@/lib/supabase/session";
 
 const loginSchema = z.object({
   email: z.string().email("E-mail inválido"),
-  password: z.string().min(1, "Senha obrigatória"),
+  password: z.string().min(6, "Mínimo 6 caracteres"),
   next: z.string().optional(),
 });
 

@@ -3,6 +3,9 @@
  * logado. Lê a linha em melhor_envio_conexao (RLS owner), e se o token estiver
  * expirado (ou perto disso) renova via refresh_token e grava de volta — o
  * banco continua sendo a fonte de verdade. NUNCA expor o retorno ao client.
+ *
+ * ATENÇÃO: usa service-role (single-user, HALO_USER_ID fixo). Se o app ganhar
+ * multi-user, filtrar por user_id em todas as operações de escrita.
  */
 import { createClient } from "@/lib/supabase/server";
 import { getMelhorEnvioConfig, type MelhorEnvioConfig } from "./config";
@@ -10,6 +13,12 @@ import { refreshAccessToken } from "./api";
 
 // Margem de segurança: renova se faltar menos que isto pra expirar.
 const REFRESH_SKEW_MS = 60_000;
+
+/**
+ * Identidade fixa do Gabriel no Supabase do HALO (single-user).
+ * Usado em todas as operações de escrita que precisam de user_id.
+ */
+export const HALO_USER_ID = "e7fa0ed0-ae90-4c09-92d8-8ca34fed1f1c";
 
 export type ValidTokenResult =
   | { ok: true; accessToken: string; cfg: MelhorEnvioConfig }
@@ -23,6 +32,7 @@ export async function getValidAccessToken(): Promise<ValidTokenResult> {
   const { data, error } = await supabase
     .from("melhor_envio_conexao")
     .select("access_token, refresh_token, expires_at")
+    .eq("user_id", HALO_USER_ID)
     .maybeSingle();
 
   if (error) {
@@ -59,7 +69,7 @@ export async function getValidAccessToken(): Promise<ValidTokenResult> {
       scope: refreshed.data.scope ?? cfg.scope,
       expires_at: newExpiresAt,
     })
-    .not("user_id", "is", null); // RLS já restringe ao dono
+    .eq("user_id", HALO_USER_ID);
 
   if (updError) {
     console.error("[getValidAccessToken] update:", updError);

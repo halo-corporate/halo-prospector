@@ -83,6 +83,7 @@ export function WelcomeSplash() {
             "0 0 18px rgba(0,113,227,0.85), 0 0 48px rgba(0,113,227,0.55), 0 0 90px rgba(0,113,227,0.35)",
           fontFamily:
             "'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif",
+          animation: "halo-splash-in 0.45s ease-out both",
         }}
       >
         {fraseAtual}
@@ -91,29 +92,6 @@ export function WelcomeSplash() {
       <span className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[0.3em] text-white/40">
         Clique pra pular
       </span>
-
-      <style jsx>{`
-        .halo-splash-text {
-          animation: halo-splash-in 0.45s ease-out both;
-        }
-        @keyframes halo-splash-in {
-          0% {
-            opacity: 0;
-            filter: blur(14px);
-            transform: scale(0.96);
-          }
-          60% {
-            opacity: 1;
-            filter: blur(0);
-            transform: scale(1.02);
-          }
-          100% {
-            opacity: 1;
-            filter: blur(0);
-            transform: scale(1);
-          }
-        }
-      `}</style>
     </div>
   );
 }

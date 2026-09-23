@@ -54,9 +54,9 @@ import { formatBR, fromBRInput, toDateTimeLocalBR } from "@/lib/timezone";
 
 /** Cor da prioridade no modo completo (bolinha + texto na linha de metadados). */
 const PRIO_COLOR: Record<TarefaSemanal["prioridade"], string> = {
-  alta: "#FF7A7A",
-  media: "#FFC061",
-  baixa: "#7FE3A0",
+  alta: "hsl(0 84% 62%)",     /* red-400 #FF7A7A */
+  media: "hsl(38 92% 50%)",   /* amber-400 #FFC061 */
+  baixa: "hsl(142 69% 58%)",  /* green-400 #7FE3A0 */
 };
 
 interface Props {
@@ -537,7 +537,7 @@ export function ChecklistItem({
                       fontSize: "11px",
                       padding: "3px 10px",
                       borderRadius: "8px",
-                      color: "#7FBEFF",
+                      color: "hsl(211 100% 70%)",
                       background: "rgba(127,190,255,0.18)",
                       border: "1px solid rgba(127,190,255,0.3)",
                     }}
@@ -567,7 +567,7 @@ export function ChecklistItem({
                     fontSize: "11px",
                     padding: "5px 11px",
                     borderRadius: "9px",
-                    color: "#FF7A7A",
+                    color: "hsl(0 84% 62%)",
                     background: "rgba(255,107,107,0.12)",
                     border: "1px solid rgba(255,107,107,0.28)",
                   }}

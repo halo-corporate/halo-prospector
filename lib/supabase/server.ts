@@ -10,8 +10,11 @@ import type { Database } from "@/lib/database.types";
 
 /**
  * Identidade fixa do Gabriel no Supabase do HALO (auth.users.id de
- * gabriel@halo.com). Sob SSO não há `auth.uid()` — quem precisava de `user.id`
+ * gabriel@halo.com). Sob SSO não há `auth.uid()` — quem precisa de `user_id`
  * usa esta constante. Casa com o novo default de `user_id` (migration 0024).
+ *
+ * ATENÇÃO: se o app ganhar multi-user, substituir por `auth.uid()` via
+ * session do Supabase Auth em todas as operações de escrita.
  */
 export const HALO_USER_ID = "e7fa0ed0-ae90-4c09-92d8-8ca34fed1f1c";
 
