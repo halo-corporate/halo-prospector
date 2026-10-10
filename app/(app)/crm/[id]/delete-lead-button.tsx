@@ -19,13 +19,13 @@ export function DeleteLeadButton({ leadId, label = "Excluir lead" }: DeleteLeadB
   function handleDelete() {
     if (!confirm("Tem certeza que deseja excluir este lead?")) return;
     startTransition(async () => {
-      const res = await deleteLeadAction(leadId);
-      if (!res.ok) {
-        toast.error(res.message);
-        return;
+      try {
+        await deleteLeadAction(leadId);
+        toast.success("Lead excluído");
+        router.push("/crm");
+      } catch {
+        toast.error("Erro ao excluir lead");
       }
-      toast.success("Lead excluído");
-      router.push("/crm");
     });
   }
 
