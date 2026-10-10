@@ -11,6 +11,7 @@ import {
 import { toast } from "sonner";
 import { type TarefaSemanal } from "@/lib/database.types";
 import { useTransition } from "react";
+import { toggleTarefaAction } from "@/lib/tarefas/actions";
 
 interface Props {
   open: boolean;
@@ -29,13 +30,12 @@ export function TarefasConcluidasDialog({
 
   async function handleRestore(id: string) {
     startTransition(async () => {
-      const { default: actions } = await import("@/lib/checklist/actions");
-      const result = await actions.toggleConcluida(id, false);
-      if (result.success) {
+      const result = await toggleTarefaAction(id, false);
+      if (result.ok) {
         toast.success("Tarefa restaurada");
         onRestore();
       } else {
-        toast.error(result.error || "Erro ao restaurar");
+        toast.error(result.message || "Erro ao restaurar");
       }
     });
   }
