@@ -108,13 +108,13 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
     if (!lead) return;
     if (!confirm("Tem certeza que deseja excluir este lead?")) return;
     startTransition(async () => {
-      const res = await deleteLeadAction(lead.id);
-      if (!res.ok) {
-        toast.error(res.message);
-        return;
+      try {
+        await deleteLeadAction(lead.id);
+        toast.success("Lead excluído");
+        router.push("/crm");
+      } catch {
+        toast.error("Erro ao excluir lead");
       }
-      toast.success("Lead excluído");
-      router.push("/crm");
     });
   }
 
