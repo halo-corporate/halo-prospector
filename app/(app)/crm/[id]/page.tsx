@@ -171,8 +171,8 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
                   </Badge>
                 )}
               </div>
-              {lead.contato && (
-                <p className="text-muted-foreground">{lead.contato}</p>
+              {lead.emails?.[0] && (
+                <p className="text-muted-foreground">{lead.emails[0]}</p>
               )}
             </div>
           </div>
@@ -194,10 +194,10 @@ export default function LeadDetailPage({ params }: LeadDetailPageProps) {
             Informações
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-            {lead.contato && (
+            {lead.emails?.[0] && (
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{lead.contato}</span>
+                <span>{lead.emails[0]}</span>
               </div>
             )}
             {lead.telefone && (

@@ -171,9 +171,9 @@ export default function CrmPage() {
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <h3 className="font-medium truncate">{lead.empresa}</h3>
-                    {lead.contato && (
+                    {lead.emails?.[0] && (
                       <p className="text-sm text-muted-foreground truncate">
-                        {lead.contato}
+                        {lead.emails[0]}
                         {lead.cargo ? ` · ${lead.cargo}` : ""}
                       </p>
                     )}
